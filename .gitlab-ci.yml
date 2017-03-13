@@ -1,0 +1,79 @@
+variables:
+  DOCKER_DRIVER: overlay
+  GO_PROJECT_DIR: /go/src/gitlab.jetstack.net/marshal/colonel
+
+stages:
+- build
+- docker
+- deploy
+
+test:golang:
+  image: golang:1.8
+  stage: build
+  tags:
+  - docker
+  script:
+  - export OLD_DIR=$(pwd)
+  - mkdir -p $(dirname ${GO_PROJECT_DIR})
+  - mv ${OLD_DIR} ${GO_PROJECT_DIR}
+  - cd ${GO_PROJECT_DIR}
+  - make test_golang
+  - mv ${GO_PROJECT_DIR} ${OLD_DIR}
+
+vet:golang:
+  image: golang:1.8
+  stage: build
+  tags:
+  - docker
+  script:
+  - export OLD_DIR=$(pwd)
+  - mkdir -p $(dirname ${GO_PROJECT_DIR})
+  - mv ${OLD_DIR} ${GO_PROJECT_DIR}
+  - cd ${GO_PROJECT_DIR}
+  - make vet_golang
+  - mv ${GO_PROJECT_DIR} ${OLD_DIR}
+
+fmt:golang:
+  image: golang:1.8
+  stage: build
+  tags:
+  - docker
+  script:
+  - export OLD_DIR=$(pwd)
+  - mkdir -p $(dirname ${GO_PROJECT_DIR})
+  - mv ${OLD_DIR} ${GO_PROJECT_DIR}
+  - cd ${GO_PROJECT_DIR}
+  - make fmt_golang
+  - mv ${GO_PROJECT_DIR} ${OLD_DIR}
+
+build:golang:
+  image: golang:1.8
+  stage: build
+  tags:
+  - docker
+  script:
+  - export OLD_DIR=$(pwd)
+  - mkdir -p $(dirname ${GO_PROJECT_DIR})
+  - mv ${OLD_DIR} ${GO_PROJECT_DIR}
+  - cd ${GO_PROJECT_DIR}
+  - make build
+  - mv ${GO_PROJECT_DIR} ${OLD_DIR}
+  artifacts:
+    paths:
+    - sidecar/sidecar_linux_amd64
+
+docker:image:
+  image: docker:latest
+  stage: docker
+  tags:
+  - docker
+  script:
+  - apk --update add make
+  - mkdir -p ~/.docker && echo "${DOCKER_AUTH_CONFIG}" > ~/.docker/config.json && chmod 600 ~/.docker/config.json
+  - make docker_build docker_push IMAGE_TAGS="${CI_BUILD_REF_SLUG}-${CI_PIPELINE_ID} latest"
+  only:
+  - master
+  services:
+  - docker:dind
+  dependencies:
+  - build:golang
