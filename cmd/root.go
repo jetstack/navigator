@@ -28,7 +28,6 @@ import (
 	"flag"
 
 	"gitlab.jetstack.net/marshal/colonel/cmd/app"
-	"gitlab.jetstack.net/marshal/colonel/pkg/api/v1"
 	intinformers "gitlab.jetstack.net/marshal/colonel/pkg/informers"
 	"gitlab.jetstack.net/marshal/colonel/pkg/kube"
 )
@@ -59,18 +58,6 @@ to quickly create a Cobra application.`,
 
 		if err != nil {
 			logrus.Fatalf("error creating third party resource client: %s", err.Error())
-		}
-
-		var obj v1.ElasticsearchClusterList
-		err = tprClient.
-			Get().
-			Resource("elasticsearchclusters").
-			Do().
-			Into(&obj)
-
-		logrus.Printf("obj: %+v", obj)
-		if err != nil {
-			logrus.Fatalf("error listing: %s", err.Error())
 		}
 
 		ctx := app.ControllerContext{
