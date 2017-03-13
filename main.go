@@ -15,14 +15,11 @@
 package main
 
 import (
-	"flag"
-
 	"github.com/Sirupsen/logrus"
 	"gitlab.jetstack.net/marshal/colonel/cmd"
 )
 
 func main() {
-	flag.Parse()
 	logrus.SetLevel(logrus.DebugLevel)
 	cmd.Execute()
 }

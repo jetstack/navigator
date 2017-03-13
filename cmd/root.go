@@ -25,8 +25,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/informers"
 
-	"flag"
-
 	"gitlab.jetstack.net/marshal/colonel/cmd/app"
 	intinformers "gitlab.jetstack.net/marshal/colonel/pkg/informers"
 	"gitlab.jetstack.net/marshal/colonel/pkg/kube"
@@ -101,8 +99,6 @@ func init() {
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
 	RootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-
-	RootCmd.Flags().AddGoFlagSet(flag.CommandLine)
 }
 
 // initConfig reads in config file and ENV variables if set.
