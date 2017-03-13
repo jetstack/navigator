@@ -5,14 +5,23 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
+// In this file we define the outer containing types for the ElasticsearchCluster
+// type. We could import these directly into message types defined in the types.proto
+// file, but this is still TODO
+
+// ElasticsearchCluster describes a specification for an Elasticsearch cluster
 type ElasticsearchCluster struct {
+	// we embed these types so the ElasticsearchCluster implements runtime.Object
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata"`
 
 	Spec ElasticsearchClusterSpec `json:"spec"`
 }
 
+// ElasticsearchClusterList defines a List type for our custom ElasticsearchCluster type.
+// This is needed in order to make List operations work.
 type ElasticsearchClusterList struct {
+	// we embed these types so that ElasticsearchClusterList implements runtime.Object and List interfaces
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata"`
 

@@ -9,24 +9,36 @@ import (
 	"k8s.io/client-go/pkg/api/v1"
 )
 
+// We must register our custom API types with the apimachinery runtime.
+// This file builds a new Scheme, and registers it.
+
 var (
+	// SchemeBuilder that will register marshal v1 types to a scheme
 	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
-	AddToScheme   = SchemeBuilder.AddToScheme
+	// AddToScheme of this APIs SchemeBuilder
+	AddToScheme = SchemeBuilder.AddToScheme
 )
 
+// GroupName for this API
 const GroupName = "alpha.marshal.io"
+
+// Version for this API
 const Version = "v1"
 
+// SchemeGroupVersion for this API
 var SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: Version}
 
+// Kind returns a schema.GroupKind for the given kind
 func Kind(kind string) schema.GroupKind {
 	return SchemeGroupVersion.WithKind(kind).GroupKind()
 }
 
+// Resource returns a schema.GroupResource for the given resource
 func Resource(resource string) schema.GroupResource {
 	return SchemeGroupVersion.WithResource(resource).GroupResource()
 }
 
+// addKnownTypes adds the v1 types to a scheme
 func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&ElasticsearchCluster{},

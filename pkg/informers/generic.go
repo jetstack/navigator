@@ -17,6 +17,8 @@ type genericInformer struct {
 	resource schema.GroupResource
 }
 
+var _ GenericInformer = &genericInformer{}
+
 // Informer returns the SharedIndexInformer.
 func (f *genericInformer) Informer() cache.SharedIndexInformer {
 	return f.informer
