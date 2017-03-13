@@ -81,7 +81,7 @@ func (f *sharedInformerFactory) InformerFor(obj runtime.Object, newFunc internal
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
 	// Group=Marshal, Version=v1
-	case apiv1.SchemeGroupVersion.WithResource("elasticsearch"):
+	case apiv1.SchemeGroupVersion.WithResource("elasticsearchcluster"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.V1().ElasticsearchCluster().Informer()}, nil
 	}
 
