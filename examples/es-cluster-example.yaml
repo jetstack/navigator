@@ -1,0 +1,76 @@
+apiVersion: alpha.marshal.io/v1
+kind: ElasticsearchCluster
+metadata:
+  name: test
+spec:
+  # ElasticSearch settings
+  version: '5.2.0'
+  plugins:
+  - name: io.fabric8:elasticsearch-cloud-kubernetes:5.2.0
+
+  # Kubernetes image settings
+  # image:
+  #   pullPolicy: IfNotPresent
+
+  nodePools:
+  - name: data
+    replicas: 2
+
+    roles:
+    - data
+    
+    resources:
+      requests:
+        cpu: 1
+        memory: 2Gi
+      limits:
+        cpu: 2
+        memory: 4Gi
+    
+    state:
+      # if stateful is true, we'll create a StatefulSet instead of a Deployment
+      stateful: true
+
+      # if stateful is false, persistence must also be false
+      persistence:
+        enabled: true
+        size: 10Gi
+        storageClass: ""
+
+  - name: client
+    replicas: 2
+
+    roles:
+    - client
+    
+    resources:
+      requests:
+        cpu: 1
+        memory: 2Gi
+      limits:
+        cpu: 2
+        memory: 4Gi
+    
+    persistence:
+      enabled: true
+      size: 10Gi
+      storageClass: ""
+
+  - name: master
+    replicas: 2
+
+    roles:
+    - master
+    
+    resources:
+      requests:
+        cpu: 1
+        memory: 2Gi
+      limits:
+        cpu: 2
+        memory: 4Gi
+    
+    persistence:
+      enabled: true
+      size: 10Gi
+      storageClass: ""

@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package v1;
+
+
+message ElasticsearchClusterSpec {
+    string version = 1;
+    repeated ElasticsearchClusterPlugin plugins = 2;
+    repeated ElasticsearchClusterNodePool nodePools = 3;
+}
+
+message ElasticsearchClusterPlugin {
+    string name = 1;
+}
+
+message ElasticsearchClusterNodePool {
+    string name = 1;
+    int64 replicas = 2;
+    repeated string roles = 3;
+    ElasticsearchClusterResources resources = 4;
+    
+    message ElasticsearchClusterStateConfig {
+        bool stateful = 1;
+        ElasticsearchClusterPersistenceConfig persistence = 2;
+    }
+}
+
+message ElasticsearchClusterResources {
+    ResourceSet requests = 1;
+    ResourceSet limits = 2;
+
+    message ResourceSet {
+        string CPU = 1;
+        string memory = 2;
+    }
+}
+
+message ElasticsearchClusterPersistenceConfig {
+    bool enabled = 1;
+    string size = 2;
+    string storageClass = 3;
+}
+
+
