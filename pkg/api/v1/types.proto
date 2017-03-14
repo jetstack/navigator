@@ -18,6 +18,7 @@ message ElasticsearchClusterNodePool {
     int64 replicas = 2;
     repeated string roles = 3;
     ElasticsearchClusterResources resources = 4;
+    ElasticsearchClusterStateConfig state = 5;
     
     message ElasticsearchClusterStateConfig {
         bool stateful = 1;
