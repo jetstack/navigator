@@ -10,7 +10,7 @@ import (
 
 type ElasticsearchClusterLister interface {
 	List(selector labels.Selector) (ret []*v1.ElasticsearchCluster, err error)
-	ElasticsearchClusteres(namespace string) ElasticsearchClusterNamespaceLister
+	ElasticsearchClusters(namespace string) ElasticsearchClusterNamespaceLister
 }
 
 var _ ElasticsearchClusterLister = &elasticsearchClusterLister{}
@@ -30,7 +30,7 @@ func (s *elasticsearchClusterLister) List(selector labels.Selector) (ret []*v1.E
 	return ret, err
 }
 
-func (s *elasticsearchClusterLister) ElasticsearchClusteres(namespace string) ElasticsearchClusterNamespaceLister {
+func (s *elasticsearchClusterLister) ElasticsearchClusters(namespace string) ElasticsearchClusterNamespaceLister {
 	return &elasticsearchClusterNamespaceLister{indexer: s.indexer, namespace: namespace}
 }
 
