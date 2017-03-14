@@ -2,6 +2,7 @@ package elastic
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/Sirupsen/logrus"
 	apps "k8s.io/client-go/informers/apps/v1beta1"
@@ -41,11 +42,8 @@ func NewElasticsearch(
 	}
 
 	es.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: elasticsearchController.addElasticsearchCluster,
-		UpdateFunc: func(old, new interface{}) {
-			logrus.Printf("Upd ES, old: %+v, new: %+v", old, new)
-			// logic for dealing with a change to a TPR
-		},
+		AddFunc:    elasticsearchController.addElasticsearchCluster,
+		UpdateFunc: elasticsearchController.updateElasticsearchCluster,
 		DeleteFunc: func(obj interface{}) {
 			logrus.Printf("Del ES")
 			// logic for deleting an ES deployment
@@ -111,9 +109,79 @@ func (e *ElasticsearchController) addElasticsearchCluster(obj interface{}) {
 		return
 	}
 
-	e.needsUpdate(es)
+	if err := verifyElasticsearchCluster(es); err != nil {
+		logrus.Errorf("error verifying ElasticsearchCluster resource: %s", err.Error())
+		return
+	}
+
+	if needsUpdate, err := e.clusterNeedsUpdate(es); err != nil {
+		logrus.Errorf("error checking if ElasticsearchCluster needs update: %s", err.Error())
+		return
+	} else if needsUpdate {
+		logrus.Printf("Update ElasticsearchCluster!")
+	}
 }
 
-func (e *ElasticsearchController) needsUpdate(c *v1.ElasticsearchCluster) (bool, error) {
+func (e *ElasticsearchController) updateElasticsearchCluster(old, new interface{}) {
+	// noop change
+	if reflect.DeepEqual(old, new) {
+		return
+	}
+
+	var ok bool
+	var es *v1.ElasticsearchCluster
+
+	if es, ok = new.(*v1.ElasticsearchCluster); !ok {
+		logrus.Errorf("object not of type *v1.ElasticsearchCluster")
+		return
+	}
+
+	if err := verifyElasticsearchCluster(es); err != nil {
+		logrus.Errorf("error verifying ElasticsearchCluster resource: %s", err.Error())
+		return
+	}
+}
+
+func (e *ElasticsearchController) clusterNeedsUpdate(c *v1.ElasticsearchCluster) (bool, error) {
+	for _, np := range c.Spec.NodePools {
+		if needsUpdate, err := e.nodePoolNeedsUpdate(c, np); err != nil {
+			return false, err
+		} else if needsUpdate {
+			return true, nil
+		}
+	}
 	return false, nil
+}
+
+func verifyElasticsearchCluster(c *v1.ElasticsearchCluster) error {
+	// TODO: add verification that at least one client, master and data node pool exist
+	if c.Spec.Version == "" {
+		return fmt.Errorf("cluster version number must be specified")
+	}
+
+	for _, np := range c.Spec.NodePools {
+		if err := verifyNodePool(np); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func verifyNodePool(np *v1.ElasticsearchClusterNodePool) error {
+	for _, role := range np.Roles {
+		switch role {
+		case "data", "client", "master":
+		default:
+			return fmt.Errorf("invalid role '%s' specified. must be one of 'data', 'client' or 'master'", role)
+		}
+	}
+
+	if np.State != nil {
+		if !np.State.Stateful && np.State.Persistence.Enabled {
+			return fmt.Errorf("a non-stateful node pool cannot have persistence enabled")
+		}
+	}
+
+	return nil
 }
