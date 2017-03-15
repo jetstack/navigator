@@ -1,16 +1,24 @@
 apiVersion: alpha.marshal.io/v1
 kind: ElasticsearchCluster
 metadata:
-  name: test
+  name: demo
 spec:
-  # ElasticSearch settings
   version: '5.2.0'
   plugins:
-  - name: io.fabric8:elasticsearch-cloud-kubernetes:5.2.0
+  - name: "io.fabric8:elasticsearch-cloud-kubernetes:5.2.0"
 
-  # Kubernetes image settings
-  # image:
-  #   pullPolicy: IfNotPresent
+  # NOTE: DO NOT SPECIFY MORE THAN ONE SYSCTL FOR NOW
+  sysctl:
+  - vm.max_map_count=262144
+
+  image:
+    repository: munnerz/elasticsearch-k8s
+    tag: lieutenant
+    pullPolicy: IfNotPresent
+    ## This sets the group of the persistent volume created for
+    ## the data nodes. This must be the same as the user that elasticsearch
+    ## runs as within the container.
+    fsGroup: 1000
 
   nodePools:
   - name: data
@@ -21,21 +29,25 @@ spec:
     
     resources:
       requests:
-        cpu: 1
+        cpu: '500m'
         memory: 2Gi
       limits:
-        cpu: 2
-        memory: 4Gi
+        cpu: '1'
+        memory: 3Gi
     
     state:
-      # if stateful is true, we'll create a StatefulSet instead of a Deployment
+      # stateful defines whether to create a StatefulSet or a Deployment
       stateful: true
 
-      # if stateful is false, persistence must also be false
+      # persistent sets persistent storage config
       persistence:
+        # enabled will only have an effect if stateful is also true. If true,
+        # the persistentVolumeClaims block of the StatefulSet will be set
         enabled: true
+        # size of the volume
         size: 10Gi
-        storageClass: ""
+        # storageClass of the volume
+        storageClass: "fast"
 
   - name: client
     replicas: 2
@@ -45,16 +57,11 @@ spec:
     
     resources:
       requests:
-        cpu: 1
+        cpu: '1'
         memory: 2Gi
       limits:
-        cpu: 2
+        cpu: '2'
         memory: 4Gi
-    
-    persistence:
-      enabled: true
-      size: 10Gi
-      storageClass: ""
 
   - name: master
     replicas: 2
@@ -64,13 +71,8 @@ spec:
     
     resources:
       requests:
-        cpu: 1
+        cpu: '1'
         memory: 2Gi
       limits:
-        cpu: 2
+        cpu: '2'
         memory: 4Gi
-    
-    persistence:
-      enabled: true
-      size: 10Gi
-      storageClass: ""

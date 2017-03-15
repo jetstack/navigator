@@ -6,21 +6,27 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/api/errors"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	apps "k8s.io/client-go/informers/apps/v1beta1"
 	depl "k8s.io/client-go/informers/extensions/v1beta1"
 	"k8s.io/client-go/kubernetes"
+	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	appslisters "k8s.io/client-go/listers/apps/v1beta1"
 	extensionslisters "k8s.io/client-go/listers/extensions/v1beta1"
+	"k8s.io/client-go/pkg/api"
+	clientv1 "k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/tools/cache"
+
+	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 
 	"gitlab.jetstack.net/marshal/colonel/pkg/api/v1"
 	"gitlab.jetstack.net/marshal/colonel/pkg/controllers"
 	informersv1 "gitlab.jetstack.net/marshal/colonel/pkg/informers/v1"
 	listersv1 "gitlab.jetstack.net/marshal/colonel/pkg/listers/v1"
-	"gitlab.jetstack.net/marshal/colonel/pkg/util"
 )
 
 type ElasticsearchController struct {
@@ -35,7 +41,8 @@ type ElasticsearchController struct {
 	statefulSetLister       appslisters.StatefulSetLister
 	statefulSetListerSynced cache.InformerSynced
 
-	queue workqueue.RateLimitingInterface
+	queue                       workqueue.RateLimitingInterface
+	elasticsearchClusterControl ElasticsearchClusterControl
 }
 
 func NewElasticsearch(
@@ -44,6 +51,11 @@ func NewElasticsearch(
 	statefulsets apps.StatefulSetInformer,
 	cl *kubernetes.Clientset,
 ) *ElasticsearchController {
+	eventBroadcaster := record.NewBroadcaster()
+	eventBroadcaster.StartLogging(glog.Infof)
+	eventBroadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: v1core.New(cl.Core().RESTClient()).Events("")})
+	recorder := eventBroadcaster.NewRecorder(api.Scheme, clientv1.EventSource{Component: "elasticsearchCluster"})
+
 	elasticsearchController := &ElasticsearchController{
 		kubeClient: cl,
 		queue:      workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "elasticsearchCluster"),
@@ -52,9 +64,11 @@ func NewElasticsearch(
 	es.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: elasticsearchController.enqueueElasticsearchCluster,
 		UpdateFunc: func(old, cur interface{}) {
+			logrus.Printf("edited esc")
 			oldCluster := old.(*v1.ElasticsearchCluster)
 			curCluster := cur.(*v1.ElasticsearchCluster)
 			if !reflect.DeepEqual(oldCluster, curCluster) {
+				logrus.Printf("queue update")
 				elasticsearchController.enqueueElasticsearchCluster(curCluster)
 			}
 		},
@@ -65,10 +79,13 @@ func NewElasticsearch(
 
 	deploys.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
-			logrus.Printf("Got deploy: %+v", obj)
 			// can be mostly ignored
 		},
 		UpdateFunc: func(old, new interface{}) {
+			if reflect.DeepEqual(old, new) {
+				return
+			}
+			logrus.Printf("edited deploy")
 			// did our deployment change? if so, does it break a contract?
 			// maybe we should reconcile those problems here. we should be careful to
 			// avoid infinite loops in case of bugs with colonel however
@@ -96,17 +113,25 @@ func NewElasticsearch(
 	elasticsearchController.statefulSetLister = statefulsets.Lister()
 	elasticsearchController.statefulSetListerSynced = statefulsets.Informer().HasSynced
 
+	elasticsearchController.elasticsearchClusterControl = NewElasticsearchClusterControl(
+		NewElasticsearchClusterNodePoolControl(
+			cl,
+			elasticsearchController.statefulSetLister,
+			elasticsearchController.deployLister,
+			recorder,
+		),
+	)
+
 	return elasticsearchController
 }
 
-// TODO: add a worker queue
 func (e *ElasticsearchController) Run(workers int, stopCh <-chan struct{}) {
 	defer e.queue.ShutDown()
 
 	logrus.Infof("Starting Elasticsearch controller")
 
 	if !cache.WaitForCacheSync(stopCh, e.deployListerSynced, e.esListerSynced, e.statefulSetListerSynced) {
-		util.HandleError(fmt.Errorf("timed out waiting for caches to sync"))
+		utilruntime.HandleError(fmt.Errorf("timed out waiting for caches to sync"))
 	}
 
 	for i := 0; i < workers; i++ {
@@ -118,8 +143,11 @@ func (e *ElasticsearchController) Run(workers int, stopCh <-chan struct{}) {
 }
 
 func (e *ElasticsearchController) worker() {
+	logrus.Infof("start worker loop")
 	for e.processNextWorkItem() {
+		logrus.Infof("processed work item")
 	}
+	logrus.Infof("exiting worker loop")
 }
 
 func (e *ElasticsearchController) processNextWorkItem() bool {
@@ -137,7 +165,10 @@ func (e *ElasticsearchController) processNextWorkItem() bool {
 	return true
 }
 
+// TODO: properly log errors to an events sink
+// TODO: move verification out of this function
 func (e *ElasticsearchController) sync(key string) error {
+	logrus.Debugf("syncing '%s'", key)
 	namespace, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
 		return err
@@ -163,12 +194,18 @@ func (e *ElasticsearchController) sync(key string) error {
 		logrus.Errorf("error checking if ElasticsearchCluster needs update: %s", err.Error())
 		return err
 	} else if needsUpdate {
-		logrus.Debugf("enqueued elasticsearchCluster '%s/%s' for update", es.Namespace, es.Name)
+		logrus.Debugf("syncing ElasticsearchCluster '%s/%s'", es.Namespace, es.Name)
+		if err := e.elasticsearchClusterControl.SyncElasticsearchCluster(es); err != nil {
+			logrus.Errorf("error syncing ElasticsearchCluster: %s", err.Error())
+			return err
+		}
 	}
+
 	return nil
 }
 
 func (e *ElasticsearchController) enqueueElasticsearchCluster(obj interface{}) {
+	logrus.Debugf("enqueuing object: %+v", obj)
 	key, err := controllers.KeyFunc(obj)
 	if err != nil {
 		// TODO: log error

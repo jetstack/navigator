@@ -3,6 +3,8 @@ package elasticsearch
 import (
 	"fmt"
 
+	"github.com/Sirupsen/logrus"
+
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -22,15 +24,17 @@ var (
 )
 
 func (e *ElasticsearchController) nodePoolNeedsUpdate(c *v1.ElasticsearchCluster, np *v1.ElasticsearchClusterNodePool) (bool, error) {
-	if np.State.Stateful {
+	if np.State != nil && np.State.Stateful {
 		return e.statefulNodePoolNeedsUpdate(c, np)
+	} else {
+		return e.deploymentNodePoolNeedsUpdate(c, np)
 	}
 
 	return false, nil
 }
 
 func (e *ElasticsearchController) deploymentNodePoolNeedsUpdate(c *v1.ElasticsearchCluster, np *v1.ElasticsearchClusterNodePool) (bool, error) {
-	if np.State.Stateful {
+	if np.State != nil && np.State.Stateful {
 		return false, fmt.Errorf("node pool is stateful, but deploymentNodePoolNeedsUpdate called")
 	}
 
@@ -108,9 +112,15 @@ func (e *ElasticsearchController) statefulNodePoolNeedsUpdate(c *v1.Elasticsearc
 }
 
 func isManagedByCluster(c *v1.ElasticsearchCluster, meta metav1.ObjectMeta) bool {
+	logrus.Debugf("ESCLUSTER: %+v", *c)
 	clusterOwnerRef := ownerReference(c)
 	for _, o := range meta.OwnerReferences {
-		if o == clusterOwnerRef {
+		logrus.Printf("want: %+v", clusterOwnerRef)
+		logrus.Printf("checking: %+v", o)
+		if clusterOwnerRef.APIVersion == o.APIVersion &&
+			clusterOwnerRef.Kind == o.Kind &&
+			clusterOwnerRef.Name == o.Name &&
+			clusterOwnerRef.UID == o.UID {
 			return true
 		}
 	}
@@ -118,9 +128,12 @@ func isManagedByCluster(c *v1.ElasticsearchCluster, meta metav1.ObjectMeta) bool
 }
 
 func ownerReference(c *v1.ElasticsearchCluster) metav1.OwnerReference {
+	// Really, this should be able to use the TypeMeta of the ElasticsearchCluster.
+	// There is an issue open on client-go about this here: https://github.com/kubernetes/client-go/issues/60
 	return metav1.OwnerReference{
-		APIVersion: c.APIVersion,
-		Kind:       c.Kind,
+		APIVersion: v1.GroupName + "/" + v1.Version,
+		// TODO: use a const in a sensible place for this
+		Kind:       "ElasticsearchCluster",
 		Name:       c.Name,
 		UID:        c.UID,
 		Controller: &trueVar,
