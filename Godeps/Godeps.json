@@ -90,6 +90,10 @@
 			"Rev": "23def4e6c14b4da8ac2ed8007337bc5eb5007998"
 		},
 		{
+			"ImportPath": "github.com/golang/groupcache/lru",
+			"Rev": "72d04f9fcdec7d3821820cc4a6f150eae553639a"
+		},
+		{
 			"ImportPath": "github.com/golang/protobuf/proto",
 			"Rev": "c9c7427a2a70d2eb3bafa0ab2dc163e45f143317"
 		},
@@ -370,6 +374,10 @@
 			"Rev": "c810e4931f2cf80a6f0a007f8ba9c05ef0165cee"
 		},
 		{
+			"ImportPath": "k8s.io/apimachinery/pkg/util/mergepatch",
+			"Rev": "c810e4931f2cf80a6f0a007f8ba9c05ef0165cee"
+		},
+		{
 			"ImportPath": "k8s.io/apimachinery/pkg/util/net",
 			"Rev": "c810e4931f2cf80a6f0a007f8ba9c05ef0165cee"
 		},
@@ -383,6 +391,10 @@
 		},
 		{
 			"ImportPath": "k8s.io/apimachinery/pkg/util/sets",
+			"Rev": "c810e4931f2cf80a6f0a007f8ba9c05ef0165cee"
+		},
+		{
+			"ImportPath": "k8s.io/apimachinery/pkg/util/strategicpatch",
 			"Rev": "c810e4931f2cf80a6f0a007f8ba9c05ef0165cee"
 		},
 		{
@@ -407,6 +419,10 @@
 		},
 		{
 			"ImportPath": "k8s.io/apimachinery/pkg/watch",
+			"Rev": "c810e4931f2cf80a6f0a007f8ba9c05ef0165cee"
+		},
+		{
+			"ImportPath": "k8s.io/apimachinery/third_party/forked/golang/json",
 			"Rev": "c810e4931f2cf80a6f0a007f8ba9c05ef0165cee"
 		},
 		{
@@ -930,6 +946,11 @@
 		},
 		{
 			"ImportPath": "k8s.io/client-go/tools/metrics",
+			"Comment": "v2.0.0-alpha.0-79-g8147f56",
+			"Rev": "8147f564dfb11a02e282c4e468919b6db0080d95"
+		},
+		{
+			"ImportPath": "k8s.io/client-go/tools/record",
 			"Comment": "v2.0.0-alpha.0-79-g8147f56",
 			"Rev": "8147f564dfb11a02e282c4e468919b6db0080d95"
 		},
