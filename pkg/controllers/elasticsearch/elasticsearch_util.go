@@ -8,8 +8,22 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	apiv1 "k8s.io/client-go/pkg/api/v1"
+	apps "k8s.io/client-go/pkg/apis/apps/v1beta1"
+	extensions "k8s.io/client-go/pkg/apis/extensions/v1beta1"
 
 	"gitlab.jetstack.net/marshal/colonel/pkg/api/v1"
+)
+
+const (
+	typeName = "es"
+	kindName = "ElasticsearchCluster"
+
+	nodePoolVersionAnnotationKey = "elasticsearch.marshal.io/deployed-version"
+)
+
+var (
+	trueVar  = true
+	falseVar = false
 )
 
 func int32Ptr(i int32) *int32 {
@@ -262,4 +276,150 @@ func clusterNodesServiceName(c *v1.ElasticsearchCluster) string {
 
 func nodePoolConfigMapName(c *v1.ElasticsearchCluster, np *v1.ElasticsearchClusterNodePool) string {
 	return fmt.Sprintf("%s-%s-config", c.Name, np.Name)
+}
+
+func nodePoolDeployment(c *v1.ElasticsearchCluster, np *v1.ElasticsearchClusterNodePool) (*extensions.Deployment, error) {
+	elasticsearchPodTemplate, err := elasticsearchPodTemplateSpec(c, np)
+
+	if err != nil {
+		return nil, fmt.Errorf("error building elasticsearch container: %s", err.Error())
+	}
+
+	depl := &extensions.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            nodePoolResourceName(c, np),
+			Namespace:       c.Namespace,
+			OwnerReferences: []metav1.OwnerReference{ownerReference(c)},
+			Annotations: map[string]string{
+				nodePoolVersionAnnotationKey: c.Spec.Version,
+			},
+			Labels: buildNodePoolLabels(c, np.Name, np.Roles...),
+		},
+		Spec: extensions.DeploymentSpec{
+			Replicas: int32Ptr(int32(np.Replicas)),
+			Selector: &metav1.LabelSelector{
+				MatchLabels: buildNodePoolLabels(c, np.Name, np.Roles...),
+			},
+			Template: *elasticsearchPodTemplate,
+		},
+	}
+
+	return depl, nil
+}
+
+func nodePoolStatefulSet(c *v1.ElasticsearchCluster, np *v1.ElasticsearchClusterNodePool) (*apps.StatefulSet, error) {
+	volumeClaimTemplateAnnotations,
+		volumeResourceRequests :=
+		map[string]string{},
+		apiv1.ResourceList{}
+
+	if np.State.Persistence != nil {
+		if np.State.Persistence.StorageClass != "" {
+			volumeClaimTemplateAnnotations["volume.beta.kubernetes.io/storage-class"] = np.State.Persistence.StorageClass
+		}
+
+		if size := np.State.Persistence.Size; size != "" {
+			storageRequests, err := resource.ParseQuantity(size)
+
+			if err != nil {
+				return nil, fmt.Errorf("error parsing storage size quantity '%s': %s", size, err.Error())
+			}
+
+			volumeResourceRequests[apiv1.ResourceStorage] = storageRequests
+		}
+	}
+
+	elasticsearchPodTemplate, err := elasticsearchPodTemplateSpec(c, np)
+
+	if err != nil {
+		return nil, fmt.Errorf("error building elasticsearch container: %s", err.Error())
+	}
+
+	ss := &apps.StatefulSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            nodePoolResourceName(c, np),
+			Namespace:       c.Namespace,
+			OwnerReferences: []metav1.OwnerReference{ownerReference(c)},
+			Annotations: map[string]string{
+				nodePoolVersionAnnotationKey: c.Spec.Version,
+			},
+			Labels: buildNodePoolLabels(c, np.Name, np.Roles...),
+		},
+		Spec: apps.StatefulSetSpec{
+			Replicas:    int32Ptr(int32(np.Replicas)),
+			ServiceName: nodePoolResourceName(c, np),
+			Selector: &metav1.LabelSelector{
+				MatchLabels: buildNodePoolLabels(c, np.Name, np.Roles...),
+			},
+			Template: *elasticsearchPodTemplate,
+			VolumeClaimTemplates: []apiv1.PersistentVolumeClaim{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:        "elasticsearch-data",
+						Annotations: volumeClaimTemplateAnnotations,
+					},
+					Spec: apiv1.PersistentVolumeClaimSpec{
+						AccessModes: []apiv1.PersistentVolumeAccessMode{
+							apiv1.ReadWriteOnce,
+						},
+						Resources: apiv1.ResourceRequirements{
+							Requests: volumeResourceRequests,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	return ss, nil
+}
+
+func isManagedByCluster(c *v1.ElasticsearchCluster, meta metav1.ObjectMeta) bool {
+	clusterOwnerRef := ownerReference(c)
+	for _, o := range meta.OwnerReferences {
+		if clusterOwnerRef.APIVersion == o.APIVersion &&
+			clusterOwnerRef.Kind == o.Kind &&
+			clusterOwnerRef.Name == o.Name &&
+			clusterOwnerRef.UID == o.UID &&
+			*o.Controller == true {
+			return true
+		}
+	}
+	return false
+}
+
+func managedOwnerRef(meta metav1.ObjectMeta) *metav1.OwnerReference {
+	for _, ref := range meta.OwnerReferences {
+		if ref.APIVersion == v1.GroupName+"/"+v1.Version && ref.Kind == kindName && *ref.Controller == true {
+			return &ref
+		}
+	}
+	return nil
+}
+
+func ownerReference(c *v1.ElasticsearchCluster) metav1.OwnerReference {
+	// Really, this should be able to use the TypeMeta of the ElasticsearchCluster.
+	// There is an issue open on client-go about this here: https://github.com/kubernetes/client-go/issues/60
+	return metav1.OwnerReference{
+		APIVersion: v1.GroupName + "/" + v1.Version,
+		Kind:       kindName,
+		Name:       c.Name,
+		UID:        c.UID,
+		Controller: &trueVar,
+	}
+}
+
+func nodePoolResourceName(c *v1.ElasticsearchCluster, np *v1.ElasticsearchClusterNodePool) string {
+	return fmt.Sprintf("%s-%s-%s", typeName, c.Name, np.Name)
+}
+
+func nodePoolVersionAnnotation(m map[string]string) string {
+	return m[nodePoolVersionAnnotationKey]
+}
+
+func nodePoolIsStateful(np *v1.ElasticsearchClusterNodePool) bool {
+	if np.State != nil && np.State.Stateful {
+		return true
+	}
+	return false
 }
