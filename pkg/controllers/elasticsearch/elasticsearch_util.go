@@ -401,8 +401,7 @@ func isManagedByCluster(c *v1.ElasticsearchCluster, meta metav1.ObjectMeta) bool
 		if clusterOwnerRef.APIVersion == o.APIVersion &&
 			clusterOwnerRef.Kind == o.Kind &&
 			clusterOwnerRef.Name == o.Name &&
-			clusterOwnerRef.UID == o.UID &&
-			*o.Controller == true {
+			clusterOwnerRef.UID == o.UID {
 			return true
 		}
 	}
@@ -411,7 +410,7 @@ func isManagedByCluster(c *v1.ElasticsearchCluster, meta metav1.ObjectMeta) bool
 
 func managedOwnerRef(meta metav1.ObjectMeta) *metav1.OwnerReference {
 	for _, ref := range meta.OwnerReferences {
-		if ref.APIVersion == v1.GroupName+"/"+v1.Version && ref.Kind == kindName && *ref.Controller == true {
+		if ref.APIVersion == v1.GroupName+"/"+v1.Version && ref.Kind == kindName {
 			return &ref
 		}
 	}
@@ -426,7 +425,6 @@ func ownerReference(c *v1.ElasticsearchCluster) metav1.OwnerReference {
 		Kind:       kindName,
 		Name:       c.Name,
 		UID:        c.UID,
-		Controller: &trueVar,
 	}
 }
 

@@ -8,6 +8,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	appsinformers "k8s.io/client-go/informers/apps/v1beta1"
@@ -23,7 +24,6 @@ import (
 	apps "k8s.io/client-go/pkg/apis/apps/v1beta1"
 	extensions "k8s.io/client-go/pkg/apis/extensions/v1beta1"
 	"k8s.io/client-go/tools/cache"
-
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 
@@ -81,10 +81,7 @@ func NewElasticsearch(
 			}
 			elasticsearchController.enqueueElasticsearchCluster(cur)
 		},
-		DeleteFunc: func(obj interface{}) {
-			logrus.Infof("ES deleted: +%v", obj)
-			elasticsearchController.enqueueElasticsearchCluster(obj)
-		},
+		DeleteFunc: elasticsearchController.enqueueElasticsearchClusterDelete,
 	})
 	elasticsearchController.esLister = es.Lister()
 	elasticsearchController.esListerSynced = es.Informer().HasSynced
@@ -218,12 +215,23 @@ func (e *ElasticsearchController) processNextWorkItem() bool {
 		return false
 	}
 	defer e.queue.Done(key)
-	if err := e.sync(key.(string)); err != nil {
-		logrus.Infof("Error syncing ElasticsearchCluster %v, requeuing: %v", key.(string), err)
-		e.queue.AddRateLimited(key)
-	} else {
+
+	if k, ok := key.(string); ok {
+		if err := e.sync(k); err != nil {
+			logrus.Infof("Error syncing ElasticsearchCluster %v, requeuing: %v", key.(string), err)
+			e.queue.AddRateLimited(key)
+		} else {
+			e.queue.Forget(key)
+		}
+	} else if es, ok := key.(*v1.ElasticsearchCluster); ok {
+		t := metav1.NewTime(time.Now())
+		es.DeletionTimestamp = &t
+		if err := e.elasticsearchClusterControl.SyncElasticsearchCluster(es); err != nil {
+			logrus.Infof("Error syncing ElasticsearchCluster %v, requeuing: %v", es.Name, err)
+		}
 		e.queue.Forget(key)
 	}
+
 	return true
 }
 
@@ -241,7 +249,7 @@ func (e *ElasticsearchController) sync(key string) error {
 	}
 	es, err := e.esLister.ElasticsearchClusters(namespace).Get(name)
 	if errors.IsNotFound(err) {
-		glog.Infof("ElasticsearchCluster has been deleted %v", key)
+		logrus.Infof("ElasticsearchCluster has been deleted %v", key)
 		return nil
 	}
 	if err != nil {
@@ -260,6 +268,10 @@ func (e *ElasticsearchController) enqueueElasticsearchCluster(obj interface{}) {
 		return
 	}
 	e.queue.Add(key)
+}
+
+func (e *ElasticsearchController) enqueueElasticsearchClusterDelete(obj interface{}) {
+	e.queue.Add(obj)
 }
 
 func (e *ElasticsearchController) handleDeploy(obj interface{}) {
