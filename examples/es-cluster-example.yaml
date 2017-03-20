@@ -5,7 +5,7 @@ metadata:
 spec:
   version: '5.2.0'
   plugins:
-  - name: "io.fabric8:elasticsearch-cloud-kubernetes:5.2.0"
+  - name: "io.fabric8:elasticsearch-cloud-kubernetes:5.2.2"
 
   # NOTE: DO NOT SPECIFY MORE THAN ONE SYSCTL FOR NOW
   sysctl:
@@ -14,7 +14,7 @@ spec:
   image:
     repository: munnerz/elasticsearch-k8s
     tag: lieutenant
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
     ## This sets the group of the persistent volume created for
     ## the data nodes. This must be the same as the user that elasticsearch
     ## runs as within the container.
