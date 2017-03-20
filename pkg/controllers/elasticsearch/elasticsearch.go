@@ -11,13 +11,15 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	appsinformers "k8s.io/client-go/informers/apps/v1beta1"
+	coreinformers "k8s.io/client-go/informers/core/v1"
 	depl "k8s.io/client-go/informers/extensions/v1beta1"
 	"k8s.io/client-go/kubernetes"
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	appslisters "k8s.io/client-go/listers/apps/v1beta1"
+	corelisters "k8s.io/client-go/listers/core/v1"
 	extensionslisters "k8s.io/client-go/listers/extensions/v1beta1"
 	"k8s.io/client-go/pkg/api"
-	clientv1 "k8s.io/client-go/pkg/api/v1"
+	apiv1 "k8s.io/client-go/pkg/api/v1"
 	apps "k8s.io/client-go/pkg/apis/apps/v1beta1"
 	extensions "k8s.io/client-go/pkg/apis/extensions/v1beta1"
 	"k8s.io/client-go/tools/cache"
@@ -43,6 +45,12 @@ type ElasticsearchController struct {
 	statefulSetLister       appslisters.StatefulSetLister
 	statefulSetListerSynced cache.InformerSynced
 
+	serviceAccountLister       corelisters.ServiceAccountLister
+	serviceAccountListerSynced cache.InformerSynced
+
+	serviceLister       corelisters.ServiceLister
+	serviceListerSynced cache.InformerSynced
+
 	queue                       workqueue.RateLimitingInterface
 	elasticsearchClusterControl ElasticsearchClusterControl
 }
@@ -51,12 +59,14 @@ func NewElasticsearch(
 	es informersv1.ElasticsearchClusterInformer,
 	deploys depl.DeploymentInformer,
 	statefulsets appsinformers.StatefulSetInformer,
+	serviceaccounts coreinformers.ServiceAccountInformer,
+	services coreinformers.ServiceInformer,
 	cl *kubernetes.Clientset,
 ) *ElasticsearchController {
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(glog.Infof)
 	eventBroadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: v1core.New(cl.Core().RESTClient()).Events("")})
-	recorder := eventBroadcaster.NewRecorder(api.Scheme, clientv1.EventSource{Component: "elasticsearchCluster"})
+	recorder := eventBroadcaster.NewRecorder(api.Scheme, apiv1.EventSource{Component: "elasticsearchCluster"})
 
 	elasticsearchController := &ElasticsearchController{
 		kubeClient: cl,
@@ -107,20 +117,66 @@ func NewElasticsearch(
 	elasticsearchController.statefulSetLister = statefulsets.Lister()
 	elasticsearchController.statefulSetListerSynced = statefulsets.Informer().HasSynced
 
+	serviceaccounts.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: elasticsearchController.handleServiceAccount,
+		UpdateFunc: func(old, new interface{}) {
+			if reflect.DeepEqual(old, new) {
+				return
+			}
+			elasticsearchController.handleServiceAccount(new)
+		},
+		DeleteFunc: elasticsearchController.handleServiceAccount,
+	})
+	elasticsearchController.serviceAccountLister = serviceaccounts.Lister()
+	elasticsearchController.serviceAccountListerSynced = serviceaccounts.Informer().HasSynced
+
+	services.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: elasticsearchController.handleService,
+		UpdateFunc: func(old, new interface{}) {
+			if reflect.DeepEqual(old, new) {
+				return
+			}
+			elasticsearchController.handleService(new)
+		},
+		DeleteFunc: elasticsearchController.handleService,
+	})
+	elasticsearchController.serviceLister = services.Lister()
+	elasticsearchController.serviceListerSynced = services.Informer().HasSynced
+
 	elasticsearchController.elasticsearchClusterControl = NewElasticsearchClusterControl(
 		elasticsearchController.statefulSetLister,
 		elasticsearchController.deployLister,
+		elasticsearchController.serviceAccountLister,
+		elasticsearchController.serviceLister,
 		NewElasticsearchClusterNodePoolControl(
 			cl,
-			elasticsearchController.statefulSetLister,
 			elasticsearchController.deployLister,
 			recorder,
 		),
 		NewStatefulElasticsearchClusterNodePoolControl(
 			cl,
 			elasticsearchController.statefulSetLister,
-			elasticsearchController.deployLister,
 			recorder,
+		),
+		NewElasticsearchClusterServiceAccountControl(
+			cl,
+			recorder,
+		),
+		// client service controller
+		NewElasticsearchClusterServiceControl(
+			cl,
+			recorder,
+			"clients",
+			true,
+			"client",
+		),
+		// discovery service controller
+		NewElasticsearchClusterServiceControl(
+			cl,
+			recorder,
+			"discovery",
+			false,
+			"master",
 		),
 		recorder,
 	)
@@ -236,6 +292,46 @@ func (e *ElasticsearchController) handleStatefulSet(obj interface{}) {
 
 		if err != nil {
 			logrus.Infof("ignoring orphaned statefulset '%s' of elasticsearchcluster '%s'", ss.Name, ownerRef.Name)
+			return
+		}
+
+		e.enqueueElasticsearchCluster(cluster)
+		return
+	}
+}
+
+func (e *ElasticsearchController) handleServiceAccount(obj interface{}) {
+	var ss *apiv1.ServiceAccount
+	var ok bool
+	if ss, ok = obj.(*apiv1.ServiceAccount); !ok {
+		logrus.Errorf("error decoding serviceaccount, invalid type")
+		return
+	}
+	if ownerRef := managedOwnerRef(ss.ObjectMeta); ownerRef != nil {
+		cluster, err := e.esLister.ElasticsearchClusters(ss.Namespace).Get(ownerRef.Name)
+
+		if err != nil {
+			logrus.Infof("ignoring orphaned serviceaccount '%s' of elasticsearchcluster '%s'", ss.Name, ownerRef.Name)
+			return
+		}
+
+		e.enqueueElasticsearchCluster(cluster)
+		return
+	}
+}
+
+func (e *ElasticsearchController) handleService(obj interface{}) {
+	var ss *apiv1.Service
+	var ok bool
+	if ss, ok = obj.(*apiv1.Service); !ok {
+		logrus.Errorf("error decoding service, invalid type")
+		return
+	}
+	if ownerRef := managedOwnerRef(ss.ObjectMeta); ownerRef != nil {
+		cluster, err := e.esLister.ElasticsearchClusters(ss.Namespace).Get(ownerRef.Name)
+
+		if err != nil {
+			logrus.Infof("ignoring orphaned service '%s' of elasticsearchcluster '%s'", ss.Name, ownerRef.Name)
 			return
 		}
 

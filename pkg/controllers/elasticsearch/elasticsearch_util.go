@@ -222,10 +222,10 @@ func parseResources(rs *v1.ElasticsearchClusterResources_ResourceSet) (apiv1.Res
 	return list, nil
 }
 
-func clientNodesService(c *v1.ElasticsearchCluster) apiv1.Service {
-	return apiv1.Service{
+func clusterService(c *v1.ElasticsearchCluster, name string, http bool, roles ...string) *apiv1.Service {
+	svc := apiv1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            clientNodesServiceName(c),
+			Name:            clientNodesServiceName(c) + "-" + name,
 			Namespace:       c.Namespace,
 			OwnerReferences: []metav1.OwnerReference{ownerReference(c)},
 			Labels:          buildNodePoolLabels(c, "", "client"),
@@ -242,6 +242,16 @@ func clientNodesService(c *v1.ElasticsearchCluster) apiv1.Service {
 			Selector: buildNodePoolLabels(c, "", "client"),
 		},
 	}
+
+	if http {
+		svc.Spec.Ports = append(svc.Spec.Ports, apiv1.ServicePort{
+			Name:       "http",
+			Port:       int32(9200),
+			TargetPort: intstr.FromInt(9200),
+		})
+	}
+
+	return &svc
 }
 
 func clientNodesServiceName(c *v1.ElasticsearchCluster) string {
@@ -254,7 +264,7 @@ func clusterNodesService(c *v1.ElasticsearchCluster) apiv1.Service {
 			Name:            clusterNodesServiceName(c),
 			Namespace:       c.Namespace,
 			OwnerReferences: []metav1.OwnerReference{ownerReference(c)},
-			Labels:          buildNodePoolLabels(c, "", "client", "data", "master"),
+			Labels:          buildNodePoolLabels(c, "", "master"),
 		},
 		Spec: apiv1.ServiceSpec{
 			Type: apiv1.ServiceTypeClusterIP,
@@ -265,7 +275,7 @@ func clusterNodesService(c *v1.ElasticsearchCluster) apiv1.Service {
 					TargetPort: intstr.FromInt(9300),
 				},
 			},
-			Selector: buildNodePoolLabels(c, "", "client", "data", "master"),
+			Selector: buildNodePoolLabels(c, "", "master"),
 		},
 	}
 }
@@ -285,9 +295,10 @@ func nodePoolDeployment(c *v1.ElasticsearchCluster, np *v1.ElasticsearchClusterN
 		return nil, fmt.Errorf("error building elasticsearch container: %s", err.Error())
 	}
 
+	deploymentName := nodePoolResourceName(c, np)
 	depl := &extensions.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            nodePoolResourceName(c, np),
+			Name:            deploymentName,
 			Namespace:       c.Namespace,
 			OwnerReferences: []metav1.OwnerReference{ownerReference(c)},
 			Annotations: map[string]string{
@@ -304,14 +315,17 @@ func nodePoolDeployment(c *v1.ElasticsearchCluster, np *v1.ElasticsearchClusterN
 		},
 	}
 
+	// TODO: make this safer?
+	depl.Spec.Template.Spec.Containers[0].Args = append(
+		depl.Spec.Template.Spec.Containers[0].Args,
+		"--controllerKind=Deployment",
+		"--controllerName="+deploymentName,
+	)
 	return depl, nil
 }
 
 func nodePoolStatefulSet(c *v1.ElasticsearchCluster, np *v1.ElasticsearchClusterNodePool) (*apps.StatefulSet, error) {
-	volumeClaimTemplateAnnotations,
-		volumeResourceRequests :=
-		map[string]string{},
-		apiv1.ResourceList{}
+	volumeClaimTemplateAnnotations, volumeResourceRequests := map[string]string{}, apiv1.ResourceList{}
 
 	if np.State.Persistence != nil {
 		if np.State.Persistence.StorageClass != "" {
@@ -335,9 +349,11 @@ func nodePoolStatefulSet(c *v1.ElasticsearchCluster, np *v1.ElasticsearchCluster
 		return nil, fmt.Errorf("error building elasticsearch container: %s", err.Error())
 	}
 
+	statefulSetName := nodePoolResourceName(c, np)
+
 	ss := &apps.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            nodePoolResourceName(c, np),
+			Name:            statefulSetName,
 			Namespace:       c.Namespace,
 			OwnerReferences: []metav1.OwnerReference{ownerReference(c)},
 			Annotations: map[string]string{
@@ -347,7 +363,7 @@ func nodePoolStatefulSet(c *v1.ElasticsearchCluster, np *v1.ElasticsearchCluster
 		},
 		Spec: apps.StatefulSetSpec{
 			Replicas:    int32Ptr(int32(np.Replicas)),
-			ServiceName: nodePoolResourceName(c, np),
+			ServiceName: statefulSetName,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: buildNodePoolLabels(c, np.Name, np.Roles...),
 			},
@@ -371,7 +387,24 @@ func nodePoolStatefulSet(c *v1.ElasticsearchCluster, np *v1.ElasticsearchCluster
 		},
 	}
 
+	// TODO: make this safer?
+	ss.Spec.Template.Spec.Containers[0].Args = append(
+		ss.Spec.Template.Spec.Containers[0].Args,
+		"--controllerKind=StatefulSet",
+		"--controllerName="+statefulSetName,
+	)
+
 	return ss, nil
+}
+
+func clusterServiceAccount(c *v1.ElasticsearchCluster) *apiv1.ServiceAccount {
+	return &apiv1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            resourceBaseName(c),
+			Namespace:       c.Namespace,
+			OwnerReferences: []metav1.OwnerReference{ownerReference(c)},
+		},
+	}
 }
 
 func isManagedByCluster(c *v1.ElasticsearchCluster, meta metav1.ObjectMeta) bool {
@@ -409,8 +442,12 @@ func ownerReference(c *v1.ElasticsearchCluster) metav1.OwnerReference {
 	}
 }
 
+func resourceBaseName(c *v1.ElasticsearchCluster) string {
+	return typeName + "-" + c.Name
+}
+
 func nodePoolResourceName(c *v1.ElasticsearchCluster, np *v1.ElasticsearchClusterNodePool) string {
-	return fmt.Sprintf("%s-%s-%s", typeName, c.Name, np.Name)
+	return fmt.Sprintf("%s-%s", resourceBaseName(c), np.Name)
 }
 
 func nodePoolVersionAnnotation(m map[string]string) string {

@@ -21,9 +21,8 @@ type ElasticsearchClusterNodePoolControl interface {
 }
 
 type defaultElasticsearchClusterNodePoolControl struct {
-	kubeClient        *kubernetes.Clientset
-	statefulSetLister appslisters.StatefulSetLister
-	deploymentLister  extensionslisters.DeploymentLister
+	kubeClient       *kubernetes.Clientset
+	deploymentLister extensionslisters.DeploymentLister
 
 	recorder record.EventRecorder
 }
@@ -31,7 +30,6 @@ type defaultElasticsearchClusterNodePoolControl struct {
 type statefulElasticsearchClusterNodePoolControl struct {
 	kubeClient        *kubernetes.Clientset
 	statefulSetLister appslisters.StatefulSetLister
-	deploymentLister  extensionslisters.DeploymentLister
 
 	recorder record.EventRecorder
 }
@@ -41,28 +39,24 @@ var _ ElasticsearchClusterNodePoolControl = &statefulElasticsearchClusterNodePoo
 
 func NewElasticsearchClusterNodePoolControl(
 	kubeClient *kubernetes.Clientset,
-	statefulSetLister appslisters.StatefulSetLister,
 	deploymentLister extensionslisters.DeploymentLister,
 	recorder record.EventRecorder,
 ) ElasticsearchClusterNodePoolControl {
 	return &defaultElasticsearchClusterNodePoolControl{
-		kubeClient:        kubeClient,
-		statefulSetLister: statefulSetLister,
-		deploymentLister:  deploymentLister,
-		recorder:          recorder,
+		kubeClient:       kubeClient,
+		deploymentLister: deploymentLister,
+		recorder:         recorder,
 	}
 }
 
 func NewStatefulElasticsearchClusterNodePoolControl(
 	kubeClient *kubernetes.Clientset,
 	statefulSetLister appslisters.StatefulSetLister,
-	deploymentLister extensionslisters.DeploymentLister,
 	recorder record.EventRecorder,
 ) ElasticsearchClusterNodePoolControl {
 	return &statefulElasticsearchClusterNodePoolControl{
 		kubeClient:        kubeClient,
 		statefulSetLister: statefulSetLister,
-		deploymentLister:  deploymentLister,
 		recorder:          recorder,
 	}
 }
@@ -71,15 +65,18 @@ func (e *defaultElasticsearchClusterNodePoolControl) CreateElasticsearchClusterN
 	depl, err := nodePoolDeployment(c, np)
 
 	if err != nil {
+		e.recordNodePoolEvent("create", c, np, err)
 		return fmt.Errorf("error generating deployment manifest: %s", err.Error())
 	}
 
 	depl, err = e.kubeClient.Extensions().Deployments(c.Namespace).Create(depl)
 
 	if err != nil {
+		e.recordNodePoolEvent("create", c, np, err)
 		return fmt.Errorf("error creating deployment: %s", err.Error())
 	}
 
+	e.recordNodePoolEvent("create", c, np, err)
 	return nil
 }
 
@@ -87,25 +84,37 @@ func (e *defaultElasticsearchClusterNodePoolControl) UpdateElasticsearchClusterN
 	depl, err := nodePoolDeployment(c, np)
 
 	if err != nil {
+		e.recordNodePoolEvent("update", c, np, err)
 		return fmt.Errorf("error generating deployment manifest: %s", err.Error())
 	}
 
 	depl, err = e.kubeClient.Extensions().Deployments(c.Namespace).Update(depl)
 
 	if err != nil {
-		return fmt.Errorf("error creating deployment: %s", err.Error())
+		e.recordNodePoolEvent("update", c, np, err)
+		return fmt.Errorf("error updating deployment: %s", err.Error())
 	}
 
+	e.recordNodePoolEvent("update", c, np, err)
 	return nil
 }
 
 func (e *defaultElasticsearchClusterNodePoolControl) DeleteElasticsearchClusterNodePool(c *v1.ElasticsearchCluster, np *v1.ElasticsearchClusterNodePool) error {
-	err := e.kubeClient.Extensions().Deployments(c.Namespace).Delete(nodePoolResourceName(c, np), &metav1.DeleteOptions{OrphanDependents: &falseVar})
+	depl, err := nodePoolDeployment(c, np)
 
 	if err != nil {
+		e.recordNodePoolEvent("delete", c, np, err)
+		return fmt.Errorf("error generating deployment for deletion: %s", err.Error())
+	}
+
+	err = e.kubeClient.Extensions().Deployments(c.Namespace).Delete(depl.Name, &metav1.DeleteOptions{OrphanDependents: &falseVar})
+
+	if err != nil {
+		e.recordNodePoolEvent("delete", c, np, err)
 		return fmt.Errorf("error deleting deployment: %s", err.Error())
 	}
 
+	e.recordNodePoolEvent("delete", c, np, err)
 	return nil
 }
 
@@ -113,15 +122,18 @@ func (e *statefulElasticsearchClusterNodePoolControl) CreateElasticsearchCluster
 	ss, err := nodePoolStatefulSet(c, np)
 
 	if err != nil {
+		e.recordNodePoolEvent("create", c, np, err)
 		return fmt.Errorf("error generating statefulset manifest: %s", err.Error())
 	}
 
 	ss, err = e.kubeClient.Apps().StatefulSets(c.Namespace).Create(ss)
 
 	if err != nil {
+		e.recordNodePoolEvent("create", c, np, err)
 		return fmt.Errorf("error creating statefulset: %s", err.Error())
 	}
 
+	e.recordNodePoolEvent("create", c, np, err)
 	return nil
 }
 
@@ -129,25 +141,37 @@ func (e *statefulElasticsearchClusterNodePoolControl) UpdateElasticsearchCluster
 	ss, err := nodePoolStatefulSet(c, np)
 
 	if err != nil {
+		e.recordNodePoolEvent("update", c, np, err)
 		return fmt.Errorf("error generating statefulset manifest: %s", err.Error())
 	}
 
 	ss, err = e.kubeClient.Apps().StatefulSets(c.Namespace).Update(ss)
 
 	if err != nil {
+		e.recordNodePoolEvent("update", c, np, err)
 		return fmt.Errorf("error updating statefulset: %s", err.Error())
 	}
 
+	e.recordNodePoolEvent("update", c, np, err)
 	return nil
 }
 
 func (e *statefulElasticsearchClusterNodePoolControl) DeleteElasticsearchClusterNodePool(c *v1.ElasticsearchCluster, np *v1.ElasticsearchClusterNodePool) error {
-	err := e.kubeClient.Apps().StatefulSets(c.Namespace).Delete(nodePoolResourceName(c, np), &metav1.DeleteOptions{OrphanDependents: &falseVar})
+	ss, err := nodePoolStatefulSet(c, np)
 
 	if err != nil {
+		e.recordNodePoolEvent("delete", c, np, err)
+		return fmt.Errorf("error generating statefulset manifest: %s", err.Error())
+	}
+
+	err = e.kubeClient.Apps().StatefulSets(c.Namespace).Delete(ss.Name, &metav1.DeleteOptions{OrphanDependents: &falseVar})
+
+	if err != nil {
+		e.recordNodePoolEvent("delete", c, np, err)
 		return fmt.Errorf("error deleting statefulset: %s", err.Error())
 	}
 
+	e.recordNodePoolEvent("delete", c, np, err)
 	return nil
 }
 
