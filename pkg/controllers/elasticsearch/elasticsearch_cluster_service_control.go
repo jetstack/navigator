@@ -19,12 +19,18 @@ type ElasticsearchClusterServiceControl interface {
 	NameSuffix() string
 }
 
+type ServiceControlConfig struct {
+	ClusterIP   string
+	NameSuffix  string
+	EnableHTTP  bool
+	Annotations map[string]string
+	Roles       []string
+}
+
 type defaultElasticsearchClusterServiceControl struct {
 	kubeClient *kubernetes.Clientset
 
-	nameSuffix string
-	enableHTTP bool
-	roles      []string
+	config ServiceControlConfig
 
 	recorder record.EventRecorder
 }
@@ -34,25 +40,21 @@ var _ ElasticsearchClusterServiceControl = &defaultElasticsearchClusterServiceCo
 func NewElasticsearchClusterServiceControl(
 	kubeClient *kubernetes.Clientset,
 	recorder record.EventRecorder,
-	nameSuffix string,
-	enableHTTP bool,
-	roles ...string,
+	config ServiceControlConfig,
 ) ElasticsearchClusterServiceControl {
 	return &defaultElasticsearchClusterServiceControl{
 		kubeClient: kubeClient,
-		enableHTTP: enableHTTP,
-		nameSuffix: nameSuffix,
-		roles:      roles,
+		config:     config,
 		recorder:   recorder,
 	}
 }
 
 func (e *defaultElasticsearchClusterServiceControl) NameSuffix() string {
-	return e.nameSuffix
+	return e.config.NameSuffix
 }
 
 func (e *defaultElasticsearchClusterServiceControl) CreateElasticsearchClusterService(c *v1.ElasticsearchCluster) (err error) {
-	svc := clusterService(c, e.NameSuffix(), e.enableHTTP, e.roles...)
+	svc := clusterService(c, e.NameSuffix(), e.config.EnableHTTP, e.config.Annotations, e.config.Roles...)
 
 	svc, err = e.kubeClient.Core().Services(c.Namespace).Create(svc)
 
@@ -66,7 +68,7 @@ func (e *defaultElasticsearchClusterServiceControl) CreateElasticsearchClusterSe
 }
 
 func (e *defaultElasticsearchClusterServiceControl) UpdateElasticsearchClusterService(c *v1.ElasticsearchCluster) (err error) {
-	svc := clusterService(c, e.NameSuffix(), e.enableHTTP, e.roles...)
+	svc := clusterService(c, e.NameSuffix(), e.config.EnableHTTP, e.config.Annotations, e.config.Roles...)
 
 	svc, err = e.kubeClient.Core().Services(c.Namespace).Update(svc)
 
@@ -80,7 +82,7 @@ func (e *defaultElasticsearchClusterServiceControl) UpdateElasticsearchClusterSe
 }
 
 func (e *defaultElasticsearchClusterServiceControl) DeleteElasticsearchClusterService(c *v1.ElasticsearchCluster) error {
-	svc := clusterService(c, e.NameSuffix(), e.enableHTTP, e.roles...)
+	svc := clusterService(c, e.NameSuffix(), e.config.EnableHTTP, e.config.Annotations, e.config.Roles...)
 
 	err := e.kubeClient.Core().Services(c.Namespace).Delete(svc.Name, &metav1.DeleteOptions{})
 

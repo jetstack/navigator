@@ -303,7 +303,7 @@ func (e *defaultElasticsearchClusterControl) deploymentNodePoolNeedsUpdate(c *v1
 }
 
 func (e *defaultElasticsearchClusterControl) serviceNeedsUpdate(c *v1.ElasticsearchCluster, nameSuffix string) (exists, needsUpdate bool, err error) {
-	svcName := clusterService(c, nameSuffix, false).Name
+	svcName := clusterService(c, nameSuffix, false, nil).Name
 
 	svcs, err := e.serviceLister.Services(c.Namespace).List(labels.Everything())
 

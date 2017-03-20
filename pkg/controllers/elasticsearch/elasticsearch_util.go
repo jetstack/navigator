@@ -113,11 +113,27 @@ func elasticsearchPodTemplateSpec(c *v1.ElasticsearchCluster, np *v1.Elasticsear
 						// TODO: Tidy up generation of discovery & client URLs
 						{
 							Name:  "DISCOVERY_HOST",
-							Value: clusterService(c, "discovery", false, "master").Name,
+							Value: clusterService(c, "discovery", false, nil, "master").Name,
 						},
 						{
 							Name:  "CLUSTER_URL",
-							Value: "http://" + clusterService(c, "clients", true, "client").Name + ":9200",
+							Value: "http://" + clusterService(c, "clients", true, nil, "client").Name + ":9200",
+						},
+						apiv1.EnvVar{
+							Name: "POD_NAME",
+							ValueFrom: &apiv1.EnvVarSource{
+								FieldRef: &apiv1.ObjectFieldSelector{
+									FieldPath: "metadata.name",
+								},
+							},
+						},
+						apiv1.EnvVar{
+							Name: "NAMESPACE",
+							ValueFrom: &apiv1.EnvVarSource{
+								FieldRef: &apiv1.ObjectFieldSelector{
+									FieldPath: "metadata.namespace",
+								},
+							},
 						},
 					},
 					SecurityContext: &apiv1.SecurityContext{
@@ -227,13 +243,14 @@ func parseResources(rs *v1.ElasticsearchClusterResources_ResourceSet) (apiv1.Res
 	return list, nil
 }
 
-func clusterService(c *v1.ElasticsearchCluster, name string, http bool, roles ...string) *apiv1.Service {
+func clusterService(c *v1.ElasticsearchCluster, name string, http bool, annotations map[string]string, roles ...string) *apiv1.Service {
 	svc := apiv1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            c.Name + "-" + name,
 			Namespace:       c.Namespace,
 			OwnerReferences: []metav1.OwnerReference{ownerReference(c)},
 			Labels:          buildNodePoolLabels(c, "", roles...),
+			Annotations:     annotations,
 		},
 		Spec: apiv1.ServiceSpec{
 			Type: apiv1.ServiceTypeClusterIP,

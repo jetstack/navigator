@@ -166,17 +166,20 @@ func NewElasticsearch(
 		NewElasticsearchClusterServiceControl(
 			cl,
 			recorder,
-			"clients",
-			true,
-			"client",
+			ServiceControlConfig{
+				NameSuffix: "clients",
+				EnableHTTP: true,
+				Roles:      []string{"client"},
+			},
 		),
 		// discovery service controller
 		NewElasticsearchClusterServiceControl(
 			cl,
 			recorder,
-			"discovery",
-			false,
-			"master",
+			ServiceControlConfig{
+				NameSuffix:  "discovery",
+				Annotations: map[string]string{"service.alpha.kubernetes.io/tolerate-unready-endpoints": "true"},
+			},
 		),
 		recorder,
 	)
