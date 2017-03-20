@@ -31,6 +31,7 @@ import (
 )
 
 var cfgFile string
+var apiServerHost string
 
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
@@ -45,14 +46,13 @@ to quickly create a Cobra application.`,
 
 	// TODO: Refactor this function from this package
 	Run: func(cmd *cobra.Command, args []string) {
-		server := "http://localhost:8082"
-		cl, err := kube.NewKubernetesClient(server)
+		cl, err := kube.NewKubernetesClient(apiServerHost)
 
 		if err != nil {
 			logrus.Fatalf("error creating kubernetes client: %s", err.Error())
 		}
 
-		tprClient, err := kube.NewMarshalRESTClient(server)
+		tprClient, err := kube.NewMarshalRESTClient(apiServerHost)
 
 		if err != nil {
 			logrus.Fatalf("error creating third party resource client: %s", err.Error())
@@ -96,6 +96,7 @@ func init() {
 	// will be global for your application.
 
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.colonel.yaml)")
+	RootCmd.PersistentFlags().StringVar(&apiServerHost, "apiServerHost", "", "optional api server hostname override")
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
 	RootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
