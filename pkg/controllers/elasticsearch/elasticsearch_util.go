@@ -64,18 +64,7 @@ func elasticsearchPodTemplateSpec(c *v1.ElasticsearchCluster, np *v1.Elasticsear
 		}
 	}
 
-	volumes := []apiv1.Volume{
-	// {
-	// 	Name: "sidecar-config",
-	// 	VolumeSource: apiv1.VolumeSource{
-	// 		ConfigMap: &apiv1.ConfigMapVolumeSource{
-	// 			LocalObjectReference: apiv1.LocalObjectReference{
-	// 				Name: nodePoolConfigMapName(c, np),
-	// 			},
-	// 		},
-	// 	},
-	// },
-	}
+	volumes := []apiv1.Volume{}
 
 	if np.State == nil ||
 		np.State.Persistence == nil ||
@@ -86,6 +75,18 @@ func elasticsearchPodTemplateSpec(c *v1.ElasticsearchCluster, np *v1.Elasticsear
 				EmptyDir: &apiv1.EmptyDirVolumeSource{},
 			},
 		})
+	}
+
+	rolesBytes, err := json.Marshal(np.Roles)
+
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling roles: %s", err.Error())
+	}
+
+	pluginsBytes, err := json.Marshal(c.Spec.Plugins)
+
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling plugins: %s", err.Error())
 	}
 
 	return &apiv1.PodTemplateSpec{
@@ -108,7 +109,14 @@ func elasticsearchPodTemplateSpec(c *v1.ElasticsearchCluster, np *v1.Elasticsear
 					Name:            "elasticsearch",
 					Image:           c.Spec.Image.Repository + ":" + c.Spec.Image.Tag,
 					ImagePullPolicy: apiv1.PullPolicy(c.Spec.Image.PullPolicy),
-					Args:            []string{"start"},
+					Args: []string{
+						"start",
+						"--podName=$(POD_NAME)",
+						"--clusterURL=$(CLUSTER_URL)",
+						"--namespace=$(NAMESPACE)",
+						"--plugins=" + string(pluginsBytes),
+						"--roles=" + string(rolesBytes),
+					},
 					Env: []apiv1.EnvVar{
 						// TODO: Tidy up generation of discovery & client URLs
 						{
