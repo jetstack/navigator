@@ -110,9 +110,14 @@ func elasticsearchPodTemplateSpec(c *v1.ElasticsearchCluster, np *v1.Elasticsear
 					ImagePullPolicy: apiv1.PullPolicy(c.Spec.Image.PullPolicy),
 					Args:            []string{"start"},
 					Env: []apiv1.EnvVar{
+						// TODO: Tidy up generation of discovery & client URLs
 						{
-							Name:  "SERVICE",
-							Value: clusterNodesServiceName(c),
+							Name:  "DISCOVERY_HOST",
+							Value: clusterService(c, "discovery", false, "master").Name,
+						},
+						{
+							Name:  "CLUSTER_URL",
+							Value: "http://" + clusterService(c, "clients", true, "client").Name + ":9200",
 						},
 					},
 					SecurityContext: &apiv1.SecurityContext{
@@ -162,7 +167,7 @@ func elasticsearchPodTemplateSpec(c *v1.ElasticsearchCluster, np *v1.Elasticsear
 						{
 							Name:      "elasticsearch-data",
 							MountPath: "/usr/share/elasticsearch/data",
-							ReadOnly:  true,
+							ReadOnly:  false,
 						},
 					},
 				},
@@ -225,10 +230,10 @@ func parseResources(rs *v1.ElasticsearchClusterResources_ResourceSet) (apiv1.Res
 func clusterService(c *v1.ElasticsearchCluster, name string, http bool, roles ...string) *apiv1.Service {
 	svc := apiv1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            clientNodesServiceName(c) + "-" + name,
+			Name:            c.Name + "-" + name,
 			Namespace:       c.Namespace,
 			OwnerReferences: []metav1.OwnerReference{ownerReference(c)},
-			Labels:          buildNodePoolLabels(c, "", "client"),
+			Labels:          buildNodePoolLabels(c, "", roles...),
 		},
 		Spec: apiv1.ServiceSpec{
 			Type: apiv1.ServiceTypeClusterIP,
@@ -239,7 +244,7 @@ func clusterService(c *v1.ElasticsearchCluster, name string, http bool, roles ..
 					TargetPort: intstr.FromInt(9300),
 				},
 			},
-			Selector: buildNodePoolLabels(c, "", "client"),
+			Selector: buildNodePoolLabels(c, "", roles...),
 		},
 	}
 
@@ -252,40 +257,6 @@ func clusterService(c *v1.ElasticsearchCluster, name string, http bool, roles ..
 	}
 
 	return &svc
-}
-
-func clientNodesServiceName(c *v1.ElasticsearchCluster) string {
-	return fmt.Sprintf("%s", c.Name)
-}
-
-func clusterNodesService(c *v1.ElasticsearchCluster) apiv1.Service {
-	return apiv1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:            clusterNodesServiceName(c),
-			Namespace:       c.Namespace,
-			OwnerReferences: []metav1.OwnerReference{ownerReference(c)},
-			Labels:          buildNodePoolLabels(c, "", "master"),
-		},
-		Spec: apiv1.ServiceSpec{
-			Type: apiv1.ServiceTypeClusterIP,
-			Ports: []apiv1.ServicePort{
-				{
-					Name:       "transport",
-					Port:       int32(9300),
-					TargetPort: intstr.FromInt(9300),
-				},
-			},
-			Selector: buildNodePoolLabels(c, "", "master"),
-		},
-	}
-}
-
-func clusterNodesServiceName(c *v1.ElasticsearchCluster) string {
-	return fmt.Sprintf("%s-cluster", c.Name)
-}
-
-func nodePoolConfigMapName(c *v1.ElasticsearchCluster, np *v1.ElasticsearchClusterNodePool) string {
-	return fmt.Sprintf("%s-%s-config", c.Name, np.Name)
 }
 
 func nodePoolDeployment(c *v1.ElasticsearchCluster, np *v1.ElasticsearchClusterNodePool) (*extensions.Deployment, error) {

@@ -303,8 +303,9 @@ func (e *defaultElasticsearchClusterControl) deploymentNodePoolNeedsUpdate(c *v1
 }
 
 func (e *defaultElasticsearchClusterControl) serviceNeedsUpdate(c *v1.ElasticsearchCluster, nameSuffix string) (exists, needsUpdate bool, err error) {
-	svcName := resourceBaseName(c) + "-" + nameSuffix
-	svcs, err := e.serviceLister.List(labels.Everything())
+	svcName := clusterService(c, nameSuffix, false).Name
+
+	svcs, err := e.serviceLister.Services(c.Namespace).List(labels.Everything())
 
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
@@ -333,7 +334,7 @@ func (e *defaultElasticsearchClusterControl) serviceNeedsUpdate(c *v1.Elasticsea
 
 func (e *defaultElasticsearchClusterControl) serviceAccountNeedsUpdate(c *v1.ElasticsearchCluster) (exists, needsUpdate bool, err error) {
 	svcAcctName := resourceBaseName(c)
-	svcAccts, err := e.serviceAccountLister.List(labels.Everything())
+	svcAccts, err := e.serviceAccountLister.ServiceAccounts(c.Namespace).List(labels.Everything())
 
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
@@ -350,10 +351,10 @@ func (e *defaultElasticsearchClusterControl) serviceAccountNeedsUpdate(c *v1.Ela
 	for _, svcAcct := range svcAccts {
 		// TODO: switch this to use UIDs set as annotations on the ElasticsearchCluster?
 		if svcAcct.Name == svcAcctName {
-			if isManagedByCluster(c, svcAcct.ObjectMeta) {
-				return true, false, nil
+			if !isManagedByCluster(c, svcAcct.ObjectMeta) {
+				return false, false, fmt.Errorf("service account '%s' found but not managed by cluster", svcAcctName)
 			}
-			return false, false, fmt.Errorf("service account '%s' found but not managed by cluster", svcAcctName)
+			return true, false, nil
 		}
 	}
 
