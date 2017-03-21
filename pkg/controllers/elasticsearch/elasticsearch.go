@@ -234,8 +234,6 @@ func (e *ElasticsearchController) processNextWorkItem() bool {
 	return true
 }
 
-// TODO: properly log errors to an events sink
-// TODO: move verification out of this function
 func (e *ElasticsearchController) sync(key string) error {
 	startTime := time.Now()
 	defer func() {
