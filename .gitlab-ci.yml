@@ -60,7 +60,7 @@ build:golang:
   - mv ${GO_PROJECT_DIR} ${OLD_DIR}
   artifacts:
     paths:
-    - sidecar/sidecar_linux_amd64
+    - colonel_linux_amd64
 
 docker:image:
   image: docker:latest
