@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -64,7 +63,7 @@ func NewElasticsearch(
 	cl *kubernetes.Clientset,
 ) *ElasticsearchController {
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartLogging(glog.Infof)
+	eventBroadcaster.StartLogging(logrus.Infof)
 	eventBroadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: v1core.New(cl.Core().RESTClient()).Events("")})
 	recorder := eventBroadcaster.NewRecorder(api.Scheme, apiv1.EventSource{Component: "elasticsearchCluster"})
 
@@ -240,7 +239,7 @@ func (e *ElasticsearchController) processNextWorkItem() bool {
 func (e *ElasticsearchController) sync(key string) error {
 	startTime := time.Now()
 	defer func() {
-		glog.V(4).Infof("Finished syncing elasticsearchcluster %q (%v)", key, time.Now().Sub(startTime))
+		logrus.Infof("Finished syncing elasticsearchcluster %q (%v)", key, time.Now().Sub(startTime))
 	}()
 
 	namespace, name, err := cache.SplitMetaNamespaceKey(key)
