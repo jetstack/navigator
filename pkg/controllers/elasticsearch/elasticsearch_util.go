@@ -220,7 +220,8 @@ func buildInitContainers(c *v1.ElasticsearchCluster, np *v1.ElasticsearchCluster
 
 func buildNodePoolLabels(c *v1.ElasticsearchCluster, poolName string, roles ...string) map[string]string {
 	labels := map[string]string{
-		"app": "elasticsearch",
+		"cluster": c.Name,
+		"app":     "elasticsearch",
 	}
 	if poolName != "" {
 		labels["pool"] = poolName
