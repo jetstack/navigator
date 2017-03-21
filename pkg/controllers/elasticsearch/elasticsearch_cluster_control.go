@@ -267,6 +267,10 @@ func (e *defaultElasticsearchClusterControl) statefulNodePoolNeedsUpdate(c *v1.E
 		return true, true, nil
 	}
 
+	if ss.Spec.Template.Spec.Containers[0].Image != c.Spec.Image.Repository+":"+c.Spec.Image.Tag {
+		return true, true, nil
+	}
+
 	return true, false, nil
 }
 
@@ -296,6 +300,10 @@ func (e *defaultElasticsearchClusterControl) deploymentNodePoolNeedsUpdate(c *v1
 
 	// if the version of the cluster has changed, trigger an update
 	if nodePoolVersionAnnotation(depl.Annotations) != c.Spec.Version {
+		return true, true, nil
+	}
+
+	if depl.Spec.Template.Spec.Containers[0].Image != c.Spec.Image.Repository+":"+c.Spec.Image.Tag {
 		return true, true, nil
 	}
 
