@@ -28,6 +28,7 @@ import (
 	"gitlab.jetstack.net/marshal/colonel/cmd/app"
 	intinformers "gitlab.jetstack.net/marshal/colonel/pkg/informers"
 	"gitlab.jetstack.net/marshal/colonel/pkg/kube"
+	"gitlab.jetstack.net/marshal/colonel/pkg/tpr"
 )
 
 var cfgFile string
@@ -50,6 +51,10 @@ to quickly create a Cobra application.`,
 
 		if err != nil {
 			logrus.Fatalf("error creating kubernetes client: %s", err.Error())
+		}
+
+		if err = tpr.Ensure(cl); err != nil {
+			logrus.Fatalf("error creating ThirdPartyResources: %s", err.Error())
 		}
 
 		tprClient, err := kube.NewMarshalRESTClient(apiServerHost)
