@@ -1,11 +1,18 @@
 variables:
   DOCKER_DRIVER: overlay
-  GO_PROJECT_DIR: /go/src/gitlab.jetstack.net/marshal/colonel
+  REGISTRY_HOST: eu.gcr.io
+  REGISTRY_GROUP: jetstack-sandbox
 
 stages:
 - build
 - docker
 - deploy
+
+# configure $GOPATH correctly on all build stages
+before_script:
+  - mkdir -p "$GOPATH/src/gitlab.jetstack.net/$CI_PROJECT_NAMESPACE"
+  - ln -s "$(pwd)" "$GOPATH/src/gitlab.jetstack.net/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME"
+  - cd "$GOPATH/src/gitlab.jetstack.net/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME"
 
 test:golang:
   image: golang:1.8
@@ -13,12 +20,7 @@ test:golang:
   tags:
   - docker
   script:
-  - export OLD_DIR=$(pwd)
-  - mkdir -p $(dirname ${GO_PROJECT_DIR})
-  - mv ${OLD_DIR} ${GO_PROJECT_DIR}
-  - cd ${GO_PROJECT_DIR}
   - make test_golang
-  - mv ${GO_PROJECT_DIR} ${OLD_DIR}
 
 vet:golang:
   image: golang:1.8
@@ -26,12 +28,7 @@ vet:golang:
   tags:
   - docker
   script:
-  - export OLD_DIR=$(pwd)
-  - mkdir -p $(dirname ${GO_PROJECT_DIR})
-  - mv ${OLD_DIR} ${GO_PROJECT_DIR}
-  - cd ${GO_PROJECT_DIR}
   - make vet_golang
-  - mv ${GO_PROJECT_DIR} ${OLD_DIR}
 
 fmt:golang:
   image: golang:1.8
@@ -39,12 +36,7 @@ fmt:golang:
   tags:
   - docker
   script:
-  - export OLD_DIR=$(pwd)
-  - mkdir -p $(dirname ${GO_PROJECT_DIR})
-  - mv ${OLD_DIR} ${GO_PROJECT_DIR}
-  - cd ${GO_PROJECT_DIR}
   - make fmt_golang
-  - mv ${GO_PROJECT_DIR} ${OLD_DIR}
 
 build:golang:
   image: golang:1.8
@@ -52,12 +44,7 @@ build:golang:
   tags:
   - docker
   script:
-  - export OLD_DIR=$(pwd)
-  - mkdir -p $(dirname ${GO_PROJECT_DIR})
-  - mv ${OLD_DIR} ${GO_PROJECT_DIR}
-  - cd ${GO_PROJECT_DIR}
   - make build
-  - mv ${GO_PROJECT_DIR} ${OLD_DIR}
   artifacts:
     paths:
     - colonel_linux_amd64
@@ -68,9 +55,10 @@ docker:image:
   tags:
   - docker
   script:
-  - apk --update add make
-  - mkdir -p ~/.docker && echo "${DOCKER_AUTH_CONFIG}" > ~/.docker/config.json && chmod 600 ~/.docker/config.json
-  - make docker_build docker_push IMAGE_TAGS="${CI_BUILD_REF_SLUG}-${CI_PIPELINE_ID} latest"
+  - apk add --no-cache
+      make
+  - docker login -u _json_key -p "$(echo "${GCLOUD_SVC_ACCT}" | base64 -d)" "https://${REGISTRY_HOST}"
+  - make docker_build docker_push REGISTRY="${REGISTRY_HOST}/${REGISTRY_GROUP}" IMAGE_TAGS="${CI_BUILD_REF_SLUG}-${CI_PIPELINE_ID} latest"
   only:
   - master
   services:
