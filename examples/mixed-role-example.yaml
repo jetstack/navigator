@@ -1,0 +1,53 @@
+apiVersion: alpha.marshal.io/v1
+kind: ElasticsearchCluster
+metadata:
+  name: mixed
+  namespace: es
+spec:
+  version: '5.2.2'
+  plugins:
+  - name: "io.fabric8:elasticsearch-cloud-kubernetes:5.2.2"
+
+  # NOTE: DO NOT SPECIFY MORE THAN ONE SYSCTL FOR NOW
+  sysctl:
+  - vm.max_map_count=262144
+
+  image:
+    repository: eu.gcr.io/jetstack-sandbox/lieutenant-elastic-search
+    tag: master-896
+    pullPolicy: Always
+    ## This sets the group of the persistent volume created for
+    ## the data nodes. This must be the same as the user that elasticsearch
+    ## runs as within the container.
+    fsGroup: 1000
+
+  nodePools:
+  - name: mixed
+    replicas: 2
+
+    roles:
+    - data
+    - client
+    - master
+
+    resources:
+      requests:
+        cpu: '500m'
+        memory: 2Gi
+      limits:
+        cpu: '2'
+        memory: 3Gi
+
+    state:
+      # stateful defines whether to create a StatefulSet or a Deployment
+      stateful: true
+
+      # persistent sets persistent storage config
+      persistence:
+        # enabled will only have an effect if stateful is also true. If true,
+        # the persistentVolumeClaims block of the StatefulSet will be set
+        enabled: true
+        # size of the volume
+        size: 10Gi
+        # storageClass of the volume
+        storageClass: "fast"

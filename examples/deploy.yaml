@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: marshal
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: colonel
+  namespace: marshal
+  labels:
+    app: colonel
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: colonel
+    spec:
+      containers:
+      - name: colonel
+        image: eu.gcr.io/jetstack-sandbox/colonel:latest
+        imagePullPolicy: Always
