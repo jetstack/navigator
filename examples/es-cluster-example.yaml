@@ -3,7 +3,7 @@ kind: ElasticsearchCluster
 metadata:
   name: demo
 spec:
-  version: '5.2.0'
+  version: '5.2.2'
   plugins:
   - name: "io.fabric8:elasticsearch-cloud-kubernetes:5.2.2"
 
@@ -64,7 +64,7 @@ spec:
         memory: 4Gi
 
   - name: master
-    replicas: 2
+    replicas: 3
 
     roles:
     - master
