@@ -14,7 +14,7 @@ spec:
 
   image:
     repository: eu.gcr.io/jetstack-sandbox/lieutenant-elastic-search
-    tag: master-896
+    tag: master-903
     pullPolicy: Always
     ## This sets the group of the persistent volume created for
     ## the data nodes. This must be the same as the user that elasticsearch
@@ -23,7 +23,7 @@ spec:
 
   nodePools:
   - name: mixed
-    replicas: 2
+    replicas: 5
 
     roles:
     - data
@@ -48,6 +48,6 @@ spec:
         # the persistentVolumeClaims block of the StatefulSet will be set
         enabled: true
         # size of the volume
-        size: 10Gi
+        size: 5Gi
         # storageClass of the volume
         storageClass: "fast"
