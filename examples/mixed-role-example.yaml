@@ -14,7 +14,7 @@ spec:
 
   image:
     repository: eu.gcr.io/jetstack-sandbox/lieutenant-elastic-search
-    tag: master-903
+    tag: master-907
     pullPolicy: Always
     ## This sets the group of the persistent volume created for
     ## the data nodes. This must be the same as the user that elasticsearch
