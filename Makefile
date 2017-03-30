@@ -1,4 +1,4 @@
-REGISTRY := jetstackexperimental/colonel
+REGISTRY := jetstackexperimental
 IMAGE_NAME := colonel
 BUILD_TAG := build
 IMAGE_TAGS := canary
