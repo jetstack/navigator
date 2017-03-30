@@ -1,10 +1,10 @@
 # Colonel - managed DBaaS on Kubernetes
 
-## Please note this project is in a pre-alpha state, and still requires extensive integration, unit testing & health checks. Contributions are extremelly welcome. The name of the project is also subject to change.
+## Please note this project is in a pre-alpha state, and still requires extensive integration, unit testing and health checks. Contributions are extremely welcome. The name of the project is also subject to change.
 
 Colonel is a centralised controller for managing common stateful services on Kubernetes.
 It provides a framework for building high-level resource types in Kubernetes by utilising
-ThirdPartyResources. It's conceptually similar `kube-controller-manager` component, and is
+`ThirdPartyResource`s. It's conceptually similar to the `kube-controller-manager`, and is
 responsible for managing sets of Kubernetes resources and adapting them accordingly in response
 to change to resource spec changes.
 
@@ -24,10 +24,10 @@ If you want to get going quickly, have a look at our [quick-start](docs/quick-st
 
 Whilst we aim to support as many common applications as possible, it does take a certain level of operational
 knowledge of the applications in question in order to develop a lieutenant. Therefore, we'd like to reach out
-to others that are interested in our efforts & would like to see a new application added (or existing one improved!).
+to others that are interested in our efforts and would like to see a new application added (or existing one improved!).
 
 Please search for or create an issue for the application in question you'd like to see a part of Colonel,
-and we can begin discussion on implementation & planning.
+and we can begin discussion on implementation and planning.
 
 | Name          | Version   | Status      | Notes                                                             |
 | ------------- | --------- | ----------- | ----------------------------------------------------------------- |
