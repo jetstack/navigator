@@ -22,7 +22,7 @@ spec:
 
   nodePools:
   - name: data
-    replicas: 4
+    replicas: 3
 
     roles:
     - data

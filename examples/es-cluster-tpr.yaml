@@ -1,7 +1,0 @@
-apiVersion: extensions/v1beta1
-kind: ThirdPartyResource
-metadata:
-  name: elasticsearch-cluster.alpha.marshal.io
-description: "A specification of an Elasticsearch cluster"
-versions:
-- name: v1

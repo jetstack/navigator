@@ -1,60 +1,42 @@
 # Colonel - easy DBaaS on Kubernetes
 
-Colonel is a centralised controller for managing common stateful services on Kubernetes.
-It provides a framework for building control loops that manage cluster resources based on
-ThirdPartyResources defining the particular service you want to run.
+## Please note this project is in a pre-alpha state, and still requires extensive integration, unit testing & health checks. Contributions are extremelly welcome. The name of the project is also subject to change.
 
-Currently, it only supports Elasticsearch 5.2.x, however support for more popular services
-is coming _very_ soon!
+Colonel is a centralised controller for managing common stateful services on Kubernetes.
+It provides a framework for building high-level resource types in Kubernetes by utilising
+ThirdPartyResources. It's conceptually similar `kube-controller-manager` component, and is
+responsible for managing sets of Kubernetes resources and adapting them accordingly in response
+to change to resource spec changes.
+
+Application specific logic is **not** coded into Colonel - instead it defers lifecycle management
+for your applications to `lieutenants`. These `lieutenants` run as PID 1 within each of your
+application containers. They are able to coordinate with each other, and perform application-level
+actions in response to cluster events (eg. scale down, scale up, new nodes added, etc.)
 
 ## Architecture
 
-> TODO: Diagram here
+![alt text](docs/arch.jpg "Logo Title Text 1")
 
-## Quick-start Elasticsearch
+## Supported applications
 
-Here we're going to deploy a distributed and scalable Elasticsearch cluster using the examples
-provided in this repository. This will involve first deploying Colonel, and then creating
-an `ElasticsearchCluster` resource. All management of the Elasticsearch cluster will be through
-changes to the ElasticsearchCluster manifest.
+Whilst we aim to support as many common applications as possible, it does take a certain level of operational
+knowledge of the applications in question in order to develop a lieutenant. Therefore, we'd like to reach out
+to others that are interested in our efforts & would like to see a new application added (or existing one improved!).
 
-1) Install Colonel by creating the deployment manifest:
+Please search for or create an issue for the application in question you'd like to see a part of Colonel,
+and we can begin discussion on implementation & planning.
 
-```bash
-$ kubectl create -f examples/deploy.yaml
-```
+| Name          | Version   | Status    | Notes                                                             |
+| ------------- | --------- | --------- | ----------------------------------------------------------------- |
+| Elasticsearch | 5.x       | Alpha     | [more info](docs/supported-types/elasticsearch-cluster.md#notes)  |
 
-2) Create a new ElasticsearchCluster:
+## Links
 
-```bash
-$ kubectl create -f examples/es-cluster-example.yaml
-```
+* [Quick-start](docs/quick-start)
+* [Deploying Colonel](docs/deploy.md)
+* [Resource types](docs/supported-types/README.md)
+  * [ElasticsearchCluster](docs/supported-types/elasticsearch-cluster.md)
 
-This will deploy a multi-node Elasticsearch cluster, split into nodes of 3 roles: master, client (ingest) and data.
-There will be 4 data nodes, each with a 10GB PV, 2 client nodes, and 3 master nodes.
+## Credits
 
-3) Scale the data nodes:
-
-Scaling the nodes can be done by modifying your ElasticsearchCluster manifest. Currently this is only
-possible using `kubectl replace`, due to bugs with the way ThirdPartyResource's are handled in kubectl 1.5.
-
-Edit your manifest & **increase** the number of replicas in the `data` node pool, then run:
-
-```bash
-$ kubectl replace -f examples/es-cluster-example.yaml
-```
-
-You should see new data nodes being added into your cluster gradually. Once all are in the Running state, we can try
-a scale down. Do the same as before, but instead reduce the number of replicas in the `data` node pool. Then run a
-`kubectl replace` again:
-
-```bash
-$ kubectl replace -f examples/es-cluster-example.yaml
-```
-
-Upon scale-down, the Elasticsearch nodes will mark themselves as non-allocatable. This will trigger Elasticsearch to
-re-allocate any shards currently on the nodes being scaled down, meaning your data will be safely relocated within the
-cluster. It should be noted that this may not be possible depending on the replication policies set on your indices, and in
-this case, the node will hang in the 'Terminating' state until eventually being force-killed (sent a SIGKILL signal).
-
-It is up to the operator to ensure that indices policies are achievable given the ElasticsearchCluster topology.
+James Munnelly, Christian Simon & Matt Bates of [Jetstack.io](https://www.jetstack.io/)
