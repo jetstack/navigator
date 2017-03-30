@@ -14,6 +14,8 @@ application containers. They are able to coordinate with each other, and perform
 actions in response to cluster events (eg. scale down, scale up, new nodes added, etc.), with assistance
 gathering contextual information fromm the Colonel.
 
+If you want to get going quickly, have a look at our [quick-start](docs/quick-start) guide!
+
 ## Architecture
 
 ![alt text](docs/arch.jpg "Logo Title Text 1")
