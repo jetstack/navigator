@@ -55,6 +55,7 @@ docker:image:
   script:
   - apk add --no-cache
       make
+  - mkdir -p ~/.docker && echo "${DOCKER_AUTH_CONFIG}" > ~/.docker/config.json && chmod 600 ~/.docker/config.json
   - make docker_build docker_push IMAGE_TAGS="${CI_BUILD_REF_SLUG}-${CI_PIPELINE_ID} latest"
   only:
   - master
