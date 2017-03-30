@@ -18,7 +18,7 @@ If you want to get going quickly, have a look at our [quick-start](docs/quick-st
 
 ## Architecture
 
-![alt text](docs/arch.jpg "Architecture diagram")
+![alt text](docs/arch.jpg)
 
 ## Supported applications
 
