@@ -57,7 +57,6 @@ docker:image:
   script:
   - apk add --no-cache
       make
-  - docker login -u _json_key -p "$(echo "${GCLOUD_SVC_ACCT}" | base64 -d)" "https://${REGISTRY_HOST}"
   - make docker_build docker_push REGISTRY="${REGISTRY_HOST}/${REGISTRY_GROUP}" IMAGE_TAGS="${CI_BUILD_REF_SLUG}-${CI_PIPELINE_ID} latest"
   only:
   - master

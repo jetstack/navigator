@@ -21,5 +21,5 @@ spec:
     spec:
       containers:
       - name: colonel
-        image: eu.gcr.io/jetstack-sandbox/colonel:latest
+        image: jetstackexperimental/colonel:latest
         imagePullPolicy: Always

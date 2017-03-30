@@ -18,7 +18,7 @@ spec:
 
   # lieutenant image to use
   image:
-    repository: eu.gcr.io/jetstack-sandbox/lieutenant-elastic-search
+    repository: jetstackexperimental/lieutenant-elastic-search
     tag: master-907
     pullPolicy: Always
     ## This sets the group of the persistent volume created for

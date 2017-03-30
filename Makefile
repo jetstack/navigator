@@ -1,4 +1,4 @@
-REGISTRY := eu.gcr.io/jetstack-sandbox
+REGISTRY := jetstackexperimental/colonel
 IMAGE_NAME := colonel
 BUILD_TAG := build
 IMAGE_TAGS := canary
