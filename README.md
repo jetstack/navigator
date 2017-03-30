@@ -11,7 +11,8 @@ to change to resource spec changes.
 Application specific logic is **not** coded into Colonel - instead it defers lifecycle management
 for your applications to `lieutenants`. These `lieutenants` run as PID 1 within each of your
 application containers. They are able to coordinate with each other, and perform application-level
-actions in response to cluster events (eg. scale down, scale up, new nodes added, etc.)
+actions in response to cluster events (eg. scale down, scale up, new nodes added, etc.), with assistance
+gathering contextual information fromm the Colonel.
 
 ## Architecture
 
