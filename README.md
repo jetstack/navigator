@@ -1,4 +1,4 @@
-# Colonel - easy DBaaS on Kubernetes
+# Colonel - managed DBaaS on Kubernetes
 
 ## Please note this project is in a pre-alpha state, and still requires extensive integration, unit testing & health checks. Contributions are extremelly welcome. The name of the project is also subject to change.
 
@@ -18,7 +18,7 @@ If you want to get going quickly, have a look at our [quick-start](docs/quick-st
 
 ## Architecture
 
-![alt text](docs/arch.jpg "Logo Title Text 1")
+![alt text](docs/arch.jpg "Architecture diagram")
 
 ## Supported applications
 
