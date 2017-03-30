@@ -29,9 +29,10 @@ to others that are interested in our efforts & would like to see a new applicati
 Please search for or create an issue for the application in question you'd like to see a part of Colonel,
 and we can begin discussion on implementation & planning.
 
-| Name          | Version   | Status    | Notes                                                             |
-| ------------- | --------- | --------- | ----------------------------------------------------------------- |
-| Elasticsearch | 5.x       | Alpha     | [more info](docs/supported-types/elasticsearch-cluster.md#notes)  |
+| Name          | Version   | Status      | Notes                                                             |
+| ------------- | --------- | ----------- | ----------------------------------------------------------------- |
+| Elasticsearch | 5.x       | Alpha       | [more info](docs/supported-types/elasticsearch-cluster.md#notes)  |
+| Couchbase     |           | Coming soon |                                                                   |
 
 ## Links
 
