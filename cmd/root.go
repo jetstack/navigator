@@ -25,10 +25,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/informers"
 
-	"gitlab.jetstack.net/marshal/colonel/cmd/app"
-	intinformers "gitlab.jetstack.net/marshal/colonel/pkg/informers"
-	"gitlab.jetstack.net/marshal/colonel/pkg/kube"
-	"gitlab.jetstack.net/marshal/colonel/pkg/tpr"
+	"github.com/jetstack-experimental/navigator/cmd/app"
+	intinformers "github.com/jetstack-experimental/navigator/pkg/informers"
+	"github.com/jetstack-experimental/navigator/pkg/kube"
+	"github.com/jetstack-experimental/navigator/pkg/tpr"
 )
 
 var cfgFile string
@@ -36,7 +36,7 @@ var apiServerHost string
 
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
-	Use:   "colonel",
+	Use:   "navigator",
 	Short: "A brief description of your application",
 	Long: `A longer description that spans multiple lines and likely contains
 examples and usage of using your application. For example:
@@ -100,7 +100,7 @@ func init() {
 	// Cobra supports Persistent Flags, which, if defined here,
 	// will be global for your application.
 
-	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.colonel.yaml)")
+	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.navigator.yaml)")
 	RootCmd.PersistentFlags().StringVar(&apiServerHost, "apiServerHost", "", "optional api server hostname override")
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
@@ -113,7 +113,7 @@ func initConfig() {
 		viper.SetConfigFile(cfgFile)
 	}
 
-	viper.SetConfigName(".colonel") // name of config file (without extension)
+	viper.SetConfigName(".navigator") // name of config file (without extension)
 	viper.AddConfigPath("$HOME")    // adding home directory as first search path
 	viper.AutomaticEnv()            // read in environment variables that match
 

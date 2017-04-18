@@ -54,7 +54,7 @@ func Install(groupFactoryRegistry announced.APIGroupFactoryRegistry, registry *r
 		&announced.GroupMetaFactoryArgs{
 			GroupName:                  SchemeGroupVersion.Group,
 			VersionPreferenceOrder:     []string{SchemeGroupVersion.Version},
-			ImportPrefix:               "gitlab.jetstack.net/marshal/colonel/pkg/api/v1",
+			ImportPrefix:               "github.com/jetstack-experimental/navigator/pkg/api/v1",
 			AddInternalObjectsToScheme: AddToScheme,
 		},
 		announced.VersionToSchemeFunc{

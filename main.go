@@ -16,7 +16,7 @@ package main
 
 import (
 	"github.com/Sirupsen/logrus"
-	"gitlab.jetstack.net/marshal/colonel/cmd"
+	"github.com/jetstack-experimental/navigator/cmd"
 )
 
 func main() {

@@ -16,9 +16,9 @@ spec:
   sysctl:
   - vm.max_map_count=262144
 
-  # lieutenant image to use
+  # pilot image to use
   image:
-    repository: jetstackexperimental/lieutenant-elastic-search
+    repository: jetstackexperimental/pilot-elasticsearch
     tag: master-907
     pullPolicy: Always
     ## This sets the group of the persistent volume created for

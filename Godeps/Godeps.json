@@ -1,5 +1,5 @@
 {
-	"ImportPath": "gitlab.jetstack.net/marshal/colonel",
+	"ImportPath": "github.com/jetstack-experimental/navigator",
 	"GoVersion": "go1.8",
 	"GodepVersion": "v79",
 	"Packages": [

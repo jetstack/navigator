@@ -10,9 +10,9 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
-	"gitlab.jetstack.net/marshal/colonel/pkg/api/v1"
-	"gitlab.jetstack.net/marshal/colonel/pkg/informers/internalinterfaces"
-	listersv1 "gitlab.jetstack.net/marshal/colonel/pkg/listers/v1"
+	"github.com/jetstack-experimental/navigator/pkg/api/v1"
+	"github.com/jetstack-experimental/navigator/pkg/informers/internalinterfaces"
+	listersv1 "github.com/jetstack-experimental/navigator/pkg/listers/v1"
 )
 
 type ElasticsearchClusterInformer interface {

@@ -1,6 +1,6 @@
 package app
 
-import "gitlab.jetstack.net/marshal/colonel/pkg/controllers/elasticsearch"
+import "github.com/jetstack-experimental/navigator/pkg/controllers/elasticsearch"
 
 func newElasticsearchController(ctx *ControllerContext) (bool, error) {
 	go elasticsearch.NewElasticsearch(

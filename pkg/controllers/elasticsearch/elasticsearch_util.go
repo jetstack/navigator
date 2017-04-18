@@ -11,7 +11,7 @@ import (
 	apps "k8s.io/client-go/pkg/apis/apps/v1beta1"
 	extensions "k8s.io/client-go/pkg/apis/extensions/v1beta1"
 
-	"gitlab.jetstack.net/marshal/colonel/pkg/api/v1"
+	"github.com/jetstack-experimental/navigator/pkg/api/v1"
 )
 
 const (

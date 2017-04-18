@@ -15,8 +15,8 @@ import (
 	extensions "k8s.io/client-go/pkg/apis/extensions/v1beta1"
 	"k8s.io/client-go/tools/record"
 
-	"gitlab.jetstack.net/marshal/colonel/pkg/api/v1"
-	"gitlab.jetstack.net/marshal/colonel/pkg/util/errors"
+	"github.com/jetstack-experimental/navigator/pkg/api/v1"
+	"github.com/jetstack-experimental/navigator/pkg/util/errors"
 )
 
 type ElasticsearchClusterControl interface {

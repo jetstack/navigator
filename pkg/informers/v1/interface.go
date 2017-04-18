@@ -1,7 +1,7 @@
 package v1
 
 import (
-	"gitlab.jetstack.net/marshal/colonel/pkg/informers/internalinterfaces"
+	"github.com/jetstack-experimental/navigator/pkg/informers/internalinterfaces"
 )
 
 type Interface interface {

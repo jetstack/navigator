@@ -1,22 +1,22 @@
-# Quick-start Colonel - Elasticsearch
+# Quick-start Navigator - Elasticsearch
 
 Here we're going to deploy a distributed and scalable Elasticsearch cluster using the examples
-provided in this repository. This will involve first deploying Colonel, and then creating
+provided in this repository. This will involve first deploying Navigator, and then creating
 an `ElasticsearchCluster` resource. All management of the Elasticsearch cluster will be through
 changes to the ElasticsearchCluster manifest.
 
-1) Install Colonel by creating the deployment manifest:
+1) Install Navigator by creating the deployment manifest:
 
 ```bash
-$ kubectl create -f docs/quick-start/deployment-colonel.yaml
+$ kubectl create -f docs/quick-start/deployment-navigator.yaml
 ```
 
-You should see the Colonel service start in the `marshal` namespace:
+You should see the Navigator service start in the `marshal` namespace:
 
 ```bash
 $ kubectl get po -n marshal
-NAME                      READY     STATUS         RESTARTS   AGE
-colonel-745449320-dcgms   1/1       Running        0          30s
+NAME                        READY     STATUS         RESTARTS   AGE
+navigator-745449320-dcgms   1/1       Running        0          30s
 ```
 
 2) We can now create a new ElasticsearchCluster:
@@ -26,7 +26,8 @@ $ kubectl create -f examples/es-cluster-example.yaml
 ```
 
 This will deploy a multi-node Elasticsearch cluster, split into nodes of 3 roles: master, client (ingest) and data.
-There will be 4 data nodes, each with a 10GB PV, 2 client nodes, and 3 master nodes. All of the options you mmay need for configuring your cluster are documented on the [supported types page](/docs/supported-types/).
+There will be 4 data nodes, each with a 10GB PV, 2 client nodes, and 3 master nodes. All of the options you may need
+for configuring your cluster are documented on the [supported types page](/docs/supported-types/).
 
 ```bash
 $ kubectl get po
