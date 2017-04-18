@@ -1,5 +1,6 @@
 variables:
   DOCKER_DRIVER: overlay
+  PKG_PATH: github.com/jetstack-experimental/navigator
 
 stages:
 - build
@@ -8,9 +9,9 @@ stages:
 
 # configure $GOPATH correctly on all build stages
 before_script:
-  - mkdir -p "$GOPATH/src/gitlab.jetstack.net/$CI_PROJECT_NAMESPACE"
-  - ln -s "$(pwd)" "$GOPATH/src/gitlab.jetstack.net/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME"
-  - cd "$GOPATH/src/gitlab.jetstack.net/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME"
+  - mkdir -p "$GOPATH/src/$PKG_PATH" && rmdir "$GOPATH/src/$PKG_PATH"
+  - ln -s "$(pwd)" "$GOPATH/src/$PKG_PATH"
+  - cd "$GOPATH/src/$PKG_PATH"
 
 test:golang:
   image: golang:1.8
@@ -45,7 +46,7 @@ build:golang:
   - make build
   artifacts:
     paths:
-    - colonel_linux_amd64
+    - navigator_linux_amd64
 
 docker:image:
   image: docker:latest

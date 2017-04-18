@@ -9,7 +9,7 @@ import (
 	apiv1 "k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/tools/record"
 
-	"gitlab.jetstack.net/marshal/colonel/pkg/api/v1"
+	"github.com/jetstack-experimental/navigator/pkg/api/v1"
 )
 
 type ElasticsearchClusterServiceAccountControl interface {

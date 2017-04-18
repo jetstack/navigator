@@ -26,10 +26,10 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 
-	"gitlab.jetstack.net/marshal/colonel/pkg/api/v1"
-	"gitlab.jetstack.net/marshal/colonel/pkg/controllers"
-	informersv1 "gitlab.jetstack.net/marshal/colonel/pkg/informers/v1"
-	listersv1 "gitlab.jetstack.net/marshal/colonel/pkg/listers/v1"
+	"github.com/jetstack-experimental/navigator/pkg/api/v1"
+	"github.com/jetstack-experimental/navigator/pkg/controllers"
+	informersv1 "github.com/jetstack-experimental/navigator/pkg/informers/v1"
+	listersv1 "github.com/jetstack-experimental/navigator/pkg/listers/v1"
 )
 
 type ElasticsearchController struct {
@@ -62,16 +62,21 @@ func NewElasticsearch(
 	services coreinformers.ServiceInformer,
 	cl *kubernetes.Clientset,
 ) *ElasticsearchController {
+	// create an event broadcaster that can be used to send events to an event sink (eg. k8s)
 	eventBroadcaster := record.NewBroadcaster()
+	// log events to our logger
 	eventBroadcaster.StartLogging(logrus.Infof)
+	// log events to k8s
 	eventBroadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: v1core.New(cl.Core().RESTClient()).Events("")})
 	recorder := eventBroadcaster.NewRecorder(api.Scheme, apiv1.EventSource{Component: "elasticsearchCluster"})
 
+	// create a new ElasticsearchController to manage ElasticsearchCluster resources
 	elasticsearchController := &ElasticsearchController{
 		kubeClient: cl,
 		queue:      workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "elasticsearchCluster"),
 	}
 
+	// add an event handler to the ElasticsearchCluster informer
 	es.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: elasticsearchController.enqueueElasticsearchCluster,
 		UpdateFunc: func(old, cur interface{}) {
@@ -85,6 +90,7 @@ func NewElasticsearch(
 	elasticsearchController.esLister = es.Lister()
 	elasticsearchController.esListerSynced = es.Informer().HasSynced
 
+	// add an event handler to the Deployment informer
 	deploys.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: elasticsearchController.handleDeploy,
 		UpdateFunc: func(old, cur interface{}) {
@@ -100,6 +106,7 @@ func NewElasticsearch(
 	elasticsearchController.deployLister = deploys.Lister()
 	elasticsearchController.deployListerSynced = deploys.Informer().HasSynced
 
+	// add an event handler to the StatefulSet informer
 	statefulsets.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: elasticsearchController.handleStatefulSet,
 		UpdateFunc: func(old, new interface{}) {
@@ -113,6 +120,7 @@ func NewElasticsearch(
 	elasticsearchController.statefulSetLister = statefulsets.Lister()
 	elasticsearchController.statefulSetListerSynced = statefulsets.Informer().HasSynced
 
+	// add an event handler to the ServiceAccount informer
 	serviceaccounts.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: elasticsearchController.handleServiceAccount,
 		UpdateFunc: func(old, new interface{}) {
@@ -126,6 +134,7 @@ func NewElasticsearch(
 	elasticsearchController.serviceAccountLister = serviceaccounts.Lister()
 	elasticsearchController.serviceAccountListerSynced = serviceaccounts.Informer().HasSynced
 
+	// add an event handler to the Service informer
 	services.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: elasticsearchController.handleService,
 		UpdateFunc: func(old, new interface{}) {
@@ -139,6 +148,7 @@ func NewElasticsearch(
 	elasticsearchController.serviceLister = services.Lister()
 	elasticsearchController.serviceListerSynced = services.Informer().HasSynced
 
+	// create the actual ElasticsearchCluster controller
 	elasticsearchController.elasticsearchClusterControl = NewElasticsearchClusterControl(
 		elasticsearchController.statefulSetLister,
 		elasticsearchController.deployLister,
@@ -183,6 +193,7 @@ func NewElasticsearch(
 	return elasticsearchController
 }
 
+// Run is the main event loop
 func (e *ElasticsearchController) Run(workers int, stopCh <-chan struct{}) {
 	defer e.queue.ShutDown()
 

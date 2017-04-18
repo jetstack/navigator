@@ -6,14 +6,14 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.jetstack.net/marshal/colonel/pkg/informers/internalinterfaces"
+	"github.com/jetstack-experimental/navigator/pkg/informers/internalinterfaces"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
-	apiv1 "gitlab.jetstack.net/marshal/colonel/pkg/api/v1"
-	"gitlab.jetstack.net/marshal/colonel/pkg/informers/v1"
+	apiv1 "github.com/jetstack-experimental/navigator/pkg/api/v1"
+	"github.com/jetstack-experimental/navigator/pkg/informers/v1"
 )
 
 type SharedInformerFactory interface {

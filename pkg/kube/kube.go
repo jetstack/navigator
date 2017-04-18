@@ -10,7 +10,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"gitlab.jetstack.net/marshal/colonel/pkg/api/v1"
+	"github.com/jetstack-experimental/navigator/pkg/api/v1"
 )
 
 func NewMarshalRESTClient(apiServerHost string) (*rest.RESTClient, error) {

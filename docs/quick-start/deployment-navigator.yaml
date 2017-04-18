@@ -6,10 +6,10 @@ metadata:
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: colonel
+  name: navigator
   namespace: marshal
   labels:
-    app: colonel
+    app: navigator
 spec:
   replicas: 1
   strategy:
@@ -17,9 +17,9 @@ spec:
   template:
     metadata:
       labels:
-        app: colonel
+        app: navigator
     spec:
       containers:
-      - name: colonel
-        image: jetstackexperimental/colonel:latest
+      - name: navigator
+        image: jetstackexperimental/navigator:latest
         imagePullPolicy: Always

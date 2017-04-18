@@ -6,7 +6,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/pkg/apis/extensions/v1beta1"
 
-	"gitlab.jetstack.net/marshal/colonel/pkg/api/v1"
+	"github.com/jetstack-experimental/navigator/pkg/api/v1"
 )
 
 var thirdPartyResource = &v1beta1.ThirdPartyResource{

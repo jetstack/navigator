@@ -1,5 +1,5 @@
 FROM alpine:3.5
 
-ADD colonel_linux_amd64 /usr/bin/colonel
+ADD navigator_linux_amd64 /usr/bin/navigator
 
-CMD ["/usr/bin/colonel"]
+CMD ["/usr/bin/navigator"]

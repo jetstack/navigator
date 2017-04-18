@@ -1,12 +1,12 @@
 REGISTRY := jetstackexperimental
-IMAGE_NAME := colonel
+IMAGE_NAME := navigator
 BUILD_TAG := build
 IMAGE_TAGS := canary
 
 all: build docker_build
 
 build:
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -tags netgo -ldflags '-w' -o colonel_linux_amd64 .
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -tags netgo -ldflags '-w' -o navigator_linux_amd64 .
 
 docker_build:
 	docker build -t $(REGISTRY)/$(IMAGE_NAME):$(BUILD_TAG) .
