@@ -11,7 +11,8 @@ import (
 	apps "k8s.io/client-go/pkg/apis/apps/v1beta1"
 	extensions "k8s.io/client-go/pkg/apis/extensions/v1beta1"
 
-	"github.com/jetstack-experimental/navigator/pkg/api/v1"
+	"github.com/jetstack-experimental/navigator/pkg/apis/marshal"
+	v1alpha1 "github.com/jetstack-experimental/navigator/pkg/apis/marshal/v1alpha1"
 )
 
 const (
@@ -34,34 +35,13 @@ func int64Ptr(i int64) *int64 {
 	return &i
 }
 
-func elasticsearchPodTemplateSpec(c *v1.ElasticsearchCluster, np *v1.ElasticsearchClusterNodePool) (*apiv1.PodTemplateSpec, error) {
+func elasticsearchPodTemplateSpec(c v1alpha1.ElasticsearchCluster, np v1alpha1.ElasticsearchClusterNodePool) (*apiv1.PodTemplateSpec, error) {
 	initContainers := buildInitContainers(c, np)
 
 	initContainersJSON, err := json.Marshal(initContainers)
 
 	if err != nil {
 		return nil, fmt.Errorf("error marshaling init containers: %s", err.Error())
-	}
-
-	elasticsearchContainerRequests, elasticsearchContainerLimits :=
-		apiv1.ResourceList{},
-		apiv1.ResourceList{}
-
-	if np.Resources != nil {
-		if req := np.Resources.Requests; req != nil {
-			elasticsearchContainerRequests, err = parseResources(req)
-
-			if err != nil {
-				return nil, fmt.Errorf("error parsing container resource requests: %s", err.Error())
-			}
-		}
-		if req := np.Resources.Limits; req != nil {
-			elasticsearchContainerLimits, err = parseResources(req)
-
-			if err != nil {
-				return nil, fmt.Errorf("error parsing container resource limits: %s", err.Error())
-			}
-		}
 	}
 
 	volumes := []apiv1.Volume{}
@@ -174,8 +154,8 @@ func elasticsearchPodTemplateSpec(c *v1.ElasticsearchCluster, np *v1.Elasticsear
 						TimeoutSeconds:      int32(5),
 					},
 					Resources: apiv1.ResourceRequirements{
-						Requests: elasticsearchContainerRequests,
-						Limits:   elasticsearchContainerLimits,
+						Requests: np.Resources.Requests,
+						Limits:   np.Resources.Limits,
 					},
 					Ports: []apiv1.ContainerPort{
 						{
@@ -200,7 +180,7 @@ func elasticsearchPodTemplateSpec(c *v1.ElasticsearchCluster, np *v1.Elasticsear
 	}, nil
 }
 
-func buildInitContainers(c *v1.ElasticsearchCluster, np *v1.ElasticsearchClusterNodePool) []apiv1.Container {
+func buildInitContainers(c v1alpha1.ElasticsearchCluster, np v1alpha1.ElasticsearchClusterNodePool) []apiv1.Container {
 	containers := make([]apiv1.Container, len(c.Spec.Sysctl))
 	for i, sysctl := range c.Spec.Sysctl {
 		containers[i] = apiv1.Container{
@@ -218,7 +198,7 @@ func buildInitContainers(c *v1.ElasticsearchCluster, np *v1.ElasticsearchCluster
 	return containers
 }
 
-func buildNodePoolLabels(c *v1.ElasticsearchCluster, poolName string, roles ...string) map[string]string {
+func buildNodePoolLabels(c v1alpha1.ElasticsearchCluster, poolName string, roles ...string) map[string]string {
 	labels := map[string]string{
 		"cluster": c.Name,
 		"app":     "elasticsearch",
@@ -232,27 +212,7 @@ func buildNodePoolLabels(c *v1.ElasticsearchCluster, poolName string, roles ...s
 	return labels
 }
 
-func parseResources(rs *v1.ElasticsearchClusterResources_ResourceSet) (apiv1.ResourceList, error) {
-	list := apiv1.ResourceList{}
-	var err error
-	var cpu, mem resource.Quantity
-
-	if cpu, err = resource.ParseQuantity(rs.Cpu); err != nil {
-		return list, fmt.Errorf("error parsing cpu specification '%s': %s", rs.Cpu, err.Error())
-	}
-
-	list[apiv1.ResourceCPU] = cpu
-
-	if mem, err = resource.ParseQuantity(rs.Memory); err != nil {
-		return list, fmt.Errorf("error parsing memory specification '%s': %s", rs.Memory, err.Error())
-	}
-
-	list[apiv1.ResourceMemory] = mem
-
-	return list, nil
-}
-
-func clusterService(c *v1.ElasticsearchCluster, name string, http bool, annotations map[string]string, roles ...string) *apiv1.Service {
+func clusterService(c v1alpha1.ElasticsearchCluster, name string, http bool, annotations map[string]string, roles ...string) *apiv1.Service {
 	svc := apiv1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            c.Name + "-" + name,
@@ -285,7 +245,7 @@ func clusterService(c *v1.ElasticsearchCluster, name string, http bool, annotati
 	return &svc
 }
 
-func nodePoolDeployment(c *v1.ElasticsearchCluster, np *v1.ElasticsearchClusterNodePool) (*extensions.Deployment, error) {
+func nodePoolDeployment(c v1alpha1.ElasticsearchCluster, np v1alpha1.ElasticsearchClusterNodePool) (*extensions.Deployment, error) {
 	elasticsearchPodTemplate, err := elasticsearchPodTemplateSpec(c, np)
 
 	if err != nil {
@@ -321,7 +281,7 @@ func nodePoolDeployment(c *v1.ElasticsearchCluster, np *v1.ElasticsearchClusterN
 	return depl, nil
 }
 
-func nodePoolStatefulSet(c *v1.ElasticsearchCluster, np *v1.ElasticsearchClusterNodePool) (*apps.StatefulSet, error) {
+func nodePoolStatefulSet(c v1alpha1.ElasticsearchCluster, np v1alpha1.ElasticsearchClusterNodePool) (*apps.StatefulSet, error) {
 	volumeClaimTemplateAnnotations, volumeResourceRequests := map[string]string{}, apiv1.ResourceList{}
 
 	if np.State.Persistence != nil {
@@ -394,7 +354,7 @@ func nodePoolStatefulSet(c *v1.ElasticsearchCluster, np *v1.ElasticsearchCluster
 	return ss, nil
 }
 
-func clusterServiceAccount(c *v1.ElasticsearchCluster) *apiv1.ServiceAccount {
+func clusterServiceAccount(c v1alpha1.ElasticsearchCluster) *apiv1.ServiceAccount {
 	return &apiv1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            resourceBaseName(c),
@@ -404,7 +364,7 @@ func clusterServiceAccount(c *v1.ElasticsearchCluster) *apiv1.ServiceAccount {
 	}
 }
 
-func isManagedByCluster(c *v1.ElasticsearchCluster, meta metav1.ObjectMeta) bool {
+func isManagedByCluster(c v1alpha1.ElasticsearchCluster, meta metav1.ObjectMeta) bool {
 	clusterOwnerRef := ownerReference(c)
 	for _, o := range meta.OwnerReferences {
 		if clusterOwnerRef.APIVersion == o.APIVersion &&
@@ -419,29 +379,29 @@ func isManagedByCluster(c *v1.ElasticsearchCluster, meta metav1.ObjectMeta) bool
 
 func managedOwnerRef(meta metav1.ObjectMeta) *metav1.OwnerReference {
 	for _, ref := range meta.OwnerReferences {
-		if ref.APIVersion == v1.GroupName+"/"+v1.Version && ref.Kind == kindName {
+		if ref.APIVersion == marshal.GroupName+"/v1alpha1" && ref.Kind == kindName {
 			return &ref
 		}
 	}
 	return nil
 }
 
-func ownerReference(c *v1.ElasticsearchCluster) metav1.OwnerReference {
+func ownerReference(c v1alpha1.ElasticsearchCluster) metav1.OwnerReference {
 	// Really, this should be able to use the TypeMeta of the ElasticsearchCluster.
 	// There is an issue open on client-go about this here: https://github.com/kubernetes/client-go/issues/60
 	return metav1.OwnerReference{
-		APIVersion: v1.GroupName + "/" + v1.Version,
+		APIVersion: marshal.GroupName + "/v1alpha1",
 		Kind:       kindName,
 		Name:       c.Name,
 		UID:        c.UID,
 	}
 }
 
-func resourceBaseName(c *v1.ElasticsearchCluster) string {
+func resourceBaseName(c v1alpha1.ElasticsearchCluster) string {
 	return typeName + "-" + c.Name
 }
 
-func nodePoolResourceName(c *v1.ElasticsearchCluster, np *v1.ElasticsearchClusterNodePool) string {
+func nodePoolResourceName(c v1alpha1.ElasticsearchCluster, np v1alpha1.ElasticsearchClusterNodePool) string {
 	return fmt.Sprintf("%s-%s", resourceBaseName(c), np.Name)
 }
 
@@ -449,7 +409,7 @@ func nodePoolVersionAnnotation(m map[string]string) string {
 	return m[nodePoolVersionAnnotationKey]
 }
 
-func nodePoolIsStateful(np *v1.ElasticsearchClusterNodePool) bool {
+func nodePoolIsStateful(np v1alpha1.ElasticsearchClusterNodePool) bool {
 	if np.State != nil && np.State.Stateful {
 		return true
 	}

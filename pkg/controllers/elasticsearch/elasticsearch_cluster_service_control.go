@@ -9,13 +9,13 @@ import (
 	apiv1 "k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/tools/record"
 
-	"github.com/jetstack-experimental/navigator/pkg/api/v1"
+	v1alpha1 "github.com/jetstack-experimental/navigator/pkg/apis/marshal/v1alpha1"
 )
 
 type ElasticsearchClusterServiceControl interface {
-	CreateElasticsearchClusterService(*v1.ElasticsearchCluster) error
-	UpdateElasticsearchClusterService(*v1.ElasticsearchCluster) error
-	DeleteElasticsearchClusterService(*v1.ElasticsearchCluster) error
+	CreateElasticsearchClusterService(v1alpha1.ElasticsearchCluster) error
+	UpdateElasticsearchClusterService(v1alpha1.ElasticsearchCluster) error
+	DeleteElasticsearchClusterService(v1alpha1.ElasticsearchCluster) error
 	NameSuffix() string
 }
 
@@ -53,7 +53,7 @@ func (e *defaultElasticsearchClusterServiceControl) NameSuffix() string {
 	return e.config.NameSuffix
 }
 
-func (e *defaultElasticsearchClusterServiceControl) CreateElasticsearchClusterService(c *v1.ElasticsearchCluster) (err error) {
+func (e *defaultElasticsearchClusterServiceControl) CreateElasticsearchClusterService(c v1alpha1.ElasticsearchCluster) (err error) {
 	svc := clusterService(c, e.NameSuffix(), e.config.EnableHTTP, e.config.Annotations, e.config.Roles...)
 
 	svc, err = e.kubeClient.Core().Services(c.Namespace).Create(svc)
@@ -67,7 +67,7 @@ func (e *defaultElasticsearchClusterServiceControl) CreateElasticsearchClusterSe
 	return nil
 }
 
-func (e *defaultElasticsearchClusterServiceControl) UpdateElasticsearchClusterService(c *v1.ElasticsearchCluster) (err error) {
+func (e *defaultElasticsearchClusterServiceControl) UpdateElasticsearchClusterService(c v1alpha1.ElasticsearchCluster) (err error) {
 	svc := clusterService(c, e.NameSuffix(), e.config.EnableHTTP, e.config.Annotations, e.config.Roles...)
 
 	svc, err = e.kubeClient.Core().Services(c.Namespace).Update(svc)
@@ -81,7 +81,7 @@ func (e *defaultElasticsearchClusterServiceControl) UpdateElasticsearchClusterSe
 	return nil
 }
 
-func (e *defaultElasticsearchClusterServiceControl) DeleteElasticsearchClusterService(c *v1.ElasticsearchCluster) error {
+func (e *defaultElasticsearchClusterServiceControl) DeleteElasticsearchClusterService(c v1alpha1.ElasticsearchCluster) error {
 	svc := clusterService(c, e.NameSuffix(), e.config.EnableHTTP, e.config.Annotations, e.config.Roles...)
 
 	err := e.kubeClient.Core().Services(c.Namespace).Delete(svc.Name, &metav1.DeleteOptions{})
@@ -97,16 +97,16 @@ func (e *defaultElasticsearchClusterServiceControl) DeleteElasticsearchClusterSe
 
 // recordNodePoolEvent records an event for verb applied to a NodePool in an ElasticsearchCluster. If err is nil the generated event will
 // have a reason of v1.EventTypeNormal. If err is not nil the generated event will have a reason of v1.EventTypeWarning.
-func (e *defaultElasticsearchClusterServiceControl) recordEvent(verb string, cluster *v1.ElasticsearchCluster, svc *apiv1.Service, err error) {
+func (e *defaultElasticsearchClusterServiceControl) recordEvent(verb string, cluster v1alpha1.ElasticsearchCluster, svc *apiv1.Service, err error) {
 	if err == nil {
 		reason := fmt.Sprintf("Successful%s", strings.Title(verb))
 		message := fmt.Sprintf("%s Service %s in ElasticsearchCluster %s successful",
 			strings.ToLower(verb), svc.Name, cluster.Name)
-		e.recorder.Event(cluster, apiv1.EventTypeNormal, reason, message)
+		e.recorder.Event(&cluster, apiv1.EventTypeNormal, reason, message)
 	} else {
 		reason := fmt.Sprintf("Failed%s", strings.Title(verb))
 		message := fmt.Sprintf("%s Service %s in ElasticsearchCluster %s failed error: %s",
 			strings.ToLower(verb), svc.Name, cluster.Name, err)
-		e.recorder.Event(cluster, apiv1.EventTypeWarning, reason, message)
+		e.recorder.Event(&cluster, apiv1.EventTypeWarning, reason, message)
 	}
 }

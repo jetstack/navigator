@@ -26,16 +26,16 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 
-	"github.com/jetstack-experimental/navigator/pkg/api/v1"
+	v1alpha1 "github.com/jetstack-experimental/navigator/pkg/apis/marshal/v1alpha1"
+	informerv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/informers_generated/externalversions/marshal/v1alpha1"
+	listersv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/listers_generated/marshal/v1alpha1"
 	"github.com/jetstack-experimental/navigator/pkg/controllers"
-	informersv1 "github.com/jetstack-experimental/navigator/pkg/informers/v1"
-	listersv1 "github.com/jetstack-experimental/navigator/pkg/listers/v1"
 )
 
 type ElasticsearchController struct {
 	kubeClient *kubernetes.Clientset
 
-	esLister       listersv1.ElasticsearchClusterLister
+	esLister       listersv1alpha1.ElasticsearchClusterLister
 	esListerSynced cache.InformerSynced
 
 	deployLister       extensionslisters.DeploymentLister
@@ -55,7 +55,7 @@ type ElasticsearchController struct {
 }
 
 func NewElasticsearch(
-	es informersv1.ElasticsearchClusterInformer,
+	es informerv1alpha1.ElasticsearchClusterInformer,
 	deploys depl.DeploymentInformer,
 	statefulsets appsinformers.StatefulSetInformer,
 	serviceaccounts coreinformers.ServiceAccountInformer,
@@ -233,7 +233,7 @@ func (e *ElasticsearchController) processNextWorkItem() bool {
 		} else {
 			e.queue.Forget(key)
 		}
-	} else if es, ok := key.(*v1.ElasticsearchCluster); ok {
+	} else if es, ok := key.(v1alpha1.ElasticsearchCluster); ok {
 		t := metav1.NewTime(time.Now())
 		es.DeletionTimestamp = &t
 		if err := e.elasticsearchClusterControl.SyncElasticsearchCluster(es); err != nil {
@@ -265,7 +265,7 @@ func (e *ElasticsearchController) sync(key string) error {
 		return err
 	}
 
-	return e.elasticsearchClusterControl.SyncElasticsearchCluster(es)
+	return e.elasticsearchClusterControl.SyncElasticsearchCluster(*es)
 }
 
 func (e *ElasticsearchController) enqueueElasticsearchCluster(obj interface{}) {
@@ -363,7 +363,7 @@ func (e *ElasticsearchController) handleService(obj interface{}) {
 	}
 }
 
-func verifyElasticsearchCluster(c *v1.ElasticsearchCluster) error {
+func verifyElasticsearchCluster(c v1alpha1.ElasticsearchCluster) error {
 	// TODO: add verification that at least one client, master and data node pool exist
 	if c.Spec.Version == "" {
 		return fmt.Errorf("cluster version number must be specified")
@@ -378,7 +378,7 @@ func verifyElasticsearchCluster(c *v1.ElasticsearchCluster) error {
 	return nil
 }
 
-func verifyNodePool(np *v1.ElasticsearchClusterNodePool) error {
+func verifyNodePool(np v1alpha1.ElasticsearchClusterNodePool) error {
 	for _, role := range np.Roles {
 		switch role {
 		case "data", "client", "master":

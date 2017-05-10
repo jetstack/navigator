@@ -3,3 +3,6 @@
 /navigator
 /navigator_*_*
 .DS_Store
+.generate_exes
+.get_deps
+bin/
