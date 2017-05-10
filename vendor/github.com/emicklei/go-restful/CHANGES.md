@@ -1,5 +1,25 @@
 Change history of go-restful
 =
+2017-01-27
+- remove defer request body close
+- expose Dispatch for testing filters and Routefunctions
+- swagger response model cannot be array 
+
+2016-12-22
+- (API change) Remove code related to caching request content. Removes SetCacheReadEntity(doCache bool)
+
+2016-11-26
+- Default change! now use CurlyRouter (was RouterJSR311)
+- Default change! no more caching of request content
+- Default change! do not recover from panics
+
+2016-09-22
+- fix the DefaultRequestContentType feature
+
+2016-02-14
+- take the qualify factor of the Accept header mediatype into account when deciding the contentype of the response
+- add constructors for custom entity accessors for xml and json 
+
 2015-09-27
 - rename new WriteStatusAnd... to WriteHeaderAnd... for consistency
 
