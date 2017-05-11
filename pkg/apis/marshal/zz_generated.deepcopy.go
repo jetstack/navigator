@@ -42,7 +42,6 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_marshal_ElasticsearchClusterPersistenceConfig, InType: reflect.TypeOf(&ElasticsearchClusterPersistenceConfig{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_marshal_ElasticsearchClusterPlugin, InType: reflect.TypeOf(&ElasticsearchClusterPlugin{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_marshal_ElasticsearchClusterSpec, InType: reflect.TypeOf(&ElasticsearchClusterSpec{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_marshal_ElasticsearchClusterStateConfig, InType: reflect.TypeOf(&ElasticsearchClusterStateConfig{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_marshal_ElasticsearchClusterStatus, InType: reflect.TypeOf(&ElasticsearchClusterStatus{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_marshal_ElasticsearchImage, InType: reflect.TypeOf(&ElasticsearchImage{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_marshal_ElasticsearchOwnerReference, InType: reflect.TypeOf(&ElasticsearchOwnerReference{})},
@@ -106,13 +105,10 @@ func DeepCopy_marshal_ElasticsearchClusterNodePool(in interface{}, out interface
 				*out = newVal.(*api_v1.ResourceRequirements)
 			}
 		}
-		if in.State != nil {
-			in, out := &in.State, &out.State
-			if newVal, err := c.DeepCopy(*in); err != nil {
-				return err
-			} else {
-				*out = newVal.(*ElasticsearchClusterStateConfig)
-			}
+		if in.Persistence != nil {
+			in, out := &in.Persistence, &out.Persistence
+			*out = new(ElasticsearchClusterPersistenceConfig)
+			**out = **in
 		}
 		if in.OwnerReferences != nil {
 			in, out := &in.OwnerReferences, &out.OwnerReferences
@@ -172,20 +168,6 @@ func DeepCopy_marshal_ElasticsearchClusterSpec(in interface{}, out interface{}, 
 			in, out := &in.Sysctl, &out.Sysctl
 			*out = make([]string, len(*in))
 			copy(*out, *in)
-		}
-		return nil
-	}
-}
-
-func DeepCopy_marshal_ElasticsearchClusterStateConfig(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*ElasticsearchClusterStateConfig)
-		out := out.(*ElasticsearchClusterStateConfig)
-		*out = *in
-		if in.Persistence != nil {
-			in, out := &in.Persistence, &out.Persistence
-			*out = new(ElasticsearchClusterPersistenceConfig)
-			**out = **in
 		}
 		return nil
 	}

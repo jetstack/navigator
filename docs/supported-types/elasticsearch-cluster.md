@@ -42,20 +42,13 @@ spec:
       limits:
         cpu: '1'
         memory: 3Gi
-    
-    state:
-      # stateful defines whether to create a StatefulSet or a Deployment
-      stateful: true
 
-      # persistent sets persistent storage config
-      persistence:
-        # enabled will only have an effect if stateful is also true. If true,
-        # the persistentVolumeClaims block of the StatefulSet will be set
-        enabled: true
-        # size of the volume
-        size: 10Gi
-        # storageClass of the volume
-        storageClass: "fast"
+    # persistent sets persistent storage config
+    persistence:
+      # size of the volume
+      size: 10Gi
+      # storageClass of the volume
+      storageClass: "fast"
 
   - name: client
     replicas: 2

@@ -46,9 +46,7 @@ func elasticsearchPodTemplateSpec(c v1alpha1.ElasticsearchCluster, np v1alpha1.E
 
 	volumes := []apiv1.Volume{}
 
-	if np.State == nil ||
-		np.State.Persistence == nil ||
-		!np.State.Persistence.Enabled {
+	if np.Persistence == nil {
 		volumes = append(volumes, apiv1.Volume{
 			Name: "elasticsearch-data",
 			VolumeSource: apiv1.VolumeSource{
@@ -284,12 +282,12 @@ func nodePoolDeployment(c v1alpha1.ElasticsearchCluster, np v1alpha1.Elasticsear
 func nodePoolStatefulSet(c v1alpha1.ElasticsearchCluster, np v1alpha1.ElasticsearchClusterNodePool) (*apps.StatefulSet, error) {
 	volumeClaimTemplateAnnotations, volumeResourceRequests := map[string]string{}, apiv1.ResourceList{}
 
-	if np.State.Persistence != nil {
-		if np.State.Persistence.StorageClass != "" {
-			volumeClaimTemplateAnnotations["volume.beta.kubernetes.io/storage-class"] = np.State.Persistence.StorageClass
+	if np.Persistence != nil {
+		if np.Persistence.StorageClass != "" {
+			volumeClaimTemplateAnnotations["volume.beta.kubernetes.io/storage-class"] = np.Persistence.StorageClass
 		}
 
-		if size := np.State.Persistence.Size; size != "" {
+		if size := np.Persistence.Size; size != "" {
 			storageRequests, err := resource.ParseQuantity(size)
 
 			if err != nil {
@@ -410,8 +408,5 @@ func nodePoolVersionAnnotation(m map[string]string) string {
 }
 
 func nodePoolIsStateful(np v1alpha1.ElasticsearchClusterNodePool) bool {
-	if np.State != nil && np.State.Stateful {
-		return true
-	}
-	return false
+	return np.Persistence != nil
 }

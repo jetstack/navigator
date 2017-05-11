@@ -72,17 +72,11 @@ type ElasticsearchClusterNodePool struct {
 	Replicas        int32
 	Roles           []string
 	Resources       *v1.ResourceRequirements
-	State           *ElasticsearchClusterStateConfig
+	Persistence     *ElasticsearchClusterPersistenceConfig
 	OwnerReferences []*ElasticsearchOwnerReference
 }
 
-type ElasticsearchClusterStateConfig struct {
-	Stateful    bool
-	Persistence *ElasticsearchClusterPersistenceConfig
-}
-
 type ElasticsearchClusterPersistenceConfig struct {
-	Enabled      bool
 	Size         string
 	StorageClass string
 }

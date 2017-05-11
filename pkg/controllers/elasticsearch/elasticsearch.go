@@ -387,9 +387,9 @@ func verifyNodePool(np v1alpha1.ElasticsearchClusterNodePool) error {
 		}
 	}
 
-	if np.State != nil {
-		if !np.State.Stateful && np.State.Persistence.Enabled {
-			return fmt.Errorf("a non-stateful node pool cannot have persistence enabled")
+	if np.Persistence != nil {
+		if len(np.Persistence.Size) == 0 {
+			return fmt.Errorf("size of volume must be specified")
 		}
 	}
 

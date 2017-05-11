@@ -75,26 +75,16 @@ type ElasticsearchClusterPlugin struct {
 // ElasticsearchClusterNodePool describes a node pool within an ElasticsearchCluster.
 // The nodes in this pool will be configured to be of the specified roles
 type ElasticsearchClusterNodePool struct {
-	Name      string                           `json:"name"`
-	Replicas  int32                            `json:"replicas"`
-	Roles     []string                         `json:"roles"`
-	Resources *v1.ResourceRequirements         `json:"resources,omitempty"`
-	State     *ElasticsearchClusterStateConfig `json:"state,omitempty"`
+	Name        string                                 `json:"name"`
+	Replicas    int32                                  `json:"replicas"`
+	Roles       []string                               `json:"roles"`
+	Resources   *v1.ResourceRequirements               `json:"resources,omitempty"`
+	Persistence *ElasticsearchClusterPersistenceConfig `json:"persistence,omitempty"`
 	// TODO: Remove this field
 	OwnerReferences []*ElasticsearchOwnerReference `json:"ownerReferences,omitEmpty"`
 }
 
-type ElasticsearchClusterStateConfig struct {
-	// TODO: Remove the Stateful field
-	Stateful    bool                                   `json:"stateful"`
-	Persistence *ElasticsearchClusterPersistenceConfig `json:"persistence,omitempty"`
-}
-
 type ElasticsearchClusterPersistenceConfig struct {
-	// TODO: Remove the enabled field. Instead check for the presence
-	// of an ElasticsearchClusterPersistenceConfig field in the
-	// ElasticsearchClusterStateConfig block
-	Enabled      bool   `json:"enabled"`
 	Size         string `json:"size"`
 	StorageClass string `json:"storageClass"`
 }
