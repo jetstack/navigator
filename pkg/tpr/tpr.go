@@ -1,22 +1,21 @@
 package tpr
 
 import (
+	"github.com/jetstack-experimental/navigator/pkg/apis/marshal"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/pkg/apis/extensions/v1beta1"
-
-	"github.com/jetstack-experimental/navigator/pkg/api/v1"
 )
 
 var thirdPartyResource = &v1beta1.ThirdPartyResource{
 	ObjectMeta: metav1.ObjectMeta{
-		Name: "elasticsearch-cluster." + v1.GroupName,
+		Name: "elasticsearch-cluster." + marshal.GroupName,
 	},
 	Description: "A specification of an Elasticsearch cluster",
 	Versions: []v1beta1.APIVersion{
 		{
-			Name: "v1",
+			Name: "v1alpha1",
 		},
 	},
 }

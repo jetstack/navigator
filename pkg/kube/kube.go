@@ -10,11 +10,11 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/jetstack-experimental/navigator/pkg/api/v1"
+	"github.com/jetstack-experimental/navigator/pkg/apis/marshal"
 )
 
 func NewMarshalRESTClient(apiServerHost string) (*rest.RESTClient, error) {
-	cfg, err := kubeConfig(apiServerHost)
+	cfg, err := Config(apiServerHost)
 
 	if err != nil {
 		return nil, fmt.Errorf("error loading kubernetes client config: %s", err.Error())
@@ -30,7 +30,7 @@ func NewMarshalRESTClient(apiServerHost string) (*rest.RESTClient, error) {
 // to talk to the apiServerHost URL will be returned. Else, the in-cluster config will be loaded,
 // and failing this, the config will be loaded from the users local kubeconfig directory
 func NewKubernetesClient(apiServerHost string) (*kubernetes.Clientset, error) {
-	cfg, err := kubeConfig(apiServerHost)
+	cfg, err := Config(apiServerHost)
 
 	if err != nil {
 		return nil, fmt.Errorf("error loading kubernetes client config: %s", err.Error())
@@ -45,7 +45,7 @@ func NewKubernetesClient(apiServerHost string) (*kubernetes.Clientset, error) {
 	return cl, nil
 }
 
-func kubeConfig(apiServerHost string) (*rest.Config, error) {
+func Config(apiServerHost string) (*rest.Config, error) {
 	var err error
 	var cfg *rest.Config
 
@@ -70,7 +70,7 @@ func kubeConfig(apiServerHost string) (*rest.Config, error) {
 }
 
 func configureTprClient(config *rest.Config) {
-	config.GroupVersion = &v1.SchemeGroupVersion
+	config.GroupVersion = &marshal.SchemeGroupVersion
 	config.APIPath = "/apis"
 	config.ContentType = runtime.ContentTypeJSON
 	config.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: api.Codecs}

@@ -13,29 +13,13 @@ before_script:
   - ln -s "$(pwd)" "$GOPATH/src/$PKG_PATH"
   - cd "$GOPATH/src/$PKG_PATH"
 
-test:golang:
+verify:golang:
   image: golang:1.8
   stage: build
   tags:
   - docker
   script:
-  - make test_golang
-
-vet:golang:
-  image: golang:1.8
-  stage: build
-  tags:
-  - docker
-  script:
-  - make vet_golang
-
-fmt:golang:
-  image: golang:1.8
-  stage: build
-  tags:
-  - docker
-  script:
-  - make fmt_golang
+  - make verify
 
 build:golang:
   image: golang:1.8

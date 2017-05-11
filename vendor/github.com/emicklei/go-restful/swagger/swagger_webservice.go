@@ -226,6 +226,9 @@ func (sws SwaggerService) composeDeclaration(ws *restful.WebService, pathPrefix 
 	pathToRoutes := newOrderedRouteMap()
 	for _, other := range ws.Routes() {
 		if strings.HasPrefix(other.Path, pathPrefix) {
+			if len(pathPrefix) > 1 && len(other.Path) > len(pathPrefix) && other.Path[len(pathPrefix)] != '/' {
+				continue
+			}
 			pathToRoutes.Add(other.Path, other)
 		}
 	}
@@ -241,7 +244,7 @@ func (sws SwaggerService) composeDeclaration(ws *restful.WebService, pathPrefix 
 				DataTypeFields:   DataTypeFields{Type: &voidString},
 				Parameters:       []Parameter{},
 				Nickname:         route.Operation,
-				ResponseMessages: composeResponseMessages(route, &decl)}
+				ResponseMessages: composeResponseMessages(route, &decl, &sws.config)}
 
 			operation.Consumes = route.Consumes
 			operation.Produces = route.Produces
@@ -271,13 +274,13 @@ func withoutWildcard(path string) string {
 }
 
 // composeResponseMessages takes the ResponseErrors (if any) and creates ResponseMessages from them.
-func composeResponseMessages(route restful.Route, decl *ApiDeclaration) (messages []ResponseMessage) {
+func composeResponseMessages(route restful.Route, decl *ApiDeclaration, config *Config) (messages []ResponseMessage) {
 	if route.ResponseErrors == nil {
 		return messages
 	}
 	// sort by code
 	codes := sort.IntSlice{}
-	for code, _ := range route.ResponseErrors {
+	for code := range route.ResponseErrors {
 		codes = append(codes, code)
 	}
 	codes.Sort()
@@ -290,13 +293,12 @@ func composeResponseMessages(route restful.Route, decl *ApiDeclaration) (message
 		if each.Model != nil {
 			st := reflect.TypeOf(each.Model)
 			isCollection, st := detectCollectionType(st)
-			modelName := modelBuilder{}.keyFrom(st)
-			if isCollection {
-				modelName = "array[" + modelName + "]"
+			// collection cannot be in responsemodel
+			if !isCollection {
+				modelName := modelBuilder{}.keyFrom(st)
+				modelBuilder{Models: &decl.Models, Config: config}.addModel(st, "")
+				message.ResponseModel = modelName
 			}
-			modelBuilder{&decl.Models}.addModel(st, "")
-			// reference the model
-			message.ResponseModel = modelName
 		}
 		messages = append(messages, message)
 	}
@@ -331,12 +333,13 @@ func detectCollectionType(st reflect.Type) (bool, reflect.Type) {
 
 // addModelFromSample creates and adds (or overwrites) a Model from a sample resource
 func (sws SwaggerService) addModelFromSampleTo(operation *Operation, isResponse bool, sample interface{}, models *ModelList) {
+	mb := modelBuilder{Models: models, Config: &sws.config}
 	if isResponse {
-		type_, items := asDataType(sample)
-		operation.Type = type_
+		sampleType, items := asDataType(sample, &sws.config)
+		operation.Type = sampleType
 		operation.Items = items
 	}
-	modelBuilder{models}.addModelFrom(sample)
+	mb.addModelFrom(sample)
 }
 
 func asSwaggerParameter(param restful.ParameterData) Parameter {
@@ -411,7 +414,7 @@ func asParamType(kind int) string {
 	return ""
 }
 
-func asDataType(any interface{}) (*string, *Item) {
+func asDataType(any interface{}, config *Config) (*string, *Item) {
 	// If it's not a collection, return the suggested model name
 	st := reflect.TypeOf(any)
 	isCollection, st := detectCollectionType(st)
@@ -424,7 +427,7 @@ func asDataType(any interface{}) (*string, *Item) {
 	// XXX: This is not very elegant
 	// We create an Item object referring to the given model
 	models := ModelList{}
-	mb := modelBuilder{&models}
+	mb := modelBuilder{Models: &models, Config: config}
 	mb.addModelFrom(any)
 
 	elemTypeName := mb.getElementTypeName(modelName, "", st)

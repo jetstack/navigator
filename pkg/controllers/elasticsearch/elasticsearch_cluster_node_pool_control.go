@@ -11,13 +11,13 @@ import (
 	apiv1 "k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/tools/record"
 
-	"github.com/jetstack-experimental/navigator/pkg/api/v1"
+	v1alpha1 "github.com/jetstack-experimental/navigator/pkg/apis/marshal/v1alpha1"
 )
 
 type ElasticsearchClusterNodePoolControl interface {
-	CreateElasticsearchClusterNodePool(*v1.ElasticsearchCluster, *v1.ElasticsearchClusterNodePool) error
-	UpdateElasticsearchClusterNodePool(*v1.ElasticsearchCluster, *v1.ElasticsearchClusterNodePool) error
-	DeleteElasticsearchClusterNodePool(*v1.ElasticsearchCluster, *v1.ElasticsearchClusterNodePool) error
+	CreateElasticsearchClusterNodePool(v1alpha1.ElasticsearchCluster, v1alpha1.ElasticsearchClusterNodePool) error
+	UpdateElasticsearchClusterNodePool(v1alpha1.ElasticsearchCluster, v1alpha1.ElasticsearchClusterNodePool) error
+	DeleteElasticsearchClusterNodePool(v1alpha1.ElasticsearchCluster, v1alpha1.ElasticsearchClusterNodePool) error
 }
 
 type defaultElasticsearchClusterNodePoolControl struct {
@@ -61,7 +61,7 @@ func NewStatefulElasticsearchClusterNodePoolControl(
 	}
 }
 
-func (e *defaultElasticsearchClusterNodePoolControl) CreateElasticsearchClusterNodePool(c *v1.ElasticsearchCluster, np *v1.ElasticsearchClusterNodePool) error {
+func (e *defaultElasticsearchClusterNodePoolControl) CreateElasticsearchClusterNodePool(c v1alpha1.ElasticsearchCluster, np v1alpha1.ElasticsearchClusterNodePool) error {
 	depl, err := nodePoolDeployment(c, np)
 
 	if err != nil {
@@ -80,7 +80,7 @@ func (e *defaultElasticsearchClusterNodePoolControl) CreateElasticsearchClusterN
 	return nil
 }
 
-func (e *defaultElasticsearchClusterNodePoolControl) UpdateElasticsearchClusterNodePool(c *v1.ElasticsearchCluster, np *v1.ElasticsearchClusterNodePool) error {
+func (e *defaultElasticsearchClusterNodePoolControl) UpdateElasticsearchClusterNodePool(c v1alpha1.ElasticsearchCluster, np v1alpha1.ElasticsearchClusterNodePool) error {
 	depl, err := nodePoolDeployment(c, np)
 
 	if err != nil {
@@ -99,7 +99,7 @@ func (e *defaultElasticsearchClusterNodePoolControl) UpdateElasticsearchClusterN
 	return nil
 }
 
-func (e *defaultElasticsearchClusterNodePoolControl) DeleteElasticsearchClusterNodePool(c *v1.ElasticsearchCluster, np *v1.ElasticsearchClusterNodePool) error {
+func (e *defaultElasticsearchClusterNodePoolControl) DeleteElasticsearchClusterNodePool(c v1alpha1.ElasticsearchCluster, np v1alpha1.ElasticsearchClusterNodePool) error {
 	depl, err := nodePoolDeployment(c, np)
 
 	if err != nil {
@@ -118,7 +118,7 @@ func (e *defaultElasticsearchClusterNodePoolControl) DeleteElasticsearchClusterN
 	return nil
 }
 
-func (e *statefulElasticsearchClusterNodePoolControl) CreateElasticsearchClusterNodePool(c *v1.ElasticsearchCluster, np *v1.ElasticsearchClusterNodePool) error {
+func (e *statefulElasticsearchClusterNodePoolControl) CreateElasticsearchClusterNodePool(c v1alpha1.ElasticsearchCluster, np v1alpha1.ElasticsearchClusterNodePool) error {
 	ss, err := nodePoolStatefulSet(c, np)
 
 	if err != nil {
@@ -137,7 +137,7 @@ func (e *statefulElasticsearchClusterNodePoolControl) CreateElasticsearchCluster
 	return nil
 }
 
-func (e *statefulElasticsearchClusterNodePoolControl) UpdateElasticsearchClusterNodePool(c *v1.ElasticsearchCluster, np *v1.ElasticsearchClusterNodePool) error {
+func (e *statefulElasticsearchClusterNodePoolControl) UpdateElasticsearchClusterNodePool(c v1alpha1.ElasticsearchCluster, np v1alpha1.ElasticsearchClusterNodePool) error {
 	ss, err := nodePoolStatefulSet(c, np)
 
 	if err != nil {
@@ -156,7 +156,7 @@ func (e *statefulElasticsearchClusterNodePoolControl) UpdateElasticsearchCluster
 	return nil
 }
 
-func (e *statefulElasticsearchClusterNodePoolControl) DeleteElasticsearchClusterNodePool(c *v1.ElasticsearchCluster, np *v1.ElasticsearchClusterNodePool) error {
+func (e *statefulElasticsearchClusterNodePoolControl) DeleteElasticsearchClusterNodePool(c v1alpha1.ElasticsearchCluster, np v1alpha1.ElasticsearchClusterNodePool) error {
 	ss, err := nodePoolStatefulSet(c, np)
 
 	if err != nil {
@@ -177,32 +177,32 @@ func (e *statefulElasticsearchClusterNodePoolControl) DeleteElasticsearchCluster
 
 // recordNodePoolEvent records an event for verb applied to a NodePool in an ElasticsearchCluster. If err is nil the generated event will
 // have a reason of v1.EventTypeNormal. If err is not nil the generated event will have a reason of v1.EventTypeWarning.
-func (e *defaultElasticsearchClusterNodePoolControl) recordNodePoolEvent(verb string, cluster *v1.ElasticsearchCluster, pool *v1.ElasticsearchClusterNodePool, err error) {
+func (e *defaultElasticsearchClusterNodePoolControl) recordNodePoolEvent(verb string, cluster v1alpha1.ElasticsearchCluster, pool v1alpha1.ElasticsearchClusterNodePool, err error) {
 	if err == nil {
 		reason := fmt.Sprintf("Successful%s", strings.Title(verb))
 		message := fmt.Sprintf("%s NodePool %s in ElasticsearchCluster %s successful",
 			strings.ToLower(verb), pool.Name, cluster.Name)
-		e.recorder.Event(cluster, apiv1.EventTypeNormal, reason, message)
+		e.recorder.Event(&cluster, apiv1.EventTypeNormal, reason, message)
 	} else {
 		reason := fmt.Sprintf("Failed%s", strings.Title(verb))
 		message := fmt.Sprintf("%s NodePool %s in ElasticsearchCluster %s failed error: %s",
 			strings.ToLower(verb), pool.Name, cluster.Name, err)
-		e.recorder.Event(cluster, apiv1.EventTypeWarning, reason, message)
+		e.recorder.Event(&cluster, apiv1.EventTypeWarning, reason, message)
 	}
 }
 
 // recordNodePoolEvent records an event for verb applied to a NodePool in an ElasticsearchCluster. If err is nil the generated event will
 // have a reason of v1.EventTypeNormal. If err is not nil the generated event will have a reason of v1.EventTypeWarning.
-func (e *statefulElasticsearchClusterNodePoolControl) recordNodePoolEvent(verb string, cluster *v1.ElasticsearchCluster, pool *v1.ElasticsearchClusterNodePool, err error) {
+func (e *statefulElasticsearchClusterNodePoolControl) recordNodePoolEvent(verb string, cluster v1alpha1.ElasticsearchCluster, pool v1alpha1.ElasticsearchClusterNodePool, err error) {
 	if err == nil {
 		reason := fmt.Sprintf("Successful%s", strings.Title(verb))
 		message := fmt.Sprintf("%s StatefulNodePool %s in ElasticsearchCluster %s successful",
 			strings.ToLower(verb), pool.Name, cluster.Name)
-		e.recorder.Event(cluster, apiv1.EventTypeNormal, reason, message)
+		e.recorder.Event(&cluster, apiv1.EventTypeNormal, reason, message)
 	} else {
 		reason := fmt.Sprintf("Failed%s", strings.Title(verb))
 		message := fmt.Sprintf("%s StatefulNodePool %s in ElasticsearchCluster %s failed error: %s",
 			strings.ToLower(verb), pool.Name, cluster.Name, err)
-		e.recorder.Event(cluster, apiv1.EventTypeWarning, reason, message)
+		e.recorder.Event(&cluster, apiv1.EventTypeWarning, reason, message)
 	}
 }

@@ -8,7 +8,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
-	intinformers "github.com/jetstack-experimental/navigator/pkg/informers"
+	intinformers "github.com/jetstack-experimental/navigator/pkg/client/informers_generated/externalversions"
 )
 
 var (

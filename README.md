@@ -31,13 +31,12 @@ and we can begin discussion on implementation & planning.
 
 | Name          | Version   | Status      | Notes                                                             |
 | ------------- | --------- | ----------- | ----------------------------------------------------------------- |
-| Elasticsearch | 5.x       | Alpha       | [more info](docs/supported-types/elasticsearch-cluster.md#notes)  |
+| Elasticsearch | 5.x       | Alpha       | [more info](docs/supported-types/elasticsearch-cluster.md)  |
 | Couchbase     |           | Coming soon |                                                                   |
 
 ## Links
 
 * [Quick-start](docs/quick-start)
-* [Deploying Navigator](docs/deploy.md)
 * [Resource types](docs/supported-types/README.md)
   * [ElasticsearchCluster](docs/supported-types/elasticsearch-cluster.md)
 

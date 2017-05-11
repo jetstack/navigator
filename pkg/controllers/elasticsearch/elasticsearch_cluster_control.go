@@ -15,12 +15,12 @@ import (
 	extensions "k8s.io/client-go/pkg/apis/extensions/v1beta1"
 	"k8s.io/client-go/tools/record"
 
-	"github.com/jetstack-experimental/navigator/pkg/api/v1"
+	v1alpha1 "github.com/jetstack-experimental/navigator/pkg/apis/marshal/v1alpha1"
 	"github.com/jetstack-experimental/navigator/pkg/util/errors"
 )
 
 type ElasticsearchClusterControl interface {
-	SyncElasticsearchCluster(*v1.ElasticsearchCluster) error
+	SyncElasticsearchCluster(v1alpha1.ElasticsearchCluster) error
 }
 
 type defaultElasticsearchClusterControl struct {
@@ -69,7 +69,7 @@ func NewElasticsearchClusterControl(
 }
 
 func (e *defaultElasticsearchClusterControl) SyncElasticsearchCluster(
-	c *v1.ElasticsearchCluster,
+	c v1alpha1.ElasticsearchCluster,
 ) error {
 	var err error
 
@@ -99,7 +99,7 @@ func (e *defaultElasticsearchClusterControl) SyncElasticsearchCluster(
 	return nil
 }
 
-func (e *defaultElasticsearchClusterControl) syncService(c *v1.ElasticsearchCluster, ctrl ElasticsearchClusterServiceControl) error {
+func (e *defaultElasticsearchClusterControl) syncService(c v1alpha1.ElasticsearchCluster, ctrl ElasticsearchClusterServiceControl) error {
 	exists, needsUpdate, err := e.serviceNeedsUpdate(c, ctrl.NameSuffix())
 
 	if err != nil {
@@ -140,7 +140,7 @@ func (e *defaultElasticsearchClusterControl) syncService(c *v1.ElasticsearchClus
 	return nil
 }
 
-func (e *defaultElasticsearchClusterControl) syncServiceAccount(c *v1.ElasticsearchCluster) error {
+func (e *defaultElasticsearchClusterControl) syncServiceAccount(c v1alpha1.ElasticsearchCluster) error {
 	exists, needsUpdate, err := e.serviceAccountNeedsUpdate(c)
 
 	if err != nil {
@@ -181,7 +181,7 @@ func (e *defaultElasticsearchClusterControl) syncServiceAccount(c *v1.Elasticsea
 	return nil
 }
 
-func (e *defaultElasticsearchClusterControl) syncNodePool(c *v1.ElasticsearchCluster, np *v1.ElasticsearchClusterNodePool) error {
+func (e *defaultElasticsearchClusterControl) syncNodePool(c v1alpha1.ElasticsearchCluster, np v1alpha1.ElasticsearchClusterNodePool) error {
 	exists, needsUpdate, err := e.nodePoolNeedsUpdate(c, np)
 
 	if err != nil {
@@ -224,21 +224,21 @@ func (e *defaultElasticsearchClusterControl) syncNodePool(c *v1.ElasticsearchClu
 	return nil
 }
 
-func (e *defaultElasticsearchClusterControl) nodePoolUpdater(np *v1.ElasticsearchClusterNodePool) ElasticsearchClusterNodePoolControl {
+func (e *defaultElasticsearchClusterControl) nodePoolUpdater(np v1alpha1.ElasticsearchClusterNodePool) ElasticsearchClusterNodePoolControl {
 	if nodePoolIsStateful(np) {
 		return e.statefulNodePoolControl
 	}
 	return e.nodePoolControl
 }
 
-func (e *defaultElasticsearchClusterControl) nodePoolNeedsUpdate(c *v1.ElasticsearchCluster, np *v1.ElasticsearchClusterNodePool) (exists, needsUpdate bool, err error) {
+func (e *defaultElasticsearchClusterControl) nodePoolNeedsUpdate(c v1alpha1.ElasticsearchCluster, np v1alpha1.ElasticsearchClusterNodePool) (exists, needsUpdate bool, err error) {
 	if nodePoolIsStateful(np) {
 		return e.statefulNodePoolNeedsUpdate(c, np)
 	}
 	return e.deploymentNodePoolNeedsUpdate(c, np)
 }
 
-func (e *defaultElasticsearchClusterControl) statefulNodePoolNeedsUpdate(c *v1.ElasticsearchCluster, np *v1.ElasticsearchClusterNodePool) (exists, needsUpdate bool, err error) {
+func (e *defaultElasticsearchClusterControl) statefulNodePoolNeedsUpdate(c v1alpha1.ElasticsearchCluster, np v1alpha1.ElasticsearchClusterNodePool) (exists, needsUpdate bool, err error) {
 	if !nodePoolIsStateful(np) {
 		return false, false, fmt.Errorf("node pool is not stateful, but statefulNodePoolNeedsUpdate called")
 	}
@@ -274,7 +274,7 @@ func (e *defaultElasticsearchClusterControl) statefulNodePoolNeedsUpdate(c *v1.E
 	return true, false, nil
 }
 
-func (e *defaultElasticsearchClusterControl) deploymentNodePoolNeedsUpdate(c *v1.ElasticsearchCluster, np *v1.ElasticsearchClusterNodePool) (exists, needsUpdate bool, err error) {
+func (e *defaultElasticsearchClusterControl) deploymentNodePoolNeedsUpdate(c v1alpha1.ElasticsearchCluster, np v1alpha1.ElasticsearchClusterNodePool) (exists, needsUpdate bool, err error) {
 	if nodePoolIsStateful(np) {
 		return false, false, fmt.Errorf("node pool is stateful, but deploymentNodePoolNeedsUpdate called")
 	}
@@ -310,7 +310,7 @@ func (e *defaultElasticsearchClusterControl) deploymentNodePoolNeedsUpdate(c *v1
 	return true, false, nil
 }
 
-func (e *defaultElasticsearchClusterControl) serviceNeedsUpdate(c *v1.ElasticsearchCluster, nameSuffix string) (exists, needsUpdate bool, err error) {
+func (e *defaultElasticsearchClusterControl) serviceNeedsUpdate(c v1alpha1.ElasticsearchCluster, nameSuffix string) (exists, needsUpdate bool, err error) {
 	svcName := clusterService(c, nameSuffix, false, nil).Name
 
 	svcs, err := e.serviceLister.Services(c.Namespace).List(labels.Everything())
@@ -340,7 +340,7 @@ func (e *defaultElasticsearchClusterControl) serviceNeedsUpdate(c *v1.Elasticsea
 	return false, true, nil
 }
 
-func (e *defaultElasticsearchClusterControl) serviceAccountNeedsUpdate(c *v1.ElasticsearchCluster) (exists, needsUpdate bool, err error) {
+func (e *defaultElasticsearchClusterControl) serviceAccountNeedsUpdate(c v1alpha1.ElasticsearchCluster) (exists, needsUpdate bool, err error) {
 	svcAcctName := resourceBaseName(c)
 	svcAccts, err := e.serviceAccountLister.ServiceAccounts(c.Namespace).List(labels.Everything())
 
@@ -371,7 +371,7 @@ func (e *defaultElasticsearchClusterControl) serviceAccountNeedsUpdate(c *v1.Ela
 
 var notFoundErr = fmt.Errorf("resource not found")
 
-func (e *defaultElasticsearchClusterControl) statefulSetForNodePool(c *v1.ElasticsearchCluster, np *v1.ElasticsearchClusterNodePool) (*apps.StatefulSet, error) {
+func (e *defaultElasticsearchClusterControl) statefulSetForNodePool(c v1alpha1.ElasticsearchCluster, np v1alpha1.ElasticsearchClusterNodePool) (*apps.StatefulSet, error) {
 	if !nodePoolIsStateful(np) {
 		return nil, fmt.Errorf("node pool is not stateful, but statefulSetForNodePool called")
 	}
@@ -400,7 +400,7 @@ func (e *defaultElasticsearchClusterControl) statefulSetForNodePool(c *v1.Elasti
 	return nil, notFoundErr
 }
 
-func (e *defaultElasticsearchClusterControl) deploymentForNodePool(c *v1.ElasticsearchCluster, np *v1.ElasticsearchClusterNodePool) (*extensions.Deployment, error) {
+func (e *defaultElasticsearchClusterControl) deploymentForNodePool(c v1alpha1.ElasticsearchCluster, np v1alpha1.ElasticsearchClusterNodePool) (*extensions.Deployment, error) {
 	if nodePoolIsStateful(np) {
 		return nil, fmt.Errorf("node pool is stateful, but deploymentForNodePool called")
 	}
@@ -430,17 +430,17 @@ func (e *defaultElasticsearchClusterControl) deploymentForNodePool(c *v1.Elastic
 }
 
 // recordClusterEvent records an event for verb applied to the ElasticsearchCluster. If err is nil the generated event will
-// have a reason of v1.EventTypeNormal. If err is not nil the generated event will have a reason of v1.EventTypeWarning.
-func (e *defaultElasticsearchClusterControl) recordClusterEvent(verb string, cluster *v1.ElasticsearchCluster, err error) {
+// have a reason of apiv1.EventTypeNormal. If err is not nil the generated event will have a reason of apiv1.EventTypeWarning.
+func (e *defaultElasticsearchClusterControl) recordClusterEvent(verb string, cluster v1alpha1.ElasticsearchCluster, err error) {
 	if err == nil {
 		reason := fmt.Sprintf("Successful%s", strings.Title(verb))
 		message := fmt.Sprintf("%s Cluster in ElasticsearchCluster %s successful",
 			strings.ToLower(verb), cluster.Name)
-		e.recorder.Event(cluster, apiv1.EventTypeNormal, reason, message)
+		e.recorder.Event(&cluster, apiv1.EventTypeNormal, reason, message)
 	} else {
 		reason := fmt.Sprintf("Failed%s", strings.Title(verb))
 		message := fmt.Sprintf("%s Cluster in ElasticsearchCluster %s failed error: %s",
 			strings.ToLower(verb), cluster.Name, err)
-		e.recorder.Event(cluster, apiv1.EventTypeWarning, reason, message)
+		e.recorder.Event(&cluster, apiv1.EventTypeWarning, reason, message)
 	}
 }

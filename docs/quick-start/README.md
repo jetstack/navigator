@@ -27,7 +27,7 @@ $ kubectl create -f examples/es-cluster-example.yaml
 
 This will deploy a multi-node Elasticsearch cluster, split into nodes of 3 roles: master, client (ingest) and data.
 There will be 4 data nodes, each with a 10GB PV, 2 client nodes, and 3 master nodes. All of the options you may need
-for configuring your cluster are documented on the [supported types page](/docs/supported-types/).
+for configuring your cluster are documented on the [supported types page](../supported-types/).
 
 ```bash
 $ kubectl get po

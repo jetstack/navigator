@@ -24,9 +24,12 @@ import (
 	"github.com/spf13/viper"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/informers"
+	"k8s.io/client-go/kubernetes"
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
 	"github.com/jetstack-experimental/navigator/cmd/app"
-	intinformers "github.com/jetstack-experimental/navigator/pkg/informers"
+	intclient "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset"
+	intinformers "github.com/jetstack-experimental/navigator/pkg/client/informers_generated/externalversions"
 	"github.com/jetstack-experimental/navigator/pkg/kube"
 	"github.com/jetstack-experimental/navigator/pkg/tpr"
 )
@@ -47,7 +50,19 @@ to quickly create a Cobra application.`,
 
 	// TODO: Refactor this function from this package
 	Run: func(cmd *cobra.Command, args []string) {
-		cl, err := kube.NewKubernetesClient(apiServerHost)
+		cfg, err := kube.Config(apiServerHost)
+
+		if err != nil {
+			logrus.Fatalf("error creating rest config: %s", err.Error())
+		}
+
+		intcl, err := intclient.NewForConfig(cfg)
+
+		if err != nil {
+			logrus.Fatalf("error creating internal group client: %s", err.Error())
+		}
+
+		cl, err := kubernetes.NewForConfig(cfg)
 
 		if err != nil {
 			logrus.Fatalf("error creating kubernetes client: %s", err.Error())
@@ -67,7 +82,7 @@ to quickly create a Cobra application.`,
 			Client:                 cl,
 			TPRClient:              tprClient,
 			InformerFactory:        informers.NewSharedInformerFactory(cl, time.Second*30),
-			MarshalInformerFactory: intinformers.NewSharedInformerFactory(tprClient, time.Second*30),
+			MarshalInformerFactory: intinformers.NewSharedInformerFactory(intcl, time.Second*30),
 			Namespace:              metav1.NamespaceAll,
 			Stop:                   make(<-chan struct{}),
 		}
@@ -114,8 +129,8 @@ func initConfig() {
 	}
 
 	viper.SetConfigName(".navigator") // name of config file (without extension)
-	viper.AddConfigPath("$HOME")    // adding home directory as first search path
-	viper.AutomaticEnv()            // read in environment variables that match
+	viper.AddConfigPath("$HOME")      // adding home directory as first search path
+	viper.AutomaticEnv()              // read in environment variables that match
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
