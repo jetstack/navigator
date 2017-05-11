@@ -32,7 +32,6 @@ import (
 	"github.com/jetstack-experimental/navigator/pkg/controllers"
 	_ "github.com/jetstack-experimental/navigator/pkg/controllers/elasticsearch"
 	"github.com/jetstack-experimental/navigator/pkg/kube"
-	"github.com/jetstack-experimental/navigator/pkg/tpr"
 )
 
 var cfgFile string
@@ -59,43 +58,42 @@ to quickly create a Cobra application.`,
 
 	// TODO: Refactor this function from this package
 	Run: func(cmd *cobra.Command, args []string) {
+		// Load the users Kubernetes config
 		cfg, err := kube.Config(apiServerHost)
 
 		if err != nil {
 			logrus.Fatalf("error creating rest config: %s", err.Error())
 		}
 
+		// Create a Marshal api client
 		intcl, err := intclient.NewForConfig(cfg)
 
 		if err != nil {
 			logrus.Fatalf("error creating internal group client: %s", err.Error())
 		}
 
+		// Create a Kubernetes api client
 		cl, err := kubernetes.NewForConfig(cfg)
 
 		if err != nil {
 			logrus.Fatalf("error creating kubernetes client: %s", err.Error())
 		}
 
-		if err = tpr.Ensure(cl); err != nil {
+		// Create the ThirdPartyResource in the Kubernetes API server
+		if err = kube.EnsureTPR(cl); err != nil {
 			logrus.Fatalf("error creating ThirdPartyResources: %s", err.Error())
 		}
 
-		tprClient, err := kube.NewMarshalRESTClient(apiServerHost)
-
-		if err != nil {
-			logrus.Fatalf("error creating third party resource client: %s", err.Error())
-		}
-
+		// Create a context for controllers to use
 		ctx := controllers.Context{
 			Client:                 cl,
-			TPRClient:              tprClient,
 			InformerFactory:        informers.NewSharedInformerFactory(cl, time.Second*30),
 			MarshalInformerFactory: intinformers.NewSharedInformerFactory(intcl, time.Second*30),
 			Namespace:              metav1.NamespaceAll,
 			Stop:                   make(<-chan struct{}),
 		}
 
+		// Start all known controller loops
 		err = controllers.Start(
 			&ctx,
 			controllers.Known(),

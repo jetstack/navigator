@@ -6,14 +6,12 @@ import (
 	"github.com/Sirupsen/logrus"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 
 	intinformers "github.com/jetstack-experimental/navigator/pkg/client/informers_generated/externalversions"
 )
 
 type Context struct {
-	Client    *kubernetes.Clientset
-	TPRClient *rest.RESTClient
+	Client *kubernetes.Clientset
 
 	InformerFactory        informers.SharedInformerFactory
 	MarshalInformerFactory intinformers.SharedInformerFactory
