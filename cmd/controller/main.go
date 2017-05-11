@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package main
 
 import (
 	"fmt"
@@ -27,15 +27,24 @@ import (
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
-	"github.com/jetstack-experimental/navigator/cmd/app"
 	intclient "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset"
 	intinformers "github.com/jetstack-experimental/navigator/pkg/client/informers_generated/externalversions"
+	"github.com/jetstack-experimental/navigator/pkg/controllers"
+	_ "github.com/jetstack-experimental/navigator/pkg/controllers/elasticsearch"
 	"github.com/jetstack-experimental/navigator/pkg/kube"
 	"github.com/jetstack-experimental/navigator/pkg/tpr"
 )
 
 var cfgFile string
 var apiServerHost string
+
+func main() {
+	logrus.SetLevel(logrus.DebugLevel)
+	if err := RootCmd.Execute(); err != nil {
+		fmt.Println(err)
+		os.Exit(-1)
+	}
+}
 
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
@@ -78,7 +87,7 @@ to quickly create a Cobra application.`,
 			logrus.Fatalf("error creating third party resource client: %s", err.Error())
 		}
 
-		ctx := app.ControllerContext{
+		ctx := controllers.Context{
 			Client:                 cl,
 			TPRClient:              tprClient,
 			InformerFactory:        informers.NewSharedInformerFactory(cl, time.Second*30),
@@ -87,9 +96,9 @@ to quickly create a Cobra application.`,
 			Stop:                   make(<-chan struct{}),
 		}
 
-		err = app.StartControllers(
+		err = controllers.Start(
 			&ctx,
-			app.Known(),
+			controllers.Known(),
 			ctx.Stop,
 		)
 
@@ -97,15 +106,6 @@ to quickly create a Cobra application.`,
 			logrus.Fatalf("error running controllers: %s", err.Error())
 		}
 	},
-}
-
-// Execute adds all child commands to the root command sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute() {
-	if err := RootCmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(-1)
-	}
 }
 
 func init() {

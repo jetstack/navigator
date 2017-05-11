@@ -233,10 +233,10 @@ func (e *ElasticsearchController) processNextWorkItem() bool {
 		} else {
 			e.queue.Forget(key)
 		}
-	} else if es, ok := key.(v1alpha1.ElasticsearchCluster); ok {
+	} else if es, ok := key.(*v1alpha1.ElasticsearchCluster); ok {
 		t := metav1.NewTime(time.Now())
 		es.DeletionTimestamp = &t
-		if err := e.elasticsearchClusterControl.SyncElasticsearchCluster(es); err != nil {
+		if err := e.elasticsearchClusterControl.SyncElasticsearchCluster(*es); err != nil {
 			logrus.Infof("Error syncing ElasticsearchCluster %v, requeuing: %v", es.Name, err)
 		}
 		e.queue.Forget(key)
@@ -394,4 +394,19 @@ func verifyNodePool(np v1alpha1.ElasticsearchClusterNodePool) error {
 	}
 
 	return nil
+}
+
+func init() {
+	controllers.Register("ElasticSearch", func(ctx *controllers.Context) (bool, error) {
+		go NewElasticsearch(
+			ctx.MarshalInformerFactory.Marshal().V1alpha1().ElasticsearchClusters(),
+			ctx.InformerFactory.Extensions().V1beta1().Deployments(),
+			ctx.InformerFactory.Apps().V1beta1().StatefulSets(),
+			ctx.InformerFactory.Core().V1().ServiceAccounts(),
+			ctx.InformerFactory.Core().V1().Services(),
+			ctx.Client,
+		).Run(2, ctx.Stop)
+
+		return true, nil
+	})
 }

@@ -1,7 +1,7 @@
 # ElasticsearchCluster
 
 ```yaml
-apiVersion: alpha.marshal.io/v1
+apiVersion: marshal.io/v1alpha1
 kind: ElasticsearchCluster
 metadata:
   name: demo

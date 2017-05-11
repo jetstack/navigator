@@ -55,49 +55,63 @@ func (el *ElasticsearchClusterList) GetListMeta() metav1.List {
 	return &el.ListMeta
 }
 
+// ElasticsearchClusterSpec describes a specification for an ElasticsearchCluster
 type ElasticsearchClusterSpec struct {
-	Version   string
-	Plugins   []ElasticsearchClusterPlugin
-	NodePools []ElasticsearchClusterNodePool
-	Image     ElasticsearchImage
-	Sysctl    []string
+	Version   string                         `json:"version"`
+	Plugins   []ElasticsearchClusterPlugin   `json:"plugins"`
+	NodePools []ElasticsearchClusterNodePool `json:"nodePools"`
+	// TODO: Remove this field
+	Image  ElasticsearchImage `json:"image"`
+	Sysctl []string           `json:"sysctl"`
 }
 
+// ElasticsearchClusterPlugin describes a specification of an ElasticsearchCluster plugin
+// You must ensure the plugin is compatible with the version of Elasticsearch being deployed
+// else the cluster will not deploy successfully
 type ElasticsearchClusterPlugin struct {
-	Name string
+	Name string `json:"name"`
 }
 
+// ElasticsearchClusterNodePool describes a node pool within an ElasticsearchCluster.
+// The nodes in this pool will be configured to be of the specified roles
 type ElasticsearchClusterNodePool struct {
-	Name            string
-	Replicas        int32
-	Roles           []string
-	Resources       *v1.ResourceRequirements
-	State           *ElasticsearchClusterStateConfig
-	OwnerReferences []*ElasticsearchOwnerReference
+	Name      string                           `json:"name"`
+	Replicas  int32                            `json:"replicas"`
+	Roles     []string                         `json:"roles"`
+	Resources *v1.ResourceRequirements         `json:"resources,omitempty"`
+	State     *ElasticsearchClusterStateConfig `json:"state,omitempty"`
+	// TODO: Remove this field
+	OwnerReferences []*ElasticsearchOwnerReference `json:"ownerReferences,omitEmpty"`
 }
 
 type ElasticsearchClusterStateConfig struct {
-	Stateful    bool
-	Persistence *ElasticsearchClusterPersistenceConfig
+	// TODO: Remove the Stateful field
+	Stateful    bool                                   `json:"stateful"`
+	Persistence *ElasticsearchClusterPersistenceConfig `json:"persistence,omitempty"`
 }
 
 type ElasticsearchClusterPersistenceConfig struct {
-	Enabled      bool
-	Size         string
-	StorageClass string
+	// TODO: Remove the enabled field. Instead check for the presence
+	// of an ElasticsearchClusterPersistenceConfig field in the
+	// ElasticsearchClusterStateConfig block
+	Enabled      bool   `json:"enabled"`
+	Size         string `json:"size"`
+	StorageClass string `json:"storageClass"`
 }
 
+// TODO: Remove this struct
 type ElasticsearchImage struct {
-	Repository string
-	Tag        string
-	PullPolicy string
-	FsGroup    int64
+	Repository string `json:"repository"`
+	Tag        string `json:"tag"`
+	PullPolicy string `json:"pullPolicy"`
+	FsGroup    int64  `json:"fsGroup"`
 }
 
+// TODO: Remove this struct
 type ElasticsearchOwnerReference struct {
-	ApiVersion string
-	Controller string
-	Kind       string
-	Name       string
-	Uid        string
+	ApiVersion string `json:"apiVersion"`
+	Controller string `json:"controller"`
+	Kind       string `json:"kind"`
+	Name       string `json:"name"`
+	Uid        string `json:"uid"`
 }

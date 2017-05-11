@@ -1,4 +1,4 @@
-package app
+package controllers
 
 import (
 	"fmt"
@@ -11,17 +11,7 @@ import (
 	intinformers "github.com/jetstack-experimental/navigator/pkg/client/informers_generated/externalversions"
 )
 
-var (
-	known = map[string]InitFn{
-		"ElasticSearch": newElasticsearchController,
-	}
-)
-
-func Known() map[string]InitFn {
-	return known
-}
-
-type ControllerContext struct {
+type Context struct {
 	Client    *kubernetes.Clientset
 	TPRClient *rest.RESTClient
 
@@ -32,9 +22,9 @@ type ControllerContext struct {
 	Stop      <-chan struct{}
 }
 
-type InitFn func(*ControllerContext) (bool, error)
+type InitFn func(*Context) (bool, error)
 
-func StartControllers(ctx *ControllerContext, fns map[string]InitFn, stop <-chan struct{}) error {
+func Start(ctx *Context, fns map[string]InitFn, stop <-chan struct{}) error {
 	for n, fn := range fns {
 		logrus.Debugf("starting %s controller", n)
 
