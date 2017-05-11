@@ -41,21 +41,21 @@ generate: .generate_files
 
 verify: .hack_verify go_verify
 
-.hack_verify:
+.hack_verify: .generate_exes
 	@echo Running repo-infra verify scripts
 	@echo Running href checker:
 	@${HACK_DIR}/verify-links.sh
 	@echo Running errexit checker:
 	@${HACK_DIR}/verify-errexit.sh
-	@echo Runner generated client checker:
+	@echo Running generated client checker:
 	@${HACK_DIR}/verify-client-gen.sh
 
 # Builder image targets
 #######################
 docker_%: .builder_image
 	docker run -it \
-		-v $(shell pwd):/go/src/${NAVIGATOR_PKG} \
 		-v ${GOPATH}/src:/go/src \
+		-v $(shell pwd):/go/src/${NAVIGATOR_PKG} \
 		-w /go/src/${NAVIGATOR_PKG} \
 		-e GOPATH=/go \
 		${BUILD_IMAGE_NAME} \

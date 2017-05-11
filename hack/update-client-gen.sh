@@ -15,23 +15,23 @@ ${BINDIR}/client-gen "$@" \
 	      --input "marshal/" \
 	      --clientset-path "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/" \
 	      --clientset-name internalclientset \
-	      --go-header-file "vendor/github.com/kubernetes/repo-infra/verify/boilerplate/boilerplate.go.txt"
+	      --go-header-file "${GOPATH}/src/github.com/kubernetes/repo-infra/verify/boilerplate/boilerplate.go.txt"
 # Generate the versioned clientset (pkg/client/clientset_generated/clientset)
 ${BINDIR}/client-gen "$@" \
 		  --input-base "github.com/jetstack-experimental/navigator/pkg/apis/" \
 		  --input "marshal/v1alpha1" \
 	      --clientset-path "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/" \
 	      --clientset-name "clientset" \
-	      --go-header-file "vendor/github.com/kubernetes/repo-infra/verify/boilerplate/boilerplate.go.txt"
+	      --go-header-file "${GOPATH}/src/github.com/kubernetes/repo-infra/verify/boilerplate/boilerplate.go.txt"
 # generate lister
 ${BINDIR}/lister-gen "$@" \
 		  --input-dirs="github.com/jetstack-experimental/navigator/pkg/apis/marshal" \
 	      --input-dirs="github.com/jetstack-experimental/navigator/pkg/apis/marshal/v1alpha1" \
 	      --output-package "github.com/jetstack-experimental/navigator/pkg/client/listers_generated" \
-	      --go-header-file "vendor/github.com/kubernetes/repo-infra/verify/boilerplate/boilerplate.go.txt"
+	      --go-header-file "${GOPATH}/src/github.com/kubernetes/repo-infra/verify/boilerplate/boilerplate.go.txt"
 # generate informer
 ${BINDIR}/informer-gen "$@" \
-	      --go-header-file "vendor/github.com/kubernetes/repo-infra/verify/boilerplate/boilerplate.go.txt" \
+	      --go-header-file "${GOPATH}/src/github.com/kubernetes/repo-infra/verify/boilerplate/boilerplate.go.txt" \
 	      --input-dirs "github.com/jetstack-experimental/navigator/pkg/apis/marshal" \
 	      --input-dirs "github.com/jetstack-experimental/navigator/pkg/apis/marshal/v1alpha1" \
 	      --internal-clientset-package "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/internalclientset" \
