@@ -47,12 +47,11 @@ type ElasticsearchClusterPlugin struct {
 }
 
 type ElasticsearchClusterNodePool struct {
-	Name            string
-	Replicas        int32
-	Roles           []string
-	Resources       *v1.ResourceRequirements
-	Persistence     *ElasticsearchClusterPersistenceConfig
-	OwnerReferences []*ElasticsearchOwnerReference
+	Name        string
+	Replicas    int32
+	Roles       []string
+	Resources   *v1.ResourceRequirements
+	Persistence *ElasticsearchClusterPersistenceConfig
 }
 
 type ElasticsearchClusterPersistenceConfig struct {
@@ -65,12 +64,4 @@ type ElasticsearchImage struct {
 	Tag        string
 	PullPolicy string
 	FsGroup    int64
-}
-
-type ElasticsearchOwnerReference struct {
-	ApiVersion string
-	Controller string
-	Kind       string
-	Name       string
-	Uid        string
 }

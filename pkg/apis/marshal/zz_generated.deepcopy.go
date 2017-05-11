@@ -44,7 +44,6 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_marshal_ElasticsearchClusterSpec, InType: reflect.TypeOf(&ElasticsearchClusterSpec{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_marshal_ElasticsearchClusterStatus, InType: reflect.TypeOf(&ElasticsearchClusterStatus{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_marshal_ElasticsearchImage, InType: reflect.TypeOf(&ElasticsearchImage{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_marshal_ElasticsearchOwnerReference, InType: reflect.TypeOf(&ElasticsearchOwnerReference{})},
 	)
 }
 
@@ -109,17 +108,6 @@ func DeepCopy_marshal_ElasticsearchClusterNodePool(in interface{}, out interface
 			in, out := &in.Persistence, &out.Persistence
 			*out = new(ElasticsearchClusterPersistenceConfig)
 			**out = **in
-		}
-		if in.OwnerReferences != nil {
-			in, out := &in.OwnerReferences, &out.OwnerReferences
-			*out = make([]*ElasticsearchOwnerReference, len(*in))
-			for i := range *in {
-				if newVal, err := c.DeepCopy(&(*in)[i]); err != nil {
-					return err
-				} else {
-					(*out)[i] = *newVal.(**ElasticsearchOwnerReference)
-				}
-			}
 		}
 		return nil
 	}
@@ -186,15 +174,6 @@ func DeepCopy_marshal_ElasticsearchImage(in interface{}, out interface{}, c *con
 	{
 		in := in.(*ElasticsearchImage)
 		out := out.(*ElasticsearchImage)
-		*out = *in
-		return nil
-	}
-}
-
-func DeepCopy_marshal_ElasticsearchOwnerReference(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*ElasticsearchOwnerReference)
-		out := out.(*ElasticsearchOwnerReference)
 		*out = *in
 		return nil
 	}

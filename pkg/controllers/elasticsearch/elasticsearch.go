@@ -67,7 +67,7 @@ func NewElasticsearch(
 	// log events to our logger
 	eventBroadcaster.StartLogging(logrus.Infof)
 	// log events to k8s
-	eventBroadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: v1core.New(cl.Core().RESTClient()).Events("")})
+	eventBroadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: cl.Core().Events("")})
 	recorder := eventBroadcaster.NewRecorder(api.Scheme, apiv1.EventSource{Component: "elasticsearchCluster"})
 
 	// create a new ElasticsearchController to manage ElasticsearchCluster resources

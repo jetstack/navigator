@@ -59,8 +59,6 @@ type ElasticsearchClusterNodePool struct {
 	Roles       []string                               `json:"roles"`
 	Resources   *v1.ResourceRequirements               `json:"resources,omitempty"`
 	Persistence *ElasticsearchClusterPersistenceConfig `json:"persistence,omitempty"`
-	// TODO: Remove this field
-	OwnerReferences []*ElasticsearchOwnerReference `json:"ownerReferences,omitEmpty"`
 }
 
 type ElasticsearchClusterPersistenceConfig struct {
@@ -74,13 +72,4 @@ type ElasticsearchImage struct {
 	Tag        string `json:"tag"`
 	PullPolicy string `json:"pullPolicy"`
 	FsGroup    int64  `json:"fsGroup"`
-}
-
-// TODO: Remove this struct
-type ElasticsearchOwnerReference struct {
-	ApiVersion string `json:"apiVersion"`
-	Controller string `json:"controller"`
-	Kind       string `json:"kind"`
-	Name       string `json:"name"`
-	Uid        string `json:"uid"`
 }
