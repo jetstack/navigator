@@ -3,13 +3,14 @@ package kube
 import (
 	"fmt"
 
-	"github.com/jetstack-experimental/navigator/pkg/apis/marshal"
-
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/pkg/apis/extensions/v1beta1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+
+	"github.com/jetstack-experimental/navigator/pkg/apis/marshal"
 )
 
 var thirdPartyResource = &v1beta1.ThirdPartyResource{
