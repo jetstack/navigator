@@ -65,7 +65,7 @@ to quickly create a Cobra application.`,
 			logrus.Fatalf("error creating rest config: %s", err.Error())
 		}
 
-		// Create a Marshal api client
+		// Create a Navigator api client
 		intcl, err := intclient.NewForConfig(cfg)
 
 		if err != nil {
@@ -86,11 +86,11 @@ to quickly create a Cobra application.`,
 
 		// Create a context for controllers to use
 		ctx := controllers.Context{
-			Client:                 cl,
-			InformerFactory:        informers.NewSharedInformerFactory(cl, time.Second*30),
-			MarshalInformerFactory: intinformers.NewSharedInformerFactory(intcl, time.Second*30),
-			Namespace:              metav1.NamespaceAll,
-			Stop:                   make(<-chan struct{}),
+			Client:                   cl,
+			InformerFactory:          informers.NewSharedInformerFactory(cl, time.Second*30),
+			NavigatorInformerFactory: intinformers.NewSharedInformerFactory(intcl, time.Second*30),
+			Namespace:                metav1.NamespaceAll,
+			Stop:                     make(<-chan struct{}),
 		}
 
 		// Start all known controller loops

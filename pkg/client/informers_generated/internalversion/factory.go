@@ -21,7 +21,7 @@ package internalversion
 import (
 	internalclientset "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/internalclientset"
 	internalinterfaces "github.com/jetstack-experimental/navigator/pkg/client/informers_generated/internalversion/internalinterfaces"
-	marshal "github.com/jetstack-experimental/navigator/pkg/client/informers_generated/internalversion/marshal"
+	navigator "github.com/jetstack-experimental/navigator/pkg/client/informers_generated/internalversion/navigator"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
@@ -110,9 +110,9 @@ type SharedInformerFactory interface {
 	ForResource(resource schema.GroupVersionResource) (GenericInformer, error)
 	WaitForCacheSync(stopCh <-chan struct{}) map[reflect.Type]bool
 
-	Marshal() marshal.Interface
+	Navigator() navigator.Interface
 }
 
-func (f *sharedInformerFactory) Marshal() marshal.Interface {
-	return marshal.New(f)
+func (f *sharedInformerFactory) Navigator() navigator.Interface {
+	return navigator.New(f)
 }

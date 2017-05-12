@@ -10,12 +10,12 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/jetstack-experimental/navigator/pkg/apis/marshal"
+	"github.com/jetstack-experimental/navigator/pkg/apis/navigator"
 )
 
 var thirdPartyResource = &v1beta1.ThirdPartyResource{
 	ObjectMeta: metav1.ObjectMeta{
-		Name: "elasticsearch-cluster." + marshal.GroupName,
+		Name: "elasticsearch-cluster." + navigator.GroupName,
 	},
 	Description: "A specification of an Elasticsearch cluster",
 	Versions: []v1beta1.APIVersion{

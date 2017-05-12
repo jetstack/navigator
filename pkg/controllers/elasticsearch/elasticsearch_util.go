@@ -11,15 +11,15 @@ import (
 	apps "k8s.io/client-go/pkg/apis/apps/v1beta1"
 	extensions "k8s.io/client-go/pkg/apis/extensions/v1beta1"
 
-	"github.com/jetstack-experimental/navigator/pkg/apis/marshal"
-	v1alpha1 "github.com/jetstack-experimental/navigator/pkg/apis/marshal/v1alpha1"
+	"github.com/jetstack-experimental/navigator/pkg/apis/navigator"
+	v1alpha1 "github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
 )
 
 const (
 	typeName = "es"
 	kindName = "ElasticsearchCluster"
 
-	nodePoolVersionAnnotationKey = "elasticsearch.marshal.io/deployed-version"
+	nodePoolVersionAnnotationKey = "navigator.jetstack.io/deployed-version"
 )
 
 var (
@@ -377,7 +377,7 @@ func isManagedByCluster(c v1alpha1.ElasticsearchCluster, meta metav1.ObjectMeta)
 
 func managedOwnerRef(meta metav1.ObjectMeta) *metav1.OwnerReference {
 	for _, ref := range meta.OwnerReferences {
-		if ref.APIVersion == marshal.GroupName+"/v1alpha1" && ref.Kind == kindName {
+		if ref.APIVersion == navigator.GroupName+"/v1alpha1" && ref.Kind == kindName {
 			return &ref
 		}
 	}
@@ -388,7 +388,7 @@ func ownerReference(c v1alpha1.ElasticsearchCluster) metav1.OwnerReference {
 	// Really, this should be able to use the TypeMeta of the ElasticsearchCluster.
 	// There is an issue open on client-go about this here: https://github.com/kubernetes/client-go/issues/60
 	return metav1.OwnerReference{
-		APIVersion: marshal.GroupName + "/v1alpha1",
+		APIVersion: navigator.GroupName + "/v1alpha1",
 		Kind:       kindName,
 		Name:       c.Name,
 		UID:        c.UID,

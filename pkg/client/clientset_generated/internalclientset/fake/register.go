@@ -17,7 +17,7 @@ limitations under the License.
 package fake
 
 import (
-	marshalinternalversion "github.com/jetstack-experimental/navigator/pkg/apis/marshal"
+	navigatorinternalversion "github.com/jetstack-experimental/navigator/pkg/apis/navigator"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -48,6 +48,6 @@ func init() {
 // After this, RawExtensions in Kubernetes types will serialize kube-aggregator types
 // correctly.
 func AddToScheme(scheme *runtime.Scheme) {
-	marshalinternalversion.AddToScheme(scheme)
+	navigatorinternalversion.AddToScheme(scheme)
 
 }

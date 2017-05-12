@@ -18,8 +18,8 @@ package fake
 
 import (
 	clientset "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset"
-	marshalv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset/typed/marshal/v1alpha1"
-	fakemarshalv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset/typed/marshal/v1alpha1/fake"
+	navigatorv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset/typed/navigator/v1alpha1"
+	fakenavigatorv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset/typed/navigator/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -60,12 +60,12 @@ func (c *Clientset) Discovery() discovery.DiscoveryInterface {
 
 var _ clientset.Interface = &Clientset{}
 
-// MarshalV1alpha1 retrieves the MarshalV1alpha1Client
-func (c *Clientset) MarshalV1alpha1() marshalv1alpha1.MarshalV1alpha1Interface {
-	return &fakemarshalv1alpha1.FakeMarshalV1alpha1{Fake: &c.Fake}
+// NavigatorV1alpha1 retrieves the NavigatorV1alpha1Client
+func (c *Clientset) NavigatorV1alpha1() navigatorv1alpha1.NavigatorV1alpha1Interface {
+	return &fakenavigatorv1alpha1.FakeNavigatorV1alpha1{Fake: &c.Fake}
 }
 
-// Marshal retrieves the MarshalV1alpha1Client
-func (c *Clientset) Marshal() marshalv1alpha1.MarshalV1alpha1Interface {
-	return &fakemarshalv1alpha1.FakeMarshalV1alpha1{Fake: &c.Fake}
+// Navigator retrieves the NavigatorV1alpha1Client
+func (c *Clientset) Navigator() navigatorv1alpha1.NavigatorV1alpha1Interface {
+	return &fakenavigatorv1alpha1.FakeNavigatorV1alpha1{Fake: &c.Fake}
 }

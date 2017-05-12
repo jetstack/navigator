@@ -26,9 +26,9 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 
-	v1alpha1 "github.com/jetstack-experimental/navigator/pkg/apis/marshal/v1alpha1"
-	informerv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/informers_generated/externalversions/marshal/v1alpha1"
-	listersv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/listers_generated/marshal/v1alpha1"
+	v1alpha1 "github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
+	informerv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/informers_generated/externalversions/navigator/v1alpha1"
+	listersv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/listers_generated/navigator/v1alpha1"
 	"github.com/jetstack-experimental/navigator/pkg/controllers"
 )
 
@@ -399,7 +399,7 @@ func verifyNodePool(np v1alpha1.ElasticsearchClusterNodePool) error {
 func init() {
 	controllers.Register("ElasticSearch", func(ctx *controllers.Context) (bool, error) {
 		go NewElasticsearch(
-			ctx.MarshalInformerFactory.Marshal().V1alpha1().ElasticsearchClusters(),
+			ctx.NavigatorInformerFactory.Navigator().V1alpha1().ElasticsearchClusters(),
 			ctx.InformerFactory.Extensions().V1beta1().Deployments(),
 			ctx.InformerFactory.Apps().V1beta1().StatefulSets(),
 			ctx.InformerFactory.Core().V1().ServiceAccounts(),

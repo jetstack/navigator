@@ -1,7 +1,7 @@
 # ElasticsearchCluster
 
 ```yaml
-apiVersion: marshal.io/v1alpha1
+apiVersion: navigator.jetstack.io/v1alpha1
 kind: ElasticsearchCluster
 metadata:
   name: demo
