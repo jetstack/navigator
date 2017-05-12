@@ -134,25 +134,25 @@ $(BINDIR)/informer-gen:
 	$(BINDIR)/defaulter-gen \
 		--v 1 --logtostderr \
 		--go-header-file "$${GOPATH}/src/github.com/kubernetes/repo-infra/verify/boilerplate/boilerplate.go.txt" \
-		--input-dirs "$(NAVIGATOR_PKG)/pkg/apis/marshal" \
-		--input-dirs "$(NAVIGATOR_PKG)/pkg/apis/marshal/v1alpha1" \
-		--extra-peer-dirs "$(NAVIGATOR_PKG)/pkg/apis/marshal" \
-		--extra-peer-dirs "$(NAVIGATOR_PKG)/pkg/apis/marshal/v1alpha1" \
+		--input-dirs "$(NAVIGATOR_PKG)/pkg/apis/navigator" \
+		--input-dirs "$(NAVIGATOR_PKG)/pkg/apis/navigator/v1alpha1" \
+		--extra-peer-dirs "$(NAVIGATOR_PKG)/pkg/apis/navigator" \
+		--extra-peer-dirs "$(NAVIGATOR_PKG)/pkg/apis/navigator/v1alpha1" \
 		--output-file-base "zz_generated.defaults"
 	# Generate deep copies
 	$(BINDIR)/deepcopy-gen \
 		--v 1 --logtostderr \
 		--go-header-file "$${GOPATH}/src/github.com/kubernetes/repo-infra/verify/boilerplate/boilerplate.go.txt" \
-		--input-dirs "$(NAVIGATOR_PKG)/pkg/apis/marshal" \
-		--input-dirs "$(NAVIGATOR_PKG)/pkg/apis/marshal/v1alpha1" \
+		--input-dirs "$(NAVIGATOR_PKG)/pkg/apis/navigator" \
+		--input-dirs "$(NAVIGATOR_PKG)/pkg/apis/navigator/v1alpha1" \
 		--bounding-dirs "github.com/openshift/open-service-broker-sdk" \
 		--output-file-base zz_generated.deepcopy
 	# Generate conversions
 	$(BINDIR)/conversion-gen \
 		--v 1 --logtostderr \
 		--go-header-file "$${GOPATH}/src/github.com/kubernetes/repo-infra/verify/boilerplate/boilerplate.go.txt" \
-		--input-dirs "$(NAVIGATOR_PKG)/pkg/apis/marshal" \
-		--input-dirs "$(NAVIGATOR_PKG)/pkg/apis/marshal/v1alpha1" \
+		--input-dirs "$(NAVIGATOR_PKG)/pkg/apis/navigator" \
+		--input-dirs "$(NAVIGATOR_PKG)/pkg/apis/navigator/v1alpha1" \
 		--output-file-base zz_generated.conversion
 	# generate all pkg/client contents
 	$(HACK_DIR)/update-client-gen.sh

@@ -20,7 +20,7 @@ package internalversion
 
 import (
 	"fmt"
-	marshal "github.com/jetstack-experimental/navigator/pkg/apis/marshal"
+	navigator "github.com/jetstack-experimental/navigator/pkg/apis/navigator"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )
@@ -51,9 +51,9 @@ func (f *genericInformer) Lister() cache.GenericLister {
 // TODO extend this to unknown resources with a client pool
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
-	// Group=Marshal, Version=InternalVersion
-	case marshal.SchemeGroupVersion.WithResource("elasticsearchclusters"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Marshal().InternalVersion().ElasticsearchClusters().Informer()}, nil
+	// Group=Navigator, Version=InternalVersion
+	case navigator.SchemeGroupVersion.WithResource("elasticsearchclusters"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Navigator().InternalVersion().ElasticsearchClusters().Informer()}, nil
 
 	}
 

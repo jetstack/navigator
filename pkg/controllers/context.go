@@ -13,8 +13,8 @@ import (
 type Context struct {
 	Client *kubernetes.Clientset
 
-	InformerFactory        informers.SharedInformerFactory
-	MarshalInformerFactory intinformers.SharedInformerFactory
+	InformerFactory          informers.SharedInformerFactory
+	NavigatorInformerFactory intinformers.SharedInformerFactory
 
 	Namespace string
 	Stop      <-chan struct{}
@@ -34,7 +34,7 @@ func Start(ctx *Context, fns map[string]InitFn, stop <-chan struct{}) error {
 	}
 
 	ctx.InformerFactory.Start(stop)
-	ctx.MarshalInformerFactory.Start(stop)
+	ctx.NavigatorInformerFactory.Start(stop)
 
 	select {}
 }

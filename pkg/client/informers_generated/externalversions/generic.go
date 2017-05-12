@@ -20,7 +20,7 @@ package externalversions
 
 import (
 	"fmt"
-	v1alpha1 "github.com/jetstack-experimental/navigator/pkg/apis/marshal/v1alpha1"
+	v1alpha1 "github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )
@@ -51,9 +51,9 @@ func (f *genericInformer) Lister() cache.GenericLister {
 // TODO extend this to unknown resources with a client pool
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
-	// Group=Marshal, Version=V1alpha1
+	// Group=Navigator, Version=V1alpha1
 	case v1alpha1.SchemeGroupVersion.WithResource("elasticsearchclusters"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Marshal().V1alpha1().ElasticsearchClusters().Informer()}, nil
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Navigator().V1alpha1().ElasticsearchClusters().Informer()}, nil
 
 	}
 

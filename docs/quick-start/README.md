@@ -11,10 +11,10 @@ changes to the ElasticsearchCluster manifest.
 $ kubectl create -f docs/quick-start/deployment-navigator.yaml
 ```
 
-You should see the Navigator service start in the `marshal` namespace:
+You should see the Navigator service start in the `navigator` namespace:
 
 ```bash
-$ kubectl get po -n marshal
+$ kubectl get po -n navigator
 NAME                        READY     STATUS         RESTARTS   AGE
 navigator-745449320-dcgms   1/1       Running        0          30s
 ```

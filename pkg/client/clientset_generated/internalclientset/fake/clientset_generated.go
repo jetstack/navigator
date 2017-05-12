@@ -18,8 +18,8 @@ package fake
 
 import (
 	clientset "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/internalclientset"
-	marshalinternalversion "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/internalclientset/typed/marshal/internalversion"
-	fakemarshalinternalversion "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/internalclientset/typed/marshal/internalversion/fake"
+	navigatorinternalversion "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/internalclientset/typed/navigator/internalversion"
+	fakenavigatorinternalversion "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/internalclientset/typed/navigator/internalversion/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -60,7 +60,7 @@ func (c *Clientset) Discovery() discovery.DiscoveryInterface {
 
 var _ clientset.Interface = &Clientset{}
 
-// Marshal retrieves the MarshalClient
-func (c *Clientset) Marshal() marshalinternalversion.MarshalInterface {
-	return &fakemarshalinternalversion.FakeMarshal{Fake: &c.Fake}
+// Navigator retrieves the NavigatorClient
+func (c *Clientset) Navigator() navigatorinternalversion.NavigatorInterface {
+	return &fakenavigatorinternalversion.FakeNavigator{Fake: &c.Fake}
 }
