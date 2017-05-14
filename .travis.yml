@@ -1,0 +1,21 @@
+language: go
+
+go:
+- 1.8
+- tip
+
+script: make verify
+
+jobs:
+  include:
+    - stage: build
+      dist: trusty
+      services:
+      - docker
+      go: 1.8
+      script:
+      - make go_build docker_build
+      - if [ "${TRAVIS_PULL_REQUEST}" = "false" ] && [ "${TRAVIS_BRANCH}" = "master" ]; then
+          mkdir -p ~/.docker && echo '${DOCKER_AUTH_CONFIG}' > ~/.docker/config.json && chmod 600 ~/.docker/config.json;
+          make docker_push IMAGE_TAGS="${TRAVIS_COMMIT} latest";
+        fi
