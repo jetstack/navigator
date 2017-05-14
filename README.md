@@ -1,4 +1,4 @@
-# Navigator - managed DBaaS on Kubernetes [![Build Status](https://travis-ci.org/jetstack-experimental/navigator.svg?branch=master)](https://travis-ci.org/jetstack-experimental/navigator)
+# Navigator - managed DBaaS on Kubernetes [![Build Status Widget]][Build Status]
 
 ## Please note this project is in a pre-alpha state, and still requires extensive integration, unit testing & health checks. Contributions are extremely welcome.
 
@@ -43,3 +43,6 @@ and we can begin discussion on implementation & planning.
 ## Credits
 
 James Munnelly, Christian Simon & Matt Bates of [Jetstack.io](https://www.jetstack.io/)
+
+[Build Status Widget]: https://travis-ci.org/jetstack-experimental/navigator.svg?branch=master
+[Build Status]: https://travis-ci.org/jetstack-experimental/navigator
