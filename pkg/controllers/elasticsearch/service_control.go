@@ -12,13 +12,6 @@ import (
 	v1alpha1 "github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
 )
 
-type ElasticsearchClusterServiceControl interface {
-	CreateElasticsearchClusterService(v1alpha1.ElasticsearchCluster) error
-	UpdateElasticsearchClusterService(v1alpha1.ElasticsearchCluster) error
-	DeleteElasticsearchClusterService(v1alpha1.ElasticsearchCluster) error
-	NameSuffix() string
-}
-
 type ServiceControlConfig struct {
 	ClusterIP   string
 	NameSuffix  string

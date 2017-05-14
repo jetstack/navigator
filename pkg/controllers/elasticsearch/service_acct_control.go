@@ -12,12 +12,6 @@ import (
 	v1alpha1 "github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
 )
 
-type ElasticsearchClusterServiceAccountControl interface {
-	CreateElasticsearchClusterServiceAccount(v1alpha1.ElasticsearchCluster) error
-	UpdateElasticsearchClusterServiceAccount(v1alpha1.ElasticsearchCluster) error
-	DeleteElasticsearchClusterServiceAccount(v1alpha1.ElasticsearchCluster) error
-}
-
 type defaultElasticsearchClusterServiceAccountControl struct {
 	kubeClient *kubernetes.Clientset
 
