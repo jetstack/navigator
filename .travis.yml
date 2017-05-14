@@ -9,6 +9,7 @@ script: make verify
 jobs:
   include:
     - stage: build
+      dist: trusty
       services:
       - docker
       go:
