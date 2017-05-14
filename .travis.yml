@@ -1,7 +1,7 @@
 language: go
 
 go:
-- "1.8"
+- 1.8
 - tip
 
 script: make verify
@@ -12,8 +12,7 @@ jobs:
       dist: trusty
       services:
       - docker
-      go:
-      - "1.8"
+      go: 1.8
       script:
       - make go_build docker_build
       - if [ "${TRAVIS_PULL_REQUEST}" = "false" && "${TRAVIS_BRANCH}" = "master" ]; then
