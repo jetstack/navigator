@@ -12,6 +12,9 @@ import (
 	v1alpha1 "github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
 )
 
+// ServiceControlConfig allows configuration of the service controller.
+// It can be used to configure specific elements of the services that are created
+// such as the name, whether to expose extra ports, etc.
 type ServiceControlConfig struct {
 	ClusterIP   string
 	NameSuffix  string

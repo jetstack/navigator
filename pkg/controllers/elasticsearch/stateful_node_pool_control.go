@@ -13,6 +13,11 @@ import (
 	v1alpha1 "github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
 )
 
+// statefulElasticsearchClusterNodePoolControl manages the lifecycle of a
+// stateful node pool. It can be used to create, update and delete pools.
+//
+// This is an implementation of the ElasticsearchClusterNodePoolControl interface
+// as defined in interfaces.go.
 type statefulElasticsearchClusterNodePoolControl struct {
 	kubeClient        *kubernetes.Clientset
 	statefulSetLister appslisters.StatefulSetLister
