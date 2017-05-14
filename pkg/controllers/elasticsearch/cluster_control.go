@@ -19,10 +19,6 @@ import (
 	"github.com/jetstack-experimental/navigator/pkg/util/errors"
 )
 
-type ElasticsearchClusterControl interface {
-	SyncElasticsearchCluster(v1alpha1.ElasticsearchCluster) error
-}
-
 type defaultElasticsearchClusterControl struct {
 	kubeClient *kubernetes.Clientset
 

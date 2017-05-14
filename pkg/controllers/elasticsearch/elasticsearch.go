@@ -54,6 +54,12 @@ type ElasticsearchController struct {
 	elasticsearchClusterControl ElasticsearchClusterControl
 }
 
+// NewElasticsearch returns a new ElasticsearchController that can be used
+// to monitor for Elasticsearch resources and create clusters in a target Kubernetes
+// cluster.
+//
+// It accepts a list of informers that are then used to monitor the state of the
+// target cluster.
 func NewElasticsearch(
 	es informerv1alpha1.ElasticsearchClusterInformer,
 	deploys depl.DeploymentInformer,
