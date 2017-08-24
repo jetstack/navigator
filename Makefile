@@ -105,7 +105,7 @@ go_vet:
 
 # This section contains the code generation stuff
 #################################################
-.generate_exes: .get_deps
+.generate_exes: .get_deps \
 	$(BINDIR)/defaulter-gen \
 	$(BINDIR)/deepcopy-gen \
 	$(BINDIR)/conversion-gen \
