@@ -13,11 +13,25 @@ import (
 	"github.com/jetstack-experimental/navigator/pkg/apis/navigator"
 )
 
-var thirdPartyResource = &v1beta1.ThirdPartyResource{
+// ElasticSearchClusterResource has the parameters for an ElasticSearch deployment
+var ElasticSearchClusterResource = &v1beta1.ThirdPartyResource{
 	ObjectMeta: metav1.ObjectMeta{
 		Name: "elasticsearch-cluster." + navigator.GroupName,
 	},
 	Description: "A specification of an Elasticsearch cluster",
+	Versions: []v1beta1.APIVersion{
+		{
+			Name: "v1alpha1",
+		},
+	},
+}
+
+// CouchbaseClusterResource has the parameters for an Couchbase deployment
+var CouchbaseClusterResource = &v1beta1.ThirdPartyResource{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: "couchbase-cluster." + navigator.GroupName,
+	},
+	Description: "A specification of an Couchbase cluster",
 	Versions: []v1beta1.APIVersion{
 		{
 			Name: "v1alpha1",
@@ -55,8 +69,9 @@ func Config(apiServerHost string) (*rest.Config, error) {
 
 // EnsureTPR will ensure that the appropriate ThirdPartyResources exist in
 // the target Kubernetes cluster
-func EnsureTPR(cl *kubernetes.Clientset) error {
-	_, err := cl.Extensions().ThirdPartyResources().Create(thirdPartyResource)
+func EnsureTPR(cl *kubernetes.Clientset, tpr *v1beta1.ThirdPartyResource) error {
+
+	_, err := cl.Extensions().ThirdPartyResources().Create(tpr)
 
 	if err != nil {
 		if !errors.IsAlreadyExists(err) {
