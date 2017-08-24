@@ -21,11 +21,11 @@ GOPATH ?= /tmp/go
 	@touch $@
 
 help:
-	# all 		- runs verify, build and docker_build targets
-	# test 		- runs go_test target
-	# build 	- runs generate, and then go_build targets
-	# generate 	- generates pkg/client/ files
-	# verify 	- verifies generated files & scripts
+	# all - runs verify, build and docker_build targets
+	# test - runs go_test target
+	# build	- runs generate, and then go_build targets
+	# generate - generates pkg/client/ files
+	# verify - verifies generated files & scripts
 
 # Util targets
 ##############
@@ -101,13 +101,13 @@ go_vet:
 
 # This section contains the code generation stuff
 #################################################
-.generate_exes: .get_deps \
-				$(BINDIR)/defaulter-gen \
-                $(BINDIR)/deepcopy-gen \
-                $(BINDIR)/conversion-gen \
-                $(BINDIR)/client-gen \
-                $(BINDIR)/lister-gen \
-                $(BINDIR)/informer-gen
+.generate_exes: .get_deps
+	$(BINDIR)/defaulter-gen \
+	$(BINDIR)/deepcopy-gen \
+	$(BINDIR)/conversion-gen \
+	$(BINDIR)/client-gen \
+	$(BINDIR)/lister-gen \
+	$(BINDIR)/informer-gen
 	touch $@
 
 $(BINDIR)/defaulter-gen:
