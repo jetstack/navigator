@@ -15,9 +15,13 @@ BUILD_IMAGE_NAME := navigator/builder
 GOPATH ?= /tmp/go
 
 .get_deps:
+	#	XXX The code generation tools are now in
+	#	https://github.com/kubernetes/kubernetes/tree/master/staging/src/k8s.io/code-generator
+	#	but we need the whole Kubernetes repo in order to compile them. Change this
+	#	to https://github.com/kubernetes/code-generator when that project has been
+	#	established. See https://gitlab.jetstack.net/marshal/navigator/issues/12
 	@echo "Grabbing dependencies..."
-	@go get -d k8s.io/kubernetes/cmd/libs/go2idl/... || true
-	@go get -d github.com/kubernetes/repo-infra || true
+	@go get -d k8s.io/kubernetes || true
 	@touch $@
 
 help:
@@ -111,22 +115,22 @@ go_vet:
 	touch $@
 
 $(BINDIR)/defaulter-gen:
-	go build -o $@ k8s.io/kubernetes/cmd/libs/go2idl/defaulter-gen
+	go build -o $@ k8s.io/kubernetes/staging/src/k8s.io/code-generator/cmd/defaulter-gen
 
 $(BINDIR)/deepcopy-gen:
-	go build -o $@ k8s.io/kubernetes/cmd/libs/go2idl/deepcopy-gen
+	go build -o $@ k8s.io/kubernetes/staging/src/k8s.io/code-generator/cmd/deepcopy-gen
 
 $(BINDIR)/conversion-gen:
-	go build -o $@ k8s.io/kubernetes/cmd/libs/go2idl/conversion-gen
+	go build -o $@ k8s.io/kubernetes/staging/src/k8s.io/code-generator/cmd/conversion-gen
 
 $(BINDIR)/client-gen:
-	go build -o $@ k8s.io/kubernetes/cmd/libs/go2idl/client-gen
+	go build -o $@ k8s.io/kubernetes/staging/src/k8s.io/code-generator/cmd/client-gen
 
 $(BINDIR)/lister-gen:
-	go build -o $@ k8s.io/kubernetes/cmd/libs/go2idl/lister-gen
+	go build -o $@ k8s.io/kubernetes/staging/src/k8s.io/code-generator/cmd/lister-gen
 
 $(BINDIR)/informer-gen:
-	go build -o $@ k8s.io/kubernetes/cmd/libs/go2idl/informer-gen
+	go build -o $@ k8s.io/kubernetes/staging/src/k8s.io/code-generator/cmd/informer-gen
 
 # Regenerate all files if the gen exes changed or any "types.go" files changed
 .generate_files: .generate_exes $(TYPES_FILES)
