@@ -1,6 +1,6 @@
 variables:
   DOCKER_DRIVER: overlay
-  PKG_PATH: github.com/jetstack-experimental/pilot-elasticsearch
+  PKG_PATH: github.com/jetstack-experimental/navigator
 
 stages:
 - build
