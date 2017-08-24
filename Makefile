@@ -22,6 +22,7 @@ GOPATH ?= /tmp/go
 	#	https://gitlab.jetstack.net/marshal/navigator/issues/12
 	@echo "Grabbing dependencies..."
 	@go get -d k8s.io/kubernetes/cmd/libs/go2idl/... || true
+	@git --git-dir $${GOPATH}/src/k8s.io/kubernetes/.git --work-tree $${GOPATH}/src/k8s.io/kubernetes checkout v1.7.4
 	@go get -d github.com/kubernetes/repo-infra || true
 	@touch $@
 
