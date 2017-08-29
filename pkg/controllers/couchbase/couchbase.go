@@ -9,6 +9,8 @@ import (
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/pkg/api"
 	apiv1 "k8s.io/client-go/pkg/api/v1"
+	"k8s.io/client-go/pkg/apis/apps"
+	"k8s.io/client-go/pkg/apis/extensions"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
@@ -46,6 +48,101 @@ type CouchbaseController struct {
 	couchbaseClusterControl CouchbaseClusterControl
 }
 
+func (c *CouchbaseController) enqueueCouchbaseCluster(obj interface{}) {
+	key, err := controllers.KeyFunc(obj)
+	if err != nil {
+		// TODO: log error
+		logrus.Infof("Cound't get key for object %+v: %v", obj, err)
+		return
+	}
+	c.queue.Add(key)
+}
+
+func (c *CouchbaseController) enqueueCouchbaseClusterDelete(obj interface{}) {
+	c.queue.Add(obj)
+}
+
+func (c *CouchbaseController) handleDeploy(obj interface{}) {
+	var deploy *extensions.Deployment
+	var ok bool
+	if deploy, ok = obj.(*extensions.Deployment); !ok {
+		logrus.Errorf("error decoding deployment, invalid type")
+		return
+	}
+	if ownerRef := managedOwnerRef(deploy.ObjectMeta); ownerRef != nil {
+		logrus.Debugf("getting couchbasecluster '%s/%s'", deploy.Namespace, ownerRef.Name)
+		cluster, err := c.cbLister.CouchbaseClusters(deploy.Namespace).Get(ownerRef.Name)
+
+		if err != nil {
+			logrus.Infof("ignoring orphaned deployment '%s' of couchbasecluster '%s'", deploy.Name, ownerRef.Name)
+			return
+		}
+
+		c.enqueueCouchbaseCluster(cluster)
+		return
+	}
+}
+
+func (c *CouchbaseController) handleStatefulSet(obj interface{}) {
+	var ss *apps.StatefulSet
+	var ok bool
+	if ss, ok = obj.(*apps.StatefulSet); !ok {
+		logrus.Errorf("error decoding statefulset, invalid type")
+		return
+	}
+	if ownerRef := managedOwnerRef(ss.ObjectMeta); ownerRef != nil {
+		cluster, err := c.cbLister.CouchbaseClusters(ss.Namespace).Get(ownerRef.Name)
+
+		if err != nil {
+			logrus.Infof("ignoring orphaned statefulset '%s' of couchbasecluster '%s'", ss.Name, ownerRef.Name)
+			return
+		}
+
+		c.enqueueCouchbaseCluster(cluster)
+		return
+	}
+}
+
+func (c *CouchbaseController) handleServiceAccount(obj interface{}) {
+	var ss *apiv1.ServiceAccount
+	var ok bool
+	if ss, ok = obj.(*apiv1.ServiceAccount); !ok {
+		logrus.Errorf("error decoding serviceaccount, invalid type")
+		return
+	}
+	if ownerRef := managedOwnerRef(ss.ObjectMeta); ownerRef != nil {
+		cluster, err := c.cbLister.CouchbaseClusters(ss.Namespace).Get(ownerRef.Name)
+
+		if err != nil {
+			logrus.Infof("ignoring orphaned serviceaccount '%s' of couchbasecluster '%s'", ss.Name, ownerRef.Name)
+			return
+		}
+
+		c.enqueueCouchbaseCluster(cluster)
+		return
+	}
+}
+
+func (c *CouchbaseController) handleService(obj interface{}) {
+	var ss *apiv1.Service
+	var ok bool
+	if ss, ok = obj.(*apiv1.Service); !ok {
+		logrus.Errorf("error decoding service, invalid type")
+		return
+	}
+	if ownerRef := managedOwnerRef(ss.ObjectMeta); ownerRef != nil {
+		cluster, err := c.cbLister.CouchbaseClusters(ss.Namespace).Get(ownerRef.Name)
+
+		if err != nil {
+			logrus.Infof("ignoring orphaned service '%s' of couchbasecluster '%s'", ss.Name, ownerRef.Name)
+			return
+		}
+
+		c.enqueueCouchbaseCluster(cluster)
+		return
+	}
+}
+
 // NewCouchbase returns a new CouchbaseController that can be used
 // to monitor for CouchbaseCluster resources and create clusters in a target Kubernetes
 // cluster.
@@ -53,7 +150,7 @@ type CouchbaseController struct {
 // It accepts a list of informers that are then used to monitor the state of the
 // target cluster.
 func NewCouchbase(
-	es informerv1alpha1.CouchbaseClusterInformer,
+	cbInformer informerv1alpha1.CouchbaseClusterInformer,
 	deploys depl.DeploymentInformer,
 	statefulsets appsinformers.StatefulSetInformer,
 	serviceaccounts coreinformers.ServiceAccountInformer,
@@ -73,113 +170,113 @@ func NewCouchbase(
 	recorder := eventBroadcaster.NewRecorder(
 		api.Scheme,
 		apiv1.EventSource{
-			Component: "elasticsearchCluster",
+			Component: "couchbaseCluster",
 		},
 	)
 
 	// create a new ElasticsearchController to manage ElasticsearchCluster resources
-	elasticsearchController := &CouchbaseController{
+	cbController := &CouchbaseController{
 		kubeClient: cl,
 		queue: workqueue.NewNamedRateLimitingQueue(
 			workqueue.DefaultControllerRateLimiter(),
-			"elasticsearchCluster",
+			"couchbaseCluster",
 		),
 	}
 
 	// add an event handler to the ElasticsearchCluster informer
-	es.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: elasticsearchController.enqueueElasticsearchCluster,
+	cbInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: cbController.enqueueCouchbaseCluster,
 		UpdateFunc: func(old, cur interface{}) {
 			if reflect.DeepEqual(old, cur) {
 				return
 			}
-			elasticsearchController.enqueueElasticsearchCluster(cur)
+			cbController.enqueueCouchbaseCluster(cur)
 		},
-		DeleteFunc: elasticsearchController.enqueueElasticsearchClusterDelete,
+		DeleteFunc: cbController.enqueueCouchbaseClusterDelete,
 	})
-	elasticsearchController.esLister = es.Lister()
-	elasticsearchController.esListerSynced = es.Informer().HasSynced
+	cbController.cbLister = cbInformer.Lister()
+	cbController.cbListerSynced = cbInformer.Informer().HasSynced
 
 	// add an event handler to the Deployment informer
 	deploys.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: elasticsearchController.handleDeploy,
+		AddFunc: cbController.handleDeploy,
 		UpdateFunc: func(old, cur interface{}) {
 			if reflect.DeepEqual(old, cur) {
 				return
 			}
-			elasticsearchController.handleDeploy(cur)
+			cbController.handleDeploy(cur)
 		},
 		DeleteFunc: func(obj interface{}) {
-			elasticsearchController.handleDeploy(obj)
+			cbController.handleDeploy(obj)
 		},
 	})
-	elasticsearchController.deployLister = deploys.Lister()
-	elasticsearchController.deployListerSynced = deploys.Informer().HasSynced
+	cbController.deployLister = deploys.Lister()
+	cbController.deployListerSynced = deploys.Informer().HasSynced
 
 	// add an event handler to the StatefulSet informer
 	statefulsets.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: elasticsearchController.handleStatefulSet,
+		AddFunc: cbController.handleStatefulSet,
 		UpdateFunc: func(old, new interface{}) {
 			if reflect.DeepEqual(old, new) {
 				return
 			}
-			elasticsearchController.handleStatefulSet(new)
+			cbController.handleStatefulSet(new)
 		},
-		DeleteFunc: elasticsearchController.handleStatefulSet,
+		DeleteFunc: cbController.handleStatefulSet,
 	})
-	elasticsearchController.statefulSetLister = statefulsets.Lister()
-	elasticsearchController.statefulSetListerSynced = statefulsets.Informer().HasSynced
+	cbController.statefulSetLister = statefulsets.Lister()
+	cbController.statefulSetListerSynced = statefulsets.Informer().HasSynced
 
 	// add an event handler to the ServiceAccount informer
 	serviceaccounts.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: elasticsearchController.handleServiceAccount,
+		AddFunc: cbController.handleServiceAccount,
 		UpdateFunc: func(old, new interface{}) {
 			if reflect.DeepEqual(old, new) {
 				return
 			}
-			elasticsearchController.handleServiceAccount(new)
+			cbController.handleServiceAccount(new)
 		},
-		DeleteFunc: elasticsearchController.handleServiceAccount,
+		DeleteFunc: cbController.handleServiceAccount,
 	})
-	elasticsearchController.serviceAccountLister = serviceaccounts.Lister()
-	elasticsearchController.serviceAccountListerSynced = serviceaccounts.Informer().HasSynced
+	cbController.serviceAccountLister = serviceaccounts.Lister()
+	cbController.serviceAccountListerSynced = serviceaccounts.Informer().HasSynced
 
 	// add an event handler to the Service informer
 	services.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: elasticsearchController.handleService,
+		AddFunc: cbController.handleService,
 		UpdateFunc: func(old, new interface{}) {
 			if reflect.DeepEqual(old, new) {
 				return
 			}
-			elasticsearchController.handleService(new)
+			cbController.handleService(new)
 		},
-		DeleteFunc: elasticsearchController.handleService,
+		DeleteFunc: cbController.handleService,
 	})
-	elasticsearchController.serviceLister = services.Lister()
-	elasticsearchController.serviceListerSynced = services.Informer().HasSynced
+	cbController.serviceLister = services.Lister()
+	cbController.serviceListerSynced = services.Informer().HasSynced
 
-	// create the actual ElasticsearchCluster controller
-	elasticsearchController.elasticsearchClusterControl = NewElasticsearchClusterControl(
-		elasticsearchController.statefulSetLister,
-		elasticsearchController.deployLister,
-		elasticsearchController.serviceAccountLister,
-		elasticsearchController.serviceLister,
-		NewElasticsearchClusterNodePoolControl(
+	// create the actual CouchbaseCluster controller
+	cbController.cbClusterControl = NewCouchbaseClusterControl(
+		cbController.statefulSetLister,
+		cbController.deployLister,
+		cbController.serviceAccountLister,
+		cbController.serviceLister,
+		NewCouchbaseClusterNodePoolControl(
 			cl,
-			elasticsearchController.deployLister,
+			cbController.deployLister,
 			recorder,
 		),
-		NewStatefulElasticsearchClusterNodePoolControl(
+		NewStatefulCouchbaseClusterNodePoolControl(
 			cl,
-			elasticsearchController.statefulSetLister,
+			cbController.statefulSetLister,
 			recorder,
 		),
-		NewElasticsearchClusterServiceAccountControl(
+		NewCouchbaseClusterServiceAccountControl(
 			cl,
 			recorder,
 		),
 		// client service controller
-		NewElasticsearchClusterServiceControl(
+		NewCouchbaseClusterServiceControl(
 			cl,
 			recorder,
 			ServiceControlConfig{
@@ -189,7 +286,7 @@ func NewCouchbase(
 			},
 		),
 		// discovery service controller
-		NewElasticsearchClusterServiceControl(
+		NewCouchbaseClusterServiceControl(
 			cl,
 			recorder,
 			ServiceControlConfig{
@@ -200,7 +297,7 @@ func NewCouchbase(
 		recorder,
 	)
 
-	return elasticsearchController
+	return cbController
 }
 
 func init() {
