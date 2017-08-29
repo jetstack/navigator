@@ -1,26 +1,26 @@
 package couchbase
 
 import (
+	"fmt"
 	"reflect"
+	"time"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack-experimental/navigator/pkg/controllers"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/pkg/api"
 	apiv1 "k8s.io/client-go/pkg/api/v1"
-	"k8s.io/client-go/pkg/apis/apps"
-	"k8s.io/client-go/pkg/apis/extensions"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
-
-	appsinformers "k8s.io/client-go/informers/apps/v1beta1"
-	coreinformers "k8s.io/client-go/informers/core/v1"
-	depl "k8s.io/client-go/informers/extensions/v1beta1"
-	appslisters "k8s.io/client-go/listers/apps/v1beta1"
-	corelisters "k8s.io/client-go/listers/core/v1"
-	extensionslisters "k8s.io/client-go/listers/extensions/v1beta1"
 
 	informerv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/informers_generated/externalversions/navigator/v1alpha1"
 	listersv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/listers_generated/navigator/v1alpha1"
@@ -32,20 +32,8 @@ type CouchbaseController struct {
 	cbLister       listersv1alpha1.CouchbaseClusterLister
 	cbListerSynced cache.InformerSynced
 
-	deployLister       extensionslisters.DeploymentLister
-	deployListerSynced cache.InformerSynced
-
-	statefulSetLister       appslisters.StatefulSetLister
-	statefulSetListerSynced cache.InformerSynced
-
-	serviceAccountLister       corelisters.ServiceAccountLister
-	serviceAccountListerSynced cache.InformerSynced
-
-	serviceLister       corelisters.ServiceLister
-	serviceListerSynced cache.InformerSynced
-
-	queue            workqueue.RateLimitingInterface
-	cbClusterControl CouchbaseClusterControl
+	queue                   workqueue.RateLimitingInterface
+	couchbaseClusterControl CouchbaseClusterControl
 }
 
 func (c *CouchbaseController) enqueueCouchbaseCluster(obj interface{}) {
@@ -62,87 +50,6 @@ func (c *CouchbaseController) enqueueCouchbaseClusterDelete(obj interface{}) {
 	c.queue.Add(obj)
 }
 
-func (c *CouchbaseController) handleDeploy(obj interface{}) {
-	var deploy *extensions.Deployment
-	var ok bool
-	if deploy, ok = obj.(*extensions.Deployment); !ok {
-		logrus.Errorf("error decoding deployment, invalid type")
-		return
-	}
-	if ownerRef := managedOwnerRef(deploy.ObjectMeta); ownerRef != nil {
-		logrus.Debugf("getting couchbasecluster '%s/%s'", deploy.Namespace, ownerRef.Name)
-		cluster, err := c.cbLister.CouchbaseClusters(deploy.Namespace).Get(ownerRef.Name)
-
-		if err != nil {
-			logrus.Infof("ignoring orphaned deployment '%s' of couchbasecluster '%s'", deploy.Name, ownerRef.Name)
-			return
-		}
-
-		c.enqueueCouchbaseCluster(cluster)
-		return
-	}
-}
-
-func (c *CouchbaseController) handleStatefulSet(obj interface{}) {
-	var ss *apps.StatefulSet
-	var ok bool
-	if ss, ok = obj.(*apps.StatefulSet); !ok {
-		logrus.Errorf("error decoding statefulset, invalid type")
-		return
-	}
-	if ownerRef := managedOwnerRef(ss.ObjectMeta); ownerRef != nil {
-		cluster, err := c.cbLister.CouchbaseClusters(ss.Namespace).Get(ownerRef.Name)
-
-		if err != nil {
-			logrus.Infof("ignoring orphaned statefulset '%s' of couchbasecluster '%s'", ss.Name, ownerRef.Name)
-			return
-		}
-
-		c.enqueueCouchbaseCluster(cluster)
-		return
-	}
-}
-
-func (c *CouchbaseController) handleServiceAccount(obj interface{}) {
-	var ss *apiv1.ServiceAccount
-	var ok bool
-	if ss, ok = obj.(*apiv1.ServiceAccount); !ok {
-		logrus.Errorf("error decoding serviceaccount, invalid type")
-		return
-	}
-	if ownerRef := managedOwnerRef(ss.ObjectMeta); ownerRef != nil {
-		cluster, err := c.cbLister.CouchbaseClusters(ss.Namespace).Get(ownerRef.Name)
-
-		if err != nil {
-			logrus.Infof("ignoring orphaned serviceaccount '%s' of couchbasecluster '%s'", ss.Name, ownerRef.Name)
-			return
-		}
-
-		c.enqueueCouchbaseCluster(cluster)
-		return
-	}
-}
-
-func (c *CouchbaseController) handleService(obj interface{}) {
-	var ss *apiv1.Service
-	var ok bool
-	if ss, ok = obj.(*apiv1.Service); !ok {
-		logrus.Errorf("error decoding service, invalid type")
-		return
-	}
-	if ownerRef := managedOwnerRef(ss.ObjectMeta); ownerRef != nil {
-		cluster, err := c.cbLister.CouchbaseClusters(ss.Namespace).Get(ownerRef.Name)
-
-		if err != nil {
-			logrus.Infof("ignoring orphaned service '%s' of couchbasecluster '%s'", ss.Name, ownerRef.Name)
-			return
-		}
-
-		c.enqueueCouchbaseCluster(cluster)
-		return
-	}
-}
-
 // NewCouchbase returns a new CouchbaseController that can be used
 // to monitor for CouchbaseCluster resources and create clusters in a target Kubernetes
 // cluster.
@@ -151,10 +58,6 @@ func (c *CouchbaseController) handleService(obj interface{}) {
 // target cluster.
 func NewCouchbase(
 	cbInformer informerv1alpha1.CouchbaseClusterInformer,
-	deploys depl.DeploymentInformer,
-	statefulsets appsinformers.StatefulSetInformer,
-	serviceaccounts coreinformers.ServiceAccountInformer,
-	services coreinformers.ServiceInformer,
 	cl *kubernetes.Clientset,
 ) *CouchbaseController {
 	// create an event broadcaster that can be used to send events to an event sink (eg. k8s)
@@ -174,7 +77,6 @@ func NewCouchbase(
 		},
 	)
 
-	// create a new ElasticsearchController to manage ElasticsearchCluster resources
 	cbController := &CouchbaseController{
 		kubeClient: cl,
 		queue: workqueue.NewNamedRateLimitingQueue(
@@ -183,7 +85,6 @@ func NewCouchbase(
 		),
 	}
 
-	// add an event handler to the ElasticsearchCluster informer
 	cbInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: cbController.enqueueCouchbaseCluster,
 		UpdateFunc: func(old, cur interface{}) {
@@ -197,117 +98,90 @@ func NewCouchbase(
 	cbController.cbLister = cbInformer.Lister()
 	cbController.cbListerSynced = cbInformer.Informer().HasSynced
 
-	// add an event handler to the Deployment informer
-	deploys.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: cbController.handleDeploy,
-		UpdateFunc: func(old, cur interface{}) {
-			if reflect.DeepEqual(old, cur) {
-				return
-			}
-			cbController.handleDeploy(cur)
-		},
-		DeleteFunc: func(obj interface{}) {
-			cbController.handleDeploy(obj)
-		},
-	})
-	cbController.deployLister = deploys.Lister()
-	cbController.deployListerSynced = deploys.Informer().HasSynced
-
-	// add an event handler to the StatefulSet informer
-	statefulsets.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: cbController.handleStatefulSet,
-		UpdateFunc: func(old, new interface{}) {
-			if reflect.DeepEqual(old, new) {
-				return
-			}
-			cbController.handleStatefulSet(new)
-		},
-		DeleteFunc: cbController.handleStatefulSet,
-	})
-	cbController.statefulSetLister = statefulsets.Lister()
-	cbController.statefulSetListerSynced = statefulsets.Informer().HasSynced
-
-	// add an event handler to the ServiceAccount informer
-	serviceaccounts.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: cbController.handleServiceAccount,
-		UpdateFunc: func(old, new interface{}) {
-			if reflect.DeepEqual(old, new) {
-				return
-			}
-			cbController.handleServiceAccount(new)
-		},
-		DeleteFunc: cbController.handleServiceAccount,
-	})
-	cbController.serviceAccountLister = serviceaccounts.Lister()
-	cbController.serviceAccountListerSynced = serviceaccounts.Informer().HasSynced
-
-	// add an event handler to the Service informer
-	services.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: cbController.handleService,
-		UpdateFunc: func(old, new interface{}) {
-			if reflect.DeepEqual(old, new) {
-				return
-			}
-			cbController.handleService(new)
-		},
-		DeleteFunc: cbController.handleService,
-	})
-	cbController.serviceLister = services.Lister()
-	cbController.serviceListerSynced = services.Informer().HasSynced
-
-	// create the actual CouchbaseCluster controller
-	cbController.cbClusterControl = NewCouchbaseClusterControl(
-		cbController.statefulSetLister,
-		cbController.deployLister,
-		cbController.serviceAccountLister,
-		cbController.serviceLister,
-		NewCouchbaseClusterNodePoolControl(
-			cl,
-			cbController.deployLister,
-			recorder,
-		),
-		NewStatefulCouchbaseClusterNodePoolControl(
-			cl,
-			cbController.statefulSetLister,
-			recorder,
-		),
-		NewCouchbaseClusterServiceAccountControl(
-			cl,
-			recorder,
-		),
-		// client service controller
-		NewCouchbaseClusterServiceControl(
-			cl,
-			recorder,
-			ServiceControlConfig{
-				NameSuffix: "clients",
-				EnableHTTP: true,
-				Roles:      []string{"client"},
-			},
-		),
-		// discovery service controller
-		NewCouchbaseClusterServiceControl(
-			cl,
-			recorder,
-			ServiceControlConfig{
-				NameSuffix:  "discovery",
-				Annotations: map[string]string{"service.alpha.kubernetes.io/tolerate-unready-endpoints": "true"},
-			},
-		),
-		recorder,
-	)
+	cbController.couchbaseClusterControl = NewCouchbaseClusterControl(recorder)
 
 	return cbController
+}
+
+// Run is the main event loop
+func (c *CouchbaseController) Run(workers int, stopCh <-chan struct{}) {
+	defer c.queue.ShutDown()
+
+	logrus.Infof("Starting Couchbase controller")
+
+	if !cache.WaitForCacheSync(stopCh, c.cbListerSynced) {
+		utilruntime.HandleError(fmt.Errorf("timed out waiting for caches to sync"))
+	}
+
+	for i := 0; i < workers; i++ {
+		go wait.Until(c.worker, time.Second, stopCh)
+	}
+
+	<-stopCh
+	logrus.Infof("Shutting down Couchbase controller")
+}
+
+func (c *CouchbaseController) worker() {
+	logrus.Infof("start worker loop")
+	for c.processNextWorkItem() {
+		logrus.Infof("processed work item")
+	}
+	logrus.Infof("exiting worker loop")
+}
+
+func (c *CouchbaseController) processNextWorkItem() bool {
+	key, quit := c.queue.Get()
+	if quit {
+		return false
+	}
+	defer c.queue.Done(key)
+
+	if k, ok := key.(string); ok {
+		if err := c.sync(k); err != nil {
+			logrus.Infof("Error syncing CouchbaseCluster %v, requeuing: %v", key.(string), err)
+			c.queue.AddRateLimited(key)
+		} else {
+			c.queue.Forget(key)
+		}
+	} else if cb, ok := key.(*v1alpha1.CouchbaseCluster); ok {
+		t := metav1.NewTime(time.Now())
+		cb.DeletionTimestamp = &t
+		if err := c.couchbaseClusterControl.SyncCouchbaseCluster(*cb); err != nil {
+			logrus.Infof("Error syncing CouchbaseCluster %v, requeuing: %v", cb.Name, err)
+		}
+		c.queue.Forget(key)
+	}
+
+	return true
+}
+
+func (c *CouchbaseController) sync(key string) error {
+	startTime := time.Now()
+	defer func() {
+		logrus.Infof("Finished syncing couchbasecluster %q (%v)", key, time.Now().Sub(startTime))
+	}()
+
+	namespace, name, err := cache.SplitMetaNamespaceKey(key)
+	if err != nil {
+		return err
+	}
+	es, err := c.cbLister.CouchbaseClusters(namespace).Get(name)
+	if errors.IsNotFound(err) {
+		logrus.Infof("CouchbaseCluster has been deleted %v", key)
+		return nil
+	}
+	if err != nil {
+		utilruntime.HandleError(fmt.Errorf("unable to retrieve CouchbaseCluster %v from store: %v", key, err))
+		return err
+	}
+
+	return c.couchbaseClusterControl.SyncCouchbaseCluster(*es)
 }
 
 func init() {
 	controllers.Register("Couchbase", func(ctx *controllers.Context) (bool, error) {
 		go NewCouchbase(
 			ctx.NavigatorInformerFactory.Navigator().V1alpha1().CouchbaseClusters(),
-			ctx.InformerFactory.Extensions().V1beta1().Deployments(),
-			ctx.InformerFactory.Apps().V1beta1().StatefulSets(),
-			ctx.InformerFactory.Core().V1().ServiceAccounts(),
-			ctx.InformerFactory.Core().V1().Services(),
 			ctx.Client,
 		).Run(2, ctx.Stop)
 
