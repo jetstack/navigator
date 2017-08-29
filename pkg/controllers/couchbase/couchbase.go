@@ -44,8 +44,8 @@ type CouchbaseController struct {
 	serviceLister       corelisters.ServiceLister
 	serviceListerSynced cache.InformerSynced
 
-	queue                   workqueue.RateLimitingInterface
-	couchbaseClusterControl CouchbaseClusterControl
+	queue            workqueue.RateLimitingInterface
+	cbClusterControl CouchbaseClusterControl
 }
 
 func (c *CouchbaseController) enqueueCouchbaseCluster(obj interface{}) {
