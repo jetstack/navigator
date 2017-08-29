@@ -36,8 +36,10 @@ all: verify build docker_build
 
 test: go_test
 
-e2e-test: build docker_build
+.hack_e2e:
 	@${HACK_DIR}/e2e.sh
+
+e2e-test: build docker_build .hack_e2e
 
 build: generate go_build
 

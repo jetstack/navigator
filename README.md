@@ -53,6 +53,9 @@ minikube start
 eval $(minikube docker-env)
 # Override the Docker image tag so that it is built as :latest
 # (the tag used in the documented deployment)
+# XXX: This is a hack.
+# Better if we had a helm chart in the documentation,
+# so that we could provide an alternative navigator image and tag.
 make BUILD_TAG=latest e2e-test
 ```
 

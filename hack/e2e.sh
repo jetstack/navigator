@@ -2,6 +2,7 @@
 set -eux
 
 NAVIGATOR_NAMESPACE="navigator"
+USER_NAMESPACE="navigator-e2e-database1"
 
 ROOT_DIR="$(git rev-parse --show-toplevel)"
 SCRIPT_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)"
@@ -12,15 +13,16 @@ mkdir --parents $CERT_DIR
 TEST_DIR="$CONFIG_DIR/tmp"
 mkdir --parents $TEST_DIR
 
-
 source "${SCRIPT_DIR}/libe2e.sh"
 
-# Install navigator
-
 kube_delete_namespace_and_wait "${NAVIGATOR_NAMESPACE}"
+kube_delete_namespace_and_wait "${USER_NAMESPACE}"
 
-kubectl create --filename ${ROOT_DIR}/docs/quick-start/deployment-navigator.yaml
+# Install navigator
+kubectl create \
+        --filename "${ROOT_DIR}/docs/quick-start/deployment-navigator.yaml"
 
+# Wait for navigator pods to be running
 function navigator_ready() {
     local replica_count=$(
         kubectl get deployment navigator \
@@ -33,3 +35,15 @@ function navigator_ready() {
 }
 
 retry navigator_ready
+
+# Create and delete an ElasticSearchCluster
+kubectl create \
+        --namespace "${USER_NAMESPACE}" \
+        --filename "${ROOT_DIR}/docs/quick-start/es-cluster-demo.yaml"
+kubectl get \
+        --namespace "${USER_NAMESPACE}" \
+        ElasticSearchClusters
+kubectl delete \
+        --namespace "${USER_NAMESPACE}" \
+        ElasticSearchClusters \
+        --all
