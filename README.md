@@ -40,6 +40,22 @@ and we can begin discussion on implementation & planning.
 * [Resource types](docs/supported-types/README.md)
   * [ElasticsearchCluster](docs/supported-types/elasticsearch-cluster.md)
 
+
+## E2E Testing
+
+Navigator has an end-to-end test suite which verifies that Navigator can be installed [as documented in the quick start guide](docs/quick-start).
+The tests are run on a Minikube cluster.
+Run the tests using the following sequence of commands:
+
+```
+minikube start
+# This ensures that the Docker image will be built in the Minikube VM
+eval $(minikube docker-env)
+# Override the Docker image tag so that it is built as :latest
+# (the tag used in the documented deployment)
+make BUILD_TAG=latest e2e-test
+```
+
 ## Credits
 
 James Munnelly, Christian Simon & Matt Bates of [Jetstack.io](https://www.jetstack.io/)

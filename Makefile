@@ -21,11 +21,12 @@ GOPATH ?= /tmp/go
 	@touch $@
 
 help:
-	# all 		- runs verify, build and docker_build targets
-	# test 		- runs go_test target
-	# build 	- runs generate, and then go_build targets
-	# generate 	- generates pkg/client/ files
-	# verify 	- verifies generated files & scripts
+	# all				- runs verify, build and docker_build targets
+	# test			- runs go_test target
+	# e2e-test	- runs e2e tests
+	# build			- runs generate, and then go_build targets
+	# generate	- generates pkg/client/ files
+	# verify		- verifies generated files & scripts
 
 # Util targets
 ##############
@@ -34,6 +35,9 @@ help:
 all: verify build docker_build
 
 test: go_test
+
+e2e-test: build docker_build
+	@${HACK_DIR}/e2e.sh
 
 build: generate go_build
 
@@ -103,11 +107,11 @@ go_vet:
 #################################################
 .generate_exes: .get_deps \
 				$(BINDIR)/defaulter-gen \
-                $(BINDIR)/deepcopy-gen \
-                $(BINDIR)/conversion-gen \
-                $(BINDIR)/client-gen \
-                $(BINDIR)/lister-gen \
-                $(BINDIR)/informer-gen
+								$(BINDIR)/deepcopy-gen \
+								$(BINDIR)/conversion-gen \
+								$(BINDIR)/client-gen \
+								$(BINDIR)/lister-gen \
+								$(BINDIR)/informer-gen
 	touch $@
 
 $(BINDIR)/defaulter-gen:
