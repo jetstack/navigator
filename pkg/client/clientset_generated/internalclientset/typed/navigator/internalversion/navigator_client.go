@@ -23,12 +23,17 @@ import (
 
 type NavigatorInterface interface {
 	RESTClient() rest.Interface
+	CouchbaseClustersGetter
 	ElasticsearchClustersGetter
 }
 
 // NavigatorClient is used to interact with features provided by the navigator.jetstack.io group.
 type NavigatorClient struct {
 	restClient rest.Interface
+}
+
+func (c *NavigatorClient) CouchbaseClusters(namespace string) CouchbaseClusterInterface {
+	return newCouchbaseClusters(c, namespace)
 }
 
 func (c *NavigatorClient) ElasticsearchClusters(namespace string) ElasticsearchClusterInterface {

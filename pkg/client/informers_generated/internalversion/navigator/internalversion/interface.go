@@ -24,6 +24,8 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
+	// CouchbaseClusters returns a CouchbaseClusterInformer.
+	CouchbaseClusters() CouchbaseClusterInformer
 	// ElasticsearchClusters returns a ElasticsearchClusterInformer.
 	ElasticsearchClusters() ElasticsearchClusterInformer
 }
@@ -35,6 +37,11 @@ type version struct {
 // New returns a new Interface.
 func New(f internalinterfaces.SharedInformerFactory) Interface {
 	return &version{f}
+}
+
+// CouchbaseClusters returns a CouchbaseClusterInformer.
+func (v *version) CouchbaseClusters() CouchbaseClusterInformer {
+	return &couchbaseClusterInformer{factory: v.SharedInformerFactory}
 }
 
 // ElasticsearchClusters returns a ElasticsearchClusterInformer.

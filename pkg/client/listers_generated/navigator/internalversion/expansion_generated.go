@@ -18,6 +18,14 @@ limitations under the License.
 
 package internalversion
 
+// CouchbaseClusterListerExpansion allows custom methods to be added to
+// CouchbaseClusterLister.
+type CouchbaseClusterListerExpansion interface{}
+
+// CouchbaseClusterNamespaceListerExpansion allows custom methods to be added to
+// CouchbaseClusterNamespaceLister.
+type CouchbaseClusterNamespaceListerExpansion interface{}
+
 // ElasticsearchClusterListerExpansion allows custom methods to be added to
 // ElasticsearchClusterLister.
 type ElasticsearchClusterListerExpansion interface{}

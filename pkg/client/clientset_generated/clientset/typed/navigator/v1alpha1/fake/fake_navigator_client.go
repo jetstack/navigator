@@ -26,6 +26,10 @@ type FakeNavigatorV1alpha1 struct {
 	*testing.Fake
 }
 
+func (c *FakeNavigatorV1alpha1) CouchbaseClusters(namespace string) v1alpha1.CouchbaseClusterInterface {
+	return &FakeCouchbaseClusters{c, namespace}
+}
+
 func (c *FakeNavigatorV1alpha1) ElasticsearchClusters(namespace string) v1alpha1.ElasticsearchClusterInterface {
 	return &FakeElasticsearchClusters{c, namespace}
 }
