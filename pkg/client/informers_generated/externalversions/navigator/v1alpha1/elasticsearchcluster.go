@@ -41,26 +41,31 @@ type elasticsearchClusterInformer struct {
 	factory internalinterfaces.SharedInformerFactory
 }
 
-func newElasticsearchClusterInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	sharedIndexInformer := cache.NewSharedIndexInformer(
+// NewElasticsearchClusterInformer constructs a new informer for ElasticsearchCluster type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewElasticsearchClusterInformer(client clientset.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
-				return client.NavigatorV1alpha1().ElasticsearchClusters(v1.NamespaceAll).List(options)
+				return client.NavigatorV1alpha1().ElasticsearchClusters(namespace).List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
-				return client.NavigatorV1alpha1().ElasticsearchClusters(v1.NamespaceAll).Watch(options)
+				return client.NavigatorV1alpha1().ElasticsearchClusters(namespace).Watch(options)
 			},
 		},
 		&navigator_v1alpha1.ElasticsearchCluster{},
 		resyncPeriod,
-		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+		indexers,
 	)
+}
 
-	return sharedIndexInformer
+func defaultElasticsearchClusterInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewElasticsearchClusterInformer(client, v1.NamespaceAll, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 }
 
 func (f *elasticsearchClusterInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&navigator_v1alpha1.ElasticsearchCluster{}, newElasticsearchClusterInformer)
+	return f.factory.InformerFor(&navigator_v1alpha1.ElasticsearchCluster{}, defaultElasticsearchClusterInformer)
 }
 
 func (f *elasticsearchClusterInformer) Lister() v1alpha1.ElasticsearchClusterLister {

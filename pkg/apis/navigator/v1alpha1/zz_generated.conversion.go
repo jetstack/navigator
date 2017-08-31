@@ -29,7 +29,7 @@ import (
 )
 
 func init() {
-	SchemeBuilder.Register(RegisterConversions)
+	localSchemeBuilder.Register(RegisterConversions)
 }
 
 // RegisterConversions adds conversion functions to the given scheme.
@@ -100,11 +100,7 @@ func Convert_v1alpha1_ElasticsearchClusterList_To_navigator_ElasticsearchCluster
 
 func autoConvert_navigator_ElasticsearchClusterList_To_v1alpha1_ElasticsearchClusterList(in *navigator.ElasticsearchClusterList, out *ElasticsearchClusterList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	if in.Items == nil {
-		out.Items = make([]ElasticsearchCluster, 0)
-	} else {
-		out.Items = *(*[]ElasticsearchCluster)(unsafe.Pointer(&in.Items))
-	}
+	out.Items = *(*[]ElasticsearchCluster)(unsafe.Pointer(&in.Items))
 	return nil
 }
 
@@ -130,11 +126,7 @@ func Convert_v1alpha1_ElasticsearchClusterNodePool_To_navigator_ElasticsearchClu
 func autoConvert_navigator_ElasticsearchClusterNodePool_To_v1alpha1_ElasticsearchClusterNodePool(in *navigator.ElasticsearchClusterNodePool, out *ElasticsearchClusterNodePool, s conversion.Scope) error {
 	out.Name = in.Name
 	out.Replicas = in.Replicas
-	if in.Roles == nil {
-		out.Roles = make([]string, 0)
-	} else {
-		out.Roles = *(*[]string)(unsafe.Pointer(&in.Roles))
-	}
+	out.Roles = *(*[]string)(unsafe.Pointer(&in.Roles))
 	out.Resources = (*v1.ResourceRequirements)(unsafe.Pointer(in.Resources))
 	out.Persistence = (*ElasticsearchClusterPersistenceConfig)(unsafe.Pointer(in.Persistence))
 	return nil
@@ -205,24 +197,12 @@ func Convert_v1alpha1_ElasticsearchClusterSpec_To_navigator_ElasticsearchCluster
 
 func autoConvert_navigator_ElasticsearchClusterSpec_To_v1alpha1_ElasticsearchClusterSpec(in *navigator.ElasticsearchClusterSpec, out *ElasticsearchClusterSpec, s conversion.Scope) error {
 	out.Version = in.Version
-	if in.Plugins == nil {
-		out.Plugins = make([]ElasticsearchClusterPlugin, 0)
-	} else {
-		out.Plugins = *(*[]ElasticsearchClusterPlugin)(unsafe.Pointer(&in.Plugins))
-	}
-	if in.NodePools == nil {
-		out.NodePools = make([]ElasticsearchClusterNodePool, 0)
-	} else {
-		out.NodePools = *(*[]ElasticsearchClusterNodePool)(unsafe.Pointer(&in.NodePools))
-	}
+	out.Plugins = *(*[]ElasticsearchClusterPlugin)(unsafe.Pointer(&in.Plugins))
+	out.NodePools = *(*[]ElasticsearchClusterNodePool)(unsafe.Pointer(&in.NodePools))
 	if err := Convert_navigator_ElasticsearchImage_To_v1alpha1_ElasticsearchImage(&in.Image, &out.Image, s); err != nil {
 		return err
 	}
-	if in.Sysctl == nil {
-		out.Sysctl = make([]string, 0)
-	} else {
-		out.Sysctl = *(*[]string)(unsafe.Pointer(&in.Sysctl))
-	}
+	out.Sysctl = *(*[]string)(unsafe.Pointer(&in.Sysctl))
 	return nil
 }
 

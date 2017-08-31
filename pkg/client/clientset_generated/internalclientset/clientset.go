@@ -13,7 +13,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
 package internalclientset
 
 import (
@@ -33,15 +32,12 @@ type Interface interface {
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	*navigatorinternalversion.NavigatorClient
+	navigator *navigatorinternalversion.NavigatorClient
 }
 
 // Navigator retrieves the NavigatorClient
 func (c *Clientset) Navigator() navigatorinternalversion.NavigatorInterface {
-	if c == nil {
-		return nil
-	}
-	return c.NavigatorClient
+	return c.navigator
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -60,7 +56,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	}
 	var cs Clientset
 	var err error
-	cs.NavigatorClient, err = navigatorinternalversion.NewForConfig(&configShallowCopy)
+	cs.navigator, err = navigatorinternalversion.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +73,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 // panics if there is an error in the config.
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
-	cs.NavigatorClient = navigatorinternalversion.NewForConfigOrDie(c)
+	cs.navigator = navigatorinternalversion.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &cs
@@ -86,7 +82,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
-	cs.NavigatorClient = navigatorinternalversion.New(c)
+	cs.navigator = navigatorinternalversion.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs

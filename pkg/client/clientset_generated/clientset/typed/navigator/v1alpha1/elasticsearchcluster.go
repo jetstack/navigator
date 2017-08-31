@@ -13,7 +13,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
 package v1alpha1
 
 import (
@@ -59,6 +58,41 @@ func newElasticsearchClusters(c *NavigatorV1alpha1Client, namespace string) *ela
 	}
 }
 
+// Get takes name of the elasticsearchCluster, and returns the corresponding elasticsearchCluster object, and an error if there is any.
+func (c *elasticsearchClusters) Get(name string, options v1.GetOptions) (result *v1alpha1.ElasticsearchCluster, err error) {
+	result = &v1alpha1.ElasticsearchCluster{}
+	err = c.client.Get().
+		Namespace(c.ns).
+		Resource("elasticsearchclusters").
+		Name(name).
+		VersionedParams(&options, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// List takes label and field selectors, and returns the list of ElasticsearchClusters that match those selectors.
+func (c *elasticsearchClusters) List(opts v1.ListOptions) (result *v1alpha1.ElasticsearchClusterList, err error) {
+	result = &v1alpha1.ElasticsearchClusterList{}
+	err = c.client.Get().
+		Namespace(c.ns).
+		Resource("elasticsearchclusters").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// Watch returns a watch.Interface that watches the requested elasticsearchClusters.
+func (c *elasticsearchClusters) Watch(opts v1.ListOptions) (watch.Interface, error) {
+	opts.Watch = true
+	return c.client.Get().
+		Namespace(c.ns).
+		Resource("elasticsearchclusters").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Watch()
+}
+
 // Create takes the representation of a elasticsearchCluster and creates it.  Returns the server's representation of the elasticsearchCluster, and an error, if there is any.
 func (c *elasticsearchClusters) Create(elasticsearchCluster *v1alpha1.ElasticsearchCluster) (result *v1alpha1.ElasticsearchCluster, err error) {
 	result = &v1alpha1.ElasticsearchCluster{}
@@ -85,7 +119,7 @@ func (c *elasticsearchClusters) Update(elasticsearchCluster *v1alpha1.Elasticsea
 }
 
 // UpdateStatus was generated because the type contains a Status member.
-// Add a +genclientstatus=false comment above the type to avoid generating UpdateStatus().
+// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
 
 func (c *elasticsearchClusters) UpdateStatus(elasticsearchCluster *v1alpha1.ElasticsearchCluster) (result *v1alpha1.ElasticsearchCluster, err error) {
 	result = &v1alpha1.ElasticsearchCluster{}
@@ -120,41 +154,6 @@ func (c *elasticsearchClusters) DeleteCollection(options *v1.DeleteOptions, list
 		Body(options).
 		Do().
 		Error()
-}
-
-// Get takes name of the elasticsearchCluster, and returns the corresponding elasticsearchCluster object, and an error if there is any.
-func (c *elasticsearchClusters) Get(name string, options v1.GetOptions) (result *v1alpha1.ElasticsearchCluster, err error) {
-	result = &v1alpha1.ElasticsearchCluster{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("elasticsearchclusters").
-		Name(name).
-		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// List takes label and field selectors, and returns the list of ElasticsearchClusters that match those selectors.
-func (c *elasticsearchClusters) List(opts v1.ListOptions) (result *v1alpha1.ElasticsearchClusterList, err error) {
-	result = &v1alpha1.ElasticsearchClusterList{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("elasticsearchclusters").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// Watch returns a watch.Interface that watches the requested elasticsearchClusters.
-func (c *elasticsearchClusters) Watch(opts v1.ListOptions) (watch.Interface, error) {
-	opts.Watch = true
-	return c.client.Get().
-		Namespace(c.ns).
-		Resource("elasticsearchclusters").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Watch()
 }
 
 // Patch applies the patch and returns the patched elasticsearchCluster.
