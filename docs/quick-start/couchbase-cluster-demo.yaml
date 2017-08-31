@@ -1,0 +1,4 @@
+apiVersion: navigator.jetstack.io/v1alpha1
+kind: CouchbaseCluster
+metadata:
+  name: demo
