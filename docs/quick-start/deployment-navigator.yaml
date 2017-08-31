@@ -22,4 +22,4 @@ spec:
       containers:
       - name: navigator
         image: jetstackexperimental/navigator:latest
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
