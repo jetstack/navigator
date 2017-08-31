@@ -27,7 +27,7 @@ import (
 )
 
 type CouchbaseController struct {
-	kubeClient *kubernetes.Clientset
+	kubeClient kubernetes.Interface
 
 	cbLister       listersv1alpha1.CouchbaseClusterLister
 	cbListerSynced cache.InformerSynced
@@ -58,7 +58,7 @@ func (c *CouchbaseController) enqueueCouchbaseClusterDelete(obj interface{}) {
 // target cluster.
 func NewCouchbase(
 	cbInformer informerv1alpha1.CouchbaseClusterInformer,
-	cl *kubernetes.Clientset,
+	cl kubernetes.Interface,
 ) *CouchbaseController {
 	// create an event broadcaster that can be used to send events to an event sink (eg. k8s)
 	eventBroadcaster := record.NewBroadcaster()

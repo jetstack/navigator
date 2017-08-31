@@ -11,7 +11,7 @@ import (
 )
 
 type Context struct {
-	Client *kubernetes.Clientset
+	Client kubernetes.Interface
 
 	InformerFactory          informers.SharedInformerFactory
 	NavigatorInformerFactory intinformers.SharedInformerFactory
