@@ -17,6 +17,7 @@ source "${SCRIPT_DIR}/libe2e.sh"
 
 kube_delete_namespace_and_wait "${NAVIGATOR_NAMESPACE}"
 kube_delete_namespace_and_wait "${USER_NAMESPACE}"
+kubectl delete ThirdPartyResources --all
 
 # Install navigator
 kubectl create \
