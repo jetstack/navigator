@@ -39,6 +39,8 @@ function navigator_ready() {
 }
 
 retry navigator_ready
+kubectl get pods --namespace navigator
+kubectl logs --namespace navigator -l app=navigator
 
 # Create and delete an ElasticSearchCluster
 kubectl create \
