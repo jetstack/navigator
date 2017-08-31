@@ -30,6 +30,7 @@ import (
 	intclient "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset"
 	intinformers "github.com/jetstack-experimental/navigator/pkg/client/informers_generated/externalversions"
 	"github.com/jetstack-experimental/navigator/pkg/controllers"
+	_ "github.com/jetstack-experimental/navigator/pkg/controllers/couchbase"
 	_ "github.com/jetstack-experimental/navigator/pkg/controllers/elasticsearch"
 	"github.com/jetstack-experimental/navigator/pkg/kube"
 )
@@ -80,7 +81,10 @@ to quickly create a Cobra application.`,
 		}
 
 		// Create the ThirdPartyResource in the Kubernetes API server
-		if err = kube.EnsureTPR(cl); err != nil {
+		if err = kube.EnsureTPR(cl, kube.ElasticSearchClusterResource); err != nil {
+			logrus.Fatalf("error creating ThirdPartyResources: %s", err.Error())
+		}
+		if err = kube.EnsureTPR(cl, kube.CouchbaseClusterResource); err != nil {
 			logrus.Fatalf("error creating ThirdPartyResources: %s", err.Error())
 		}
 
