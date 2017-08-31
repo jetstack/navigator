@@ -259,10 +259,10 @@ func (j *JSONPath) evalArray(input []reflect.Value, node *ArrayNode) ([]reflect.
 
 		sliceLength := value.Len()
 		if params[1].Value != params[0].Value { // if you're requesting zero elements, allow it through.
-			if params[0].Value >= sliceLength {
+			if params[0].Value >= sliceLength || params[0].Value < 0 {
 				return input, fmt.Errorf("array index out of bounds: index %d, length %d", params[0].Value, sliceLength)
 			}
-			if params[1].Value > sliceLength {
+			if params[1].Value > sliceLength || params[1].Value < 0 {
 				return input, fmt.Errorf("array index out of bounds: index %d, length %d", params[1].Value-1, sliceLength)
 			}
 		}
@@ -455,7 +455,10 @@ func (j *JSONPath) evalFilter(input []reflect.Value, node *FilterNode) ([]reflec
 			}
 
 			var left, right interface{}
-			if len(lefts) != 1 {
+			switch {
+			case len(lefts) == 0:
+				continue
+			case len(lefts) > 1:
 				return input, fmt.Errorf("can only compare one element at a time")
 			}
 			left = lefts[0].Interface()
@@ -464,7 +467,10 @@ func (j *JSONPath) evalFilter(input []reflect.Value, node *FilterNode) ([]reflec
 			if err != nil {
 				return input, err
 			}
-			if len(rights) != 1 {
+			switch {
+			case len(rights) == 0:
+				continue
+			case len(rights) > 1:
 				return input, fmt.Errorf("can only compare one element at a time")
 			}
 			right = rights[0].Interface()
