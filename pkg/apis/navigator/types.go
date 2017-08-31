@@ -1,8 +1,8 @@
 package navigator
 
 import (
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/pkg/api/v1"
 )
 
 // In this file we define the outer containing types for the ElasticsearchCluster

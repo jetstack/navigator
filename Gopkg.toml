@@ -32,3 +32,15 @@ required = [
 [[constraint]]
   name = "github.com/Sirupsen/logrus"
   revision = "v0.6.2-10-g51fe59a"
+
+[[constraint]]
+  name = "k8s.io/client-go"
+  branch = "master"
+
+[[constraint]]
+  name = "k8s.io/apimachinery"
+  branch = "master"
+
+[[constraint]]
+  name = "k8s.io/api"
+  branch = "master"
