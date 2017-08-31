@@ -9,7 +9,7 @@ import (
 // type. We could import these directly into message types defined in the types.proto
 // file, but this is still TODO
 
-// +genclient=true
+// +genclient
 
 // ElasticsearchCluster describes a specification for an Elasticsearch cluster
 type ElasticsearchCluster struct {
