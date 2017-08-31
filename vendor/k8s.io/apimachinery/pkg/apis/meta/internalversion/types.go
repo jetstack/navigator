@@ -22,6 +22,8 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 )
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // ListOptions is the query options to a standard REST list call, and has future support for
 // watch calls.
 type ListOptions struct {
@@ -31,6 +33,9 @@ type ListOptions struct {
 	LabelSelector labels.Selector
 	// A selector based on fields
 	FieldSelector fields.Selector
+	// If true, partially initialized resources are included in the response.
+	// +optional
+	IncludeUninitialized bool
 	// If true, watch for changes to this list
 	Watch bool
 	// When specified with a watch call, shows changes that occur after that particular version of a resource.

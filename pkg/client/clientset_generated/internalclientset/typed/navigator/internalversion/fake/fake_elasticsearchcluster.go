@@ -1,5 +1,5 @@
 /*
-Copyright 2017 The Kubernetes Authors.
+Copyright 2017 Jetstack Ltd.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
 package fake
 
 import (
@@ -36,50 +35,7 @@ var elasticsearchclustersResource = schema.GroupVersionResource{Group: "navigato
 
 var elasticsearchclustersKind = schema.GroupVersionKind{Group: "navigator.jetstack.io", Version: "", Kind: "ElasticsearchCluster"}
 
-func (c *FakeElasticsearchClusters) Create(elasticsearchCluster *navigator.ElasticsearchCluster) (result *navigator.ElasticsearchCluster, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(elasticsearchclustersResource, c.ns, elasticsearchCluster), &navigator.ElasticsearchCluster{})
-
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*navigator.ElasticsearchCluster), err
-}
-
-func (c *FakeElasticsearchClusters) Update(elasticsearchCluster *navigator.ElasticsearchCluster) (result *navigator.ElasticsearchCluster, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewUpdateAction(elasticsearchclustersResource, c.ns, elasticsearchCluster), &navigator.ElasticsearchCluster{})
-
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*navigator.ElasticsearchCluster), err
-}
-
-func (c *FakeElasticsearchClusters) UpdateStatus(elasticsearchCluster *navigator.ElasticsearchCluster) (*navigator.ElasticsearchCluster, error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewUpdateSubresourceAction(elasticsearchclustersResource, "status", c.ns, elasticsearchCluster), &navigator.ElasticsearchCluster{})
-
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*navigator.ElasticsearchCluster), err
-}
-
-func (c *FakeElasticsearchClusters) Delete(name string, options *v1.DeleteOptions) error {
-	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(elasticsearchclustersResource, c.ns, name), &navigator.ElasticsearchCluster{})
-
-	return err
-}
-
-func (c *FakeElasticsearchClusters) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(elasticsearchclustersResource, c.ns, listOptions)
-
-	_, err := c.Fake.Invokes(action, &navigator.ElasticsearchClusterList{})
-	return err
-}
-
+// Get takes name of the elasticsearchCluster, and returns the corresponding elasticsearchCluster object, and an error if there is any.
 func (c *FakeElasticsearchClusters) Get(name string, options v1.GetOptions) (result *navigator.ElasticsearchCluster, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(elasticsearchclustersResource, c.ns, name), &navigator.ElasticsearchCluster{})
@@ -90,6 +46,7 @@ func (c *FakeElasticsearchClusters) Get(name string, options v1.GetOptions) (res
 	return obj.(*navigator.ElasticsearchCluster), err
 }
 
+// List takes label and field selectors, and returns the list of ElasticsearchClusters that match those selectors.
 func (c *FakeElasticsearchClusters) List(opts v1.ListOptions) (result *navigator.ElasticsearchClusterList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(elasticsearchclustersResource, elasticsearchclustersKind, c.ns, opts), &navigator.ElasticsearchClusterList{})
@@ -116,6 +73,56 @@ func (c *FakeElasticsearchClusters) Watch(opts v1.ListOptions) (watch.Interface,
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(elasticsearchclustersResource, c.ns, opts))
 
+}
+
+// Create takes the representation of a elasticsearchCluster and creates it.  Returns the server's representation of the elasticsearchCluster, and an error, if there is any.
+func (c *FakeElasticsearchClusters) Create(elasticsearchCluster *navigator.ElasticsearchCluster) (result *navigator.ElasticsearchCluster, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewCreateAction(elasticsearchclustersResource, c.ns, elasticsearchCluster), &navigator.ElasticsearchCluster{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*navigator.ElasticsearchCluster), err
+}
+
+// Update takes the representation of a elasticsearchCluster and updates it. Returns the server's representation of the elasticsearchCluster, and an error, if there is any.
+func (c *FakeElasticsearchClusters) Update(elasticsearchCluster *navigator.ElasticsearchCluster) (result *navigator.ElasticsearchCluster, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewUpdateAction(elasticsearchclustersResource, c.ns, elasticsearchCluster), &navigator.ElasticsearchCluster{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*navigator.ElasticsearchCluster), err
+}
+
+// UpdateStatus was generated because the type contains a Status member.
+// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
+func (c *FakeElasticsearchClusters) UpdateStatus(elasticsearchCluster *navigator.ElasticsearchCluster) (*navigator.ElasticsearchCluster, error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewUpdateSubresourceAction(elasticsearchclustersResource, "status", c.ns, elasticsearchCluster), &navigator.ElasticsearchCluster{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*navigator.ElasticsearchCluster), err
+}
+
+// Delete takes name of the elasticsearchCluster and deletes it. Returns an error if one occurs.
+func (c *FakeElasticsearchClusters) Delete(name string, options *v1.DeleteOptions) error {
+	_, err := c.Fake.
+		Invokes(testing.NewDeleteAction(elasticsearchclustersResource, c.ns, name), &navigator.ElasticsearchCluster{})
+
+	return err
+}
+
+// DeleteCollection deletes a collection of objects.
+func (c *FakeElasticsearchClusters) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(elasticsearchclustersResource, c.ns, listOptions)
+
+	_, err := c.Fake.Invokes(action, &navigator.ElasticsearchClusterList{})
+	return err
 }
 
 // Patch applies the patch and returns the patched elasticsearchCluster.
