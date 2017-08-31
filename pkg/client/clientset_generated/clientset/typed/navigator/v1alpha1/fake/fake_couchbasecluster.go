@@ -1,5 +1,5 @@
 /*
-Copyright 2017 The Kubernetes Authors.
+Copyright 2017 Jetstack Ltd.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
 package fake
 
 import (
@@ -36,50 +35,7 @@ var couchbaseclustersResource = schema.GroupVersionResource{Group: "navigator.je
 
 var couchbaseclustersKind = schema.GroupVersionKind{Group: "navigator.jetstack.io", Version: "v1alpha1", Kind: "CouchbaseCluster"}
 
-func (c *FakeCouchbaseClusters) Create(couchbaseCluster *v1alpha1.CouchbaseCluster) (result *v1alpha1.CouchbaseCluster, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(couchbaseclustersResource, c.ns, couchbaseCluster), &v1alpha1.CouchbaseCluster{})
-
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*v1alpha1.CouchbaseCluster), err
-}
-
-func (c *FakeCouchbaseClusters) Update(couchbaseCluster *v1alpha1.CouchbaseCluster) (result *v1alpha1.CouchbaseCluster, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewUpdateAction(couchbaseclustersResource, c.ns, couchbaseCluster), &v1alpha1.CouchbaseCluster{})
-
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*v1alpha1.CouchbaseCluster), err
-}
-
-func (c *FakeCouchbaseClusters) UpdateStatus(couchbaseCluster *v1alpha1.CouchbaseCluster) (*v1alpha1.CouchbaseCluster, error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewUpdateSubresourceAction(couchbaseclustersResource, "status", c.ns, couchbaseCluster), &v1alpha1.CouchbaseCluster{})
-
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*v1alpha1.CouchbaseCluster), err
-}
-
-func (c *FakeCouchbaseClusters) Delete(name string, options *v1.DeleteOptions) error {
-	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(couchbaseclustersResource, c.ns, name), &v1alpha1.CouchbaseCluster{})
-
-	return err
-}
-
-func (c *FakeCouchbaseClusters) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(couchbaseclustersResource, c.ns, listOptions)
-
-	_, err := c.Fake.Invokes(action, &v1alpha1.CouchbaseClusterList{})
-	return err
-}
-
+// Get takes name of the couchbaseCluster, and returns the corresponding couchbaseCluster object, and an error if there is any.
 func (c *FakeCouchbaseClusters) Get(name string, options v1.GetOptions) (result *v1alpha1.CouchbaseCluster, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(couchbaseclustersResource, c.ns, name), &v1alpha1.CouchbaseCluster{})
@@ -90,6 +46,7 @@ func (c *FakeCouchbaseClusters) Get(name string, options v1.GetOptions) (result 
 	return obj.(*v1alpha1.CouchbaseCluster), err
 }
 
+// List takes label and field selectors, and returns the list of CouchbaseClusters that match those selectors.
 func (c *FakeCouchbaseClusters) List(opts v1.ListOptions) (result *v1alpha1.CouchbaseClusterList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(couchbaseclustersResource, couchbaseclustersKind, c.ns, opts), &v1alpha1.CouchbaseClusterList{})
@@ -116,6 +73,56 @@ func (c *FakeCouchbaseClusters) Watch(opts v1.ListOptions) (watch.Interface, err
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(couchbaseclustersResource, c.ns, opts))
 
+}
+
+// Create takes the representation of a couchbaseCluster and creates it.  Returns the server's representation of the couchbaseCluster, and an error, if there is any.
+func (c *FakeCouchbaseClusters) Create(couchbaseCluster *v1alpha1.CouchbaseCluster) (result *v1alpha1.CouchbaseCluster, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewCreateAction(couchbaseclustersResource, c.ns, couchbaseCluster), &v1alpha1.CouchbaseCluster{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*v1alpha1.CouchbaseCluster), err
+}
+
+// Update takes the representation of a couchbaseCluster and updates it. Returns the server's representation of the couchbaseCluster, and an error, if there is any.
+func (c *FakeCouchbaseClusters) Update(couchbaseCluster *v1alpha1.CouchbaseCluster) (result *v1alpha1.CouchbaseCluster, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewUpdateAction(couchbaseclustersResource, c.ns, couchbaseCluster), &v1alpha1.CouchbaseCluster{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*v1alpha1.CouchbaseCluster), err
+}
+
+// UpdateStatus was generated because the type contains a Status member.
+// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
+func (c *FakeCouchbaseClusters) UpdateStatus(couchbaseCluster *v1alpha1.CouchbaseCluster) (*v1alpha1.CouchbaseCluster, error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewUpdateSubresourceAction(couchbaseclustersResource, "status", c.ns, couchbaseCluster), &v1alpha1.CouchbaseCluster{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*v1alpha1.CouchbaseCluster), err
+}
+
+// Delete takes name of the couchbaseCluster and deletes it. Returns an error if one occurs.
+func (c *FakeCouchbaseClusters) Delete(name string, options *v1.DeleteOptions) error {
+	_, err := c.Fake.
+		Invokes(testing.NewDeleteAction(couchbaseclustersResource, c.ns, name), &v1alpha1.CouchbaseCluster{})
+
+	return err
+}
+
+// DeleteCollection deletes a collection of objects.
+func (c *FakeCouchbaseClusters) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(couchbaseclustersResource, c.ns, listOptions)
+
+	_, err := c.Fake.Invokes(action, &v1alpha1.CouchbaseClusterList{})
+	return err
 }
 
 // Patch applies the patch and returns the patched couchbaseCluster.
