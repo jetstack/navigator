@@ -1,5 +1,5 @@
 /*
-Copyright 2017 The Kubernetes Authors.
+Copyright 2017 Jetstack Ltd.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -41,26 +41,31 @@ type elasticsearchClusterInformer struct {
 	factory internalinterfaces.SharedInformerFactory
 }
 
-func newElasticsearchClusterInformer(client internalclientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	sharedIndexInformer := cache.NewSharedIndexInformer(
+// NewElasticsearchClusterInformer constructs a new informer for ElasticsearchCluster type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewElasticsearchClusterInformer(client internalclientset.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
-				return client.Navigator().ElasticsearchClusters(v1.NamespaceAll).List(options)
+				return client.Navigator().ElasticsearchClusters(namespace).List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
-				return client.Navigator().ElasticsearchClusters(v1.NamespaceAll).Watch(options)
+				return client.Navigator().ElasticsearchClusters(namespace).Watch(options)
 			},
 		},
 		&navigator.ElasticsearchCluster{},
 		resyncPeriod,
-		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+		indexers,
 	)
+}
 
-	return sharedIndexInformer
+func defaultElasticsearchClusterInformer(client internalclientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewElasticsearchClusterInformer(client, v1.NamespaceAll, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 }
 
 func (f *elasticsearchClusterInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&navigator.ElasticsearchCluster{}, newElasticsearchClusterInformer)
+	return f.factory.InformerFor(&navigator.ElasticsearchCluster{}, defaultElasticsearchClusterInformer)
 }
 
 func (f *elasticsearchClusterInformer) Lister() internalversion.ElasticsearchClusterLister {

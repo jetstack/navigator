@@ -1,15 +1,16 @@
 package navigator
 
 import (
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/pkg/api/v1"
 )
 
 // In this file we define the outer containing types for the ElasticsearchCluster
 // type. We could import these directly into message types defined in the types.proto
 // file, but this is still TODO
 
-// +genclient=true
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // ElasticsearchCluster describes a specification for an Elasticsearch cluster
 type ElasticsearchCluster struct {
@@ -23,6 +24,8 @@ type ElasticsearchCluster struct {
 
 type ElasticsearchClusterStatus struct {
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // ElasticsearchClusterList defines a List type for our custom ElasticsearchCluster type.
 // This is needed in order to make List operations work.
