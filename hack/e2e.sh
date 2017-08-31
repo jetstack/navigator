@@ -1,9 +1,6 @@
 #!/bin/bash
 set -eux
 
-echo "Waiting up to 5 minutes for Kubernetes to be ready..."
-retry TIMEOUT=600 kubectl get nodes
-
 NAVIGATOR_NAMESPACE="navigator"
 USER_NAMESPACE="navigator-e2e-database1"
 
@@ -17,6 +14,9 @@ TEST_DIR="$CONFIG_DIR/tmp"
 mkdir --parents $TEST_DIR
 
 source "${SCRIPT_DIR}/libe2e.sh"
+
+echo "Waiting up to 5 minutes for Kubernetes to be ready..."
+retry TIMEOUT=600 kubectl get nodes
 
 kube_delete_namespace_and_wait "${NAVIGATOR_NAMESPACE}"
 kube_delete_namespace_and_wait "${USER_NAMESPACE}"
