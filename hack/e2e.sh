@@ -1,6 +1,9 @@
 #!/bin/bash
 set -eux
 
+echo "Waiting up to 5 minutes for Kubernetes to be ready..."
+retry TIMEOUT=600 kubectl get nodes
+
 NAVIGATOR_NAMESPACE="navigator"
 USER_NAMESPACE="navigator-e2e-database1"
 
