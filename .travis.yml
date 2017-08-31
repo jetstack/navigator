@@ -26,7 +26,6 @@ jobs:
       dist: trusty
       language: go
       go: 1.8
-      env: KUBERNETES_VERSION=v1.7.0
       script:
       - make verify
 
@@ -36,7 +35,6 @@ jobs:
       - docker
       language: go
       go: 1.8
-      env: KUBERNETES_VERSION=v1.7.0
       script:
       - make go_build docker_build
       - if [ "${TRAVIS_PULL_REQUEST}" = "false" ] && [ "${TRAVIS_BRANCH}" = "master" ]; then
