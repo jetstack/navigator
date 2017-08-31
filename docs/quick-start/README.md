@@ -14,7 +14,7 @@ $ kubectl create -f docs/quick-start/deployment-navigator.yaml
 You should see the Navigator service start in the `navigator` namespace:
 
 ```bash
-$ kubectl get po -n navigator
+$ kubectl get pod -n navigator
 NAME                        READY     STATUS         RESTARTS   AGE
 navigator-745449320-dcgms   1/1       Running        0          30s
 ```
@@ -22,7 +22,7 @@ navigator-745449320-dcgms   1/1       Running        0          30s
 2) We can now create a new ElasticsearchCluster:
 
 ```bash
-$ kubectl create -f examples/es-cluster-example.yaml
+$ kubectl create -f docs/quick-start/es-cluster-demo.yaml
 ```
 
 This will deploy a multi-node Elasticsearch cluster, split into nodes of 3 roles: master, client (ingest) and data.
@@ -30,7 +30,7 @@ There will be 4 data nodes, each with a 10GB PV, 2 client nodes, and 3 master no
 for configuring your cluster are documented on the [supported types page](../supported-types/).
 
 ```bash
-$ kubectl get po
+$ kubectl get pod
 NAME                              READY     STATUS    RESTARTS   AGE
 es-demo-client-3995124321-5rc6g   1/1       Running   0          7m
 es-demo-client-3995124321-9zrv9   1/1       Running   0          7m
@@ -52,7 +52,7 @@ Edit your manifest & **increase** the number of replicas in the `data` node pool
 
 ```bash
 $ kubectl replace -f examples/es-cluster-example.yaml
-$ kubectl get po
+$ kubectl get pod
 NAME                              READY     STATUS    RESTARTS   AGE
 es-demo-client-3995124321-5rc6g   1/1       Running   0          9m
 es-demo-client-3995124321-9zrv9   1/1       Running   0          9m
@@ -72,7 +72,7 @@ a scale down. Do the same as before, but instead reduce the number of replicas i
 
 ```bash
 $ kubectl replace -f examples/es-cluster-example.yaml
-$ kubectl get po
+$ kubectl get pod
 NAME                              READY     STATUS        RESTARTS   AGE
 es-demo-client-3995124321-5rc6g   1/1       Running       0          10m
 es-demo-client-3995124321-9zrv9   1/1       Running       0          10m
