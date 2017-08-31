@@ -25,6 +25,8 @@ type ElasticsearchCluster struct {
 type ElasticsearchClusterStatus struct {
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // ElasticsearchClusterList defines a List type for our custom ElasticsearchCluster type.
 // This is needed in order to make List operations work.
 type ElasticsearchClusterList struct {
