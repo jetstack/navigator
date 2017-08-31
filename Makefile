@@ -15,17 +15,23 @@ BUILD_IMAGE_NAME := navigator/builder
 GOPATH ?= /tmp/go
 
 .get_deps:
+	#	XXX The code generation tools are now in
+	#	https://github.com/kubernetes/kubernetes/tree/master/staging/src/k8s.io/code-generator
+	#	Change this to https://github.com/kubernetes/code-generator when that
+	#	project has been established. See
+	#	https://gitlab.jetstack.net/marshal/navigator/issues/12
 	@echo "Grabbing dependencies..."
 	@go get -d k8s.io/kubernetes/cmd/libs/go2idl/... || true
+	@git --git-dir $${GOPATH}/src/k8s.io/kubernetes/.git --work-tree $${GOPATH}/src/k8s.io/kubernetes checkout v1.7.4
 	@go get -d github.com/kubernetes/repo-infra || true
 	@touch $@
 
 help:
-	# all 		- runs verify, build and docker_build targets
-	# test 		- runs go_test target
-	# build 	- runs generate, and then go_build targets
-	# generate 	- generates pkg/client/ files
-	# verify 	- verifies generated files & scripts
+	# all - runs verify, build and docker_build targets
+	# test - runs go_test target
+	# build	- runs generate, and then go_build targets
+	# generate - generates pkg/client/ files
+	# verify - verifies generated files & scripts
 
 # Util targets
 ##############
@@ -102,12 +108,12 @@ go_vet:
 # This section contains the code generation stuff
 #################################################
 .generate_exes: .get_deps \
-				$(BINDIR)/defaulter-gen \
-                $(BINDIR)/deepcopy-gen \
-                $(BINDIR)/conversion-gen \
-                $(BINDIR)/client-gen \
-                $(BINDIR)/lister-gen \
-                $(BINDIR)/informer-gen
+	$(BINDIR)/defaulter-gen \
+	$(BINDIR)/deepcopy-gen \
+	$(BINDIR)/conversion-gen \
+	$(BINDIR)/client-gen \
+	$(BINDIR)/lister-gen \
+	$(BINDIR)/informer-gen
 	touch $@
 
 $(BINDIR)/defaulter-gen:
