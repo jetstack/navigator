@@ -2,7 +2,7 @@ BINDIR        ?= bin
 HACK_DIR     ?= hack
 NAVIGATOR_PKG = github.com/jetstack-experimental/navigator
 
-TYPES_FILES    = $(shell find pkg/apis -name types.go)
+TYPES_FILES      = $(shell find pkg/apis -name types.go)
 
 REGISTRY := jetstackexperimental
 IMAGE_NAME := navigator
@@ -15,11 +15,11 @@ BUILD_IMAGE_NAME := navigator/builder
 GOPATH ?= /tmp/go
 
 .get_deps:
-	#	XXX The code generation tools are now in
-	#	https://github.com/kubernetes/kubernetes/tree/master/staging/src/k8s.io/code-generator
-	#	Change this to https://github.com/kubernetes/code-generator when that
-	#	project has been established. See
-	#	https://gitlab.jetstack.net/marshal/navigator/issues/12
+	# XXX The code generation tools are now in
+	# https://github.com/kubernetes/kubernetes/tree/master/staging/src/k8s.io/code-generator
+	# Change this to https://github.com/kubernetes/code-generator when that
+	# project has been established. See
+	# https://gitlab.jetstack.net/marshal/navigator/issues/12
 	@echo "Grabbing dependencies..."
 	@go get -d k8s.io/kubernetes/cmd/libs/go2idl/... || true
 	@git --git-dir $${GOPATH}/src/k8s.io/kubernetes/.git --work-tree $${GOPATH}/src/k8s.io/kubernetes checkout v1.7.4
@@ -27,11 +27,12 @@ GOPATH ?= /tmp/go
 	@touch $@
 
 help:
-	# all - runs verify, build and docker_build targets
-	# test - runs go_test target
-	# build	- runs generate, and then go_build targets
-	# generate - generates pkg/client/ files
-	# verify - verifies generated files & scripts
+	# all       - runs verify, build and docker_build targets
+	# test      - runs go_test target
+	# e2e-test  - runs e2e tests
+	# build     - runs generate, and then go_build targets
+	# generate  - generates pkg/client/ files
+	# verify    - verifies generated files & scripts
 
 # Util targets
 ##############
@@ -40,6 +41,11 @@ help:
 all: verify build docker_build
 
 test: go_test
+
+.hack_e2e:
+	@${HACK_DIR}/e2e.sh
+
+e2e-test: build docker_build .hack_e2e
 
 build: generate go_build
 
