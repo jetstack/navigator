@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strings"
 
+	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	appslisters "k8s.io/client-go/listers/apps/v1beta1"
-	apiv1 "k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/tools/record"
 
 	v1alpha1 "github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
@@ -47,7 +47,7 @@ func (e *statefulElasticsearchClusterNodePoolControl) CreateElasticsearchCluster
 		return fmt.Errorf("error generating statefulset manifest: %s", err.Error())
 	}
 
-	ss, err = e.kubeClient.Apps().StatefulSets(c.Namespace).Create(ss)
+	ss, err = e.kubeClient.AppsV1beta1().StatefulSets(c.Namespace).Create(ss)
 
 	if err != nil {
 		e.recordNodePoolEvent("create", c, np, err)
@@ -66,7 +66,7 @@ func (e *statefulElasticsearchClusterNodePoolControl) UpdateElasticsearchCluster
 		return fmt.Errorf("error generating statefulset manifest: %s", err.Error())
 	}
 
-	ss, err = e.kubeClient.Apps().StatefulSets(c.Namespace).Update(ss)
+	ss, err = e.kubeClient.AppsV1beta1().StatefulSets(c.Namespace).Update(ss)
 
 	if err != nil {
 		e.recordNodePoolEvent("update", c, np, err)
@@ -85,7 +85,7 @@ func (e *statefulElasticsearchClusterNodePoolControl) DeleteElasticsearchCluster
 		return fmt.Errorf("error generating statefulset manifest: %s", err.Error())
 	}
 
-	err = e.kubeClient.Apps().StatefulSets(c.Namespace).Delete(ss.Name, &metav1.DeleteOptions{OrphanDependents: &falseVar})
+	err = e.kubeClient.AppsV1beta1().StatefulSets(c.Namespace).Delete(ss.Name, &metav1.DeleteOptions{OrphanDependents: &falseVar})
 
 	if err != nil {
 		e.recordNodePoolEvent("delete", c, np, err)

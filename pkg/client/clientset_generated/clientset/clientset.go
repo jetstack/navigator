@@ -1,5 +1,5 @@
 /*
-Copyright 2017 The Kubernetes Authors.
+Copyright 2017 Jetstack Ltd.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
 package clientset
 
 import (
@@ -35,24 +34,18 @@ type Interface interface {
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	*navigatorv1alpha1.NavigatorV1alpha1Client
+	navigatorV1alpha1 *navigatorv1alpha1.NavigatorV1alpha1Client
 }
 
 // NavigatorV1alpha1 retrieves the NavigatorV1alpha1Client
 func (c *Clientset) NavigatorV1alpha1() navigatorv1alpha1.NavigatorV1alpha1Interface {
-	if c == nil {
-		return nil
-	}
-	return c.NavigatorV1alpha1Client
+	return c.navigatorV1alpha1
 }
 
 // Deprecated: Navigator retrieves the default version of NavigatorClient.
 // Please explicitly pick a version.
 func (c *Clientset) Navigator() navigatorv1alpha1.NavigatorV1alpha1Interface {
-	if c == nil {
-		return nil
-	}
-	return c.NavigatorV1alpha1Client
+	return c.navigatorV1alpha1
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -71,7 +64,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	}
 	var cs Clientset
 	var err error
-	cs.NavigatorV1alpha1Client, err = navigatorv1alpha1.NewForConfig(&configShallowCopy)
+	cs.navigatorV1alpha1, err = navigatorv1alpha1.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +81,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 // panics if there is an error in the config.
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
-	cs.NavigatorV1alpha1Client = navigatorv1alpha1.NewForConfigOrDie(c)
+	cs.navigatorV1alpha1 = navigatorv1alpha1.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &cs
@@ -97,7 +90,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
-	cs.NavigatorV1alpha1Client = navigatorv1alpha1.New(c)
+	cs.navigatorV1alpha1 = navigatorv1alpha1.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs

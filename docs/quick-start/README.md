@@ -5,10 +5,10 @@ provided in this repository. This will involve first deploying Navigator, and th
 an `ElasticsearchCluster` resource. All management of the Elasticsearch cluster will be through
 changes to the ElasticsearchCluster manifest.
 
-1) Install Navigator by creating the deployment manifest:
+1) Install Navigator using [Helm](https://github.com/kubernetes/helm)
 
 ```bash
-$ kubectl create -f docs/quick-start/deployment-navigator.yaml
+$ helm install contrib/charts/navigator --name navigator --namespace navigator --wait
 ```
 
 You should see the Navigator service start in the `navigator` namespace:
