@@ -1,5 +1,5 @@
 /*
-Copyright 2017 The Kubernetes Authors.
+Copyright 2017 Jetstack Ltd.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
 package v1alpha1
 
 import (
@@ -59,6 +58,41 @@ func newCouchbaseClusters(c *NavigatorV1alpha1Client, namespace string) *couchba
 	}
 }
 
+// Get takes name of the couchbaseCluster, and returns the corresponding couchbaseCluster object, and an error if there is any.
+func (c *couchbaseClusters) Get(name string, options v1.GetOptions) (result *v1alpha1.CouchbaseCluster, err error) {
+	result = &v1alpha1.CouchbaseCluster{}
+	err = c.client.Get().
+		Namespace(c.ns).
+		Resource("couchbaseclusters").
+		Name(name).
+		VersionedParams(&options, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// List takes label and field selectors, and returns the list of CouchbaseClusters that match those selectors.
+func (c *couchbaseClusters) List(opts v1.ListOptions) (result *v1alpha1.CouchbaseClusterList, err error) {
+	result = &v1alpha1.CouchbaseClusterList{}
+	err = c.client.Get().
+		Namespace(c.ns).
+		Resource("couchbaseclusters").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// Watch returns a watch.Interface that watches the requested couchbaseClusters.
+func (c *couchbaseClusters) Watch(opts v1.ListOptions) (watch.Interface, error) {
+	opts.Watch = true
+	return c.client.Get().
+		Namespace(c.ns).
+		Resource("couchbaseclusters").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Watch()
+}
+
 // Create takes the representation of a couchbaseCluster and creates it.  Returns the server's representation of the couchbaseCluster, and an error, if there is any.
 func (c *couchbaseClusters) Create(couchbaseCluster *v1alpha1.CouchbaseCluster) (result *v1alpha1.CouchbaseCluster, err error) {
 	result = &v1alpha1.CouchbaseCluster{}
@@ -85,7 +119,7 @@ func (c *couchbaseClusters) Update(couchbaseCluster *v1alpha1.CouchbaseCluster) 
 }
 
 // UpdateStatus was generated because the type contains a Status member.
-// Add a +genclientstatus=false comment above the type to avoid generating UpdateStatus().
+// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
 
 func (c *couchbaseClusters) UpdateStatus(couchbaseCluster *v1alpha1.CouchbaseCluster) (result *v1alpha1.CouchbaseCluster, err error) {
 	result = &v1alpha1.CouchbaseCluster{}
@@ -120,41 +154,6 @@ func (c *couchbaseClusters) DeleteCollection(options *v1.DeleteOptions, listOpti
 		Body(options).
 		Do().
 		Error()
-}
-
-// Get takes name of the couchbaseCluster, and returns the corresponding couchbaseCluster object, and an error if there is any.
-func (c *couchbaseClusters) Get(name string, options v1.GetOptions) (result *v1alpha1.CouchbaseCluster, err error) {
-	result = &v1alpha1.CouchbaseCluster{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("couchbaseclusters").
-		Name(name).
-		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// List takes label and field selectors, and returns the list of CouchbaseClusters that match those selectors.
-func (c *couchbaseClusters) List(opts v1.ListOptions) (result *v1alpha1.CouchbaseClusterList, err error) {
-	result = &v1alpha1.CouchbaseClusterList{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("couchbaseclusters").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// Watch returns a watch.Interface that watches the requested couchbaseClusters.
-func (c *couchbaseClusters) Watch(opts v1.ListOptions) (watch.Interface, error) {
-	opts.Watch = true
-	return c.client.Get().
-		Namespace(c.ns).
-		Resource("couchbaseclusters").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Watch()
 }
 
 // Patch applies the patch and returns the patched couchbaseCluster.

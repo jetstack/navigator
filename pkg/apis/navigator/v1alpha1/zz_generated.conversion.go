@@ -116,11 +116,7 @@ func Convert_v1alpha1_CouchbaseClusterList_To_navigator_CouchbaseClusterList(in 
 
 func autoConvert_navigator_CouchbaseClusterList_To_v1alpha1_CouchbaseClusterList(in *navigator.CouchbaseClusterList, out *CouchbaseClusterList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	if in.Items == nil {
-		out.Items = make([]CouchbaseCluster, 0)
-	} else {
-		out.Items = *(*[]CouchbaseCluster)(unsafe.Pointer(&in.Items))
-	}
+	out.Items = *(*[]CouchbaseCluster)(unsafe.Pointer(&in.Items))
 	return nil
 }
 
@@ -146,11 +142,7 @@ func Convert_v1alpha1_CouchbaseClusterNodePool_To_navigator_CouchbaseClusterNode
 func autoConvert_navigator_CouchbaseClusterNodePool_To_v1alpha1_CouchbaseClusterNodePool(in *navigator.CouchbaseClusterNodePool, out *CouchbaseClusterNodePool, s conversion.Scope) error {
 	out.Name = in.Name
 	out.Replicas = in.Replicas
-	if in.Roles == nil {
-		out.Roles = make([]string, 0)
-	} else {
-		out.Roles = *(*[]string)(unsafe.Pointer(&in.Roles))
-	}
+	out.Roles = *(*[]string)(unsafe.Pointer(&in.Roles))
 	out.Resources = (*v1.ResourceRequirements)(unsafe.Pointer(in.Resources))
 	out.Persistence = (*CouchbaseClusterPersistenceConfig)(unsafe.Pointer(in.Persistence))
 	return nil
@@ -221,24 +213,12 @@ func Convert_v1alpha1_CouchbaseClusterSpec_To_navigator_CouchbaseClusterSpec(in 
 
 func autoConvert_navigator_CouchbaseClusterSpec_To_v1alpha1_CouchbaseClusterSpec(in *navigator.CouchbaseClusterSpec, out *CouchbaseClusterSpec, s conversion.Scope) error {
 	out.Version = in.Version
-	if in.Plugins == nil {
-		out.Plugins = make([]CouchbaseClusterPlugin, 0)
-	} else {
-		out.Plugins = *(*[]CouchbaseClusterPlugin)(unsafe.Pointer(&in.Plugins))
-	}
-	if in.NodePools == nil {
-		out.NodePools = make([]CouchbaseClusterNodePool, 0)
-	} else {
-		out.NodePools = *(*[]CouchbaseClusterNodePool)(unsafe.Pointer(&in.NodePools))
-	}
+	out.Plugins = *(*[]CouchbaseClusterPlugin)(unsafe.Pointer(&in.Plugins))
+	out.NodePools = *(*[]CouchbaseClusterNodePool)(unsafe.Pointer(&in.NodePools))
 	if err := Convert_navigator_CouchbaseImage_To_v1alpha1_CouchbaseImage(&in.Image, &out.Image, s); err != nil {
 		return err
 	}
-	if in.Sysctl == nil {
-		out.Sysctl = make([]string, 0)
-	} else {
-		out.Sysctl = *(*[]string)(unsafe.Pointer(&in.Sysctl))
-	}
+	out.Sysctl = *(*[]string)(unsafe.Pointer(&in.Sysctl))
 	return nil
 }
 

@@ -1,15 +1,16 @@
 package navigator
 
 import (
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/pkg/api/v1"
 )
 
 // In this file we define the outer containing types for the CouchbaseCluster
 // type. We could import these directly into message types defined in the types.proto
 // file, but this is still TODO
 
-// +genclient=true
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // CouchbaseCluster describes a specification for an Couchbase cluster
 type CouchbaseCluster struct {
@@ -24,6 +25,7 @@ type CouchbaseCluster struct {
 type CouchbaseClusterStatus struct {
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // CouchbaseClusterList defines a List type for our custom CouchbaseCluster type.
 // This is needed in order to make List operations work.
 type CouchbaseClusterList struct {
