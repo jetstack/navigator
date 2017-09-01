@@ -15,6 +15,9 @@ mkdir --parents $TEST_DIR
 
 source "${SCRIPT_DIR}/libe2e.sh"
 
+echo "Waiting up to 5 minutes for Kubernetes to be ready..."
+retry TIMEOUT=600 kubectl get nodes
+
 kube_delete_namespace_and_wait "${NAVIGATOR_NAMESPACE}"
 kube_delete_namespace_and_wait "${USER_NAMESPACE}"
 kubectl delete ThirdPartyResources --all
@@ -35,7 +38,11 @@ function navigator_ready() {
     return 1
 }
 
-retry navigator_ready
+if ! retry navigator_ready; then
+        kubectl get pods --namespace navigator
+        kubectl logs --namespace navigator -l app=navigator
+        return 1
+fi
 
 # Create and delete an ElasticSearchCluster
 kubectl create \

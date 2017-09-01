@@ -35,7 +35,7 @@ test: go_test
 
 e2e-test: build docker_build .hack_e2e
 
-build: generate go_build
+build: go_build
 
 generate: .generate_files
 
