@@ -15,4 +15,6 @@ limitations under the License.
 */
 package internalversion
 
+type CouchbaseClusterExpansion interface{}
+
 type ElasticsearchClusterExpansion interface{}
