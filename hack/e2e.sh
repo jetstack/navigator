@@ -55,3 +55,15 @@ kubectl delete \
         --namespace "${USER_NAMESPACE}" \
         ElasticSearchClusters \
         --all
+
+# Create and delete a CouchbaseCluster
+kubectl create \
+        --namespace "${USER_NAMESPACE}" \
+        --filename "${ROOT_DIR}/docs/quick-start/couchbase-cluster-demo.yaml"
+kubectl get \
+        --namespace "${USER_NAMESPACE}" \
+        CouchbaseClusters
+kubectl delete \
+        --namespace "${USER_NAMESPACE}" \
+        CouchbaseClusters \
+        --all

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	apiv1 "k8s.io/client-go/pkg/api/v1"
+	apiv1 "k8s.io/api/core/v1"
 
 	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
 	"k8s.io/client-go/kubernetes"
