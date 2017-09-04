@@ -30,6 +30,7 @@ import (
 	informerv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/informers_generated/externalversions/navigator/v1alpha1"
 	listersv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/listers_generated/navigator/v1alpha1"
 	"github.com/jetstack-experimental/navigator/pkg/controllers"
+	"github.com/jetstack-experimental/navigator/pkg/controllers/elasticsearch/nodepool"
 )
 
 type ElasticsearchController struct {
@@ -160,12 +161,7 @@ func NewElasticsearch(
 		elasticsearchController.deployLister,
 		elasticsearchController.serviceAccountLister,
 		elasticsearchController.serviceLister,
-		NewElasticsearchClusterNodePoolControl(
-			cl,
-			elasticsearchController.deployLister,
-			recorder,
-		),
-		NewStatefulElasticsearchClusterNodePoolControl(
+		nodepool.NewStatefulElasticsearchClusterNodePoolControl(
 			cl,
 			elasticsearchController.statefulSetLister,
 			recorder,

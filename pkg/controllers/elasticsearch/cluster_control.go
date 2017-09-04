@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	apps "k8s.io/api/apps/v1beta1"
 	apiv1 "k8s.io/api/core/v1"
 	extensions "k8s.io/api/extensions/v1beta1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -16,6 +15,7 @@ import (
 	"k8s.io/client-go/tools/record"
 
 	v1alpha1 "github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
+	"github.com/jetstack-experimental/navigator/pkg/controllers/elasticsearch/nodepool"
 	"github.com/jetstack-experimental/navigator/pkg/util/errors"
 )
 
@@ -27,7 +27,7 @@ type defaultElasticsearchClusterControl struct {
 	serviceAccountLister corelisters.ServiceAccountLister
 	serviceLister        corelisters.ServiceLister
 
-	nodePoolControl         ElasticsearchClusterNodePoolControl
+	nodePoolController      nodepool.Interface
 	statefulNodePoolControl ElasticsearchClusterNodePoolControl
 	serviceAccountControl   ElasticsearchClusterServiceAccountControl
 	clientServiceControl    ElasticsearchClusterServiceControl
@@ -43,8 +43,7 @@ func NewElasticsearchClusterControl(
 	deploymentLister extensionslisters.DeploymentLister,
 	serviceAccountLister corelisters.ServiceAccountLister,
 	serviceLister corelisters.ServiceLister,
-	nodePoolControl ElasticsearchClusterNodePoolControl,
-	statefulNodePoolControl ElasticsearchClusterNodePoolControl,
+	nodePoolController nodepool.Interface,
 	serviceAccountControl ElasticsearchClusterServiceAccountControl,
 	clientServiceControl ElasticsearchClusterServiceControl,
 	discoveryServiceControl ElasticsearchClusterServiceControl,
@@ -55,8 +54,7 @@ func NewElasticsearchClusterControl(
 		deploymentLister:        deploymentLister,
 		serviceAccountLister:    serviceAccountLister,
 		serviceLister:           serviceLister,
-		nodePoolControl:         nodePoolControl,
-		statefulNodePoolControl: statefulNodePoolControl,
+		nodePoolController:      nodePoolController,
 		serviceAccountControl:   serviceAccountControl,
 		clientServiceControl:    clientServiceControl,
 		discoveryServiceControl: discoveryServiceControl,
@@ -84,11 +82,10 @@ func (e *defaultElasticsearchClusterControl) SyncElasticsearchCluster(
 		return err
 	}
 
-	for _, np := range c.Spec.NodePools {
-		if err = e.syncNodePool(c, np); err != nil {
-			e.recordClusterEvent("sync", c, err)
-			return err
-		}
+	// TODO: handle status
+	if _, err = e.nodePoolController.Sync(c); err != nil {
+		e.recordClusterEvent("sync", c, err)
+		return err
 	}
 
 	e.recordClusterEvent("sync", c, err)
@@ -106,6 +103,7 @@ func (e *defaultElasticsearchClusterControl) syncService(c v1alpha1.Elasticsearc
 		return nil
 	}
 
+	// TODO: switch to proper deletion handling logic using tombstones
 	if c.DeletionTimestamp != nil {
 		needsUpdate = true
 	}
@@ -177,135 +175,6 @@ func (e *defaultElasticsearchClusterControl) syncServiceAccount(c v1alpha1.Elast
 	return nil
 }
 
-func (e *defaultElasticsearchClusterControl) syncNodePool(c v1alpha1.ElasticsearchCluster, np v1alpha1.ElasticsearchClusterNodePool) error {
-	exists, needsUpdate, err := e.nodePoolNeedsUpdate(c, np)
-
-	if err != nil {
-		if errors.IsTransient(err) {
-			return err
-		}
-
-		return nil
-	}
-
-	if c.DeletionTimestamp != nil {
-		needsUpdate = true
-	}
-
-	if !needsUpdate {
-		return nil
-	}
-
-	nodePoolUpdater := e.nodePoolUpdater(np)
-
-	switch {
-	case c.DeletionTimestamp != nil && exists:
-		err = nodePoolUpdater.DeleteElasticsearchClusterNodePool(c, np)
-		break
-	case exists:
-		err = nodePoolUpdater.UpdateElasticsearchClusterNodePool(c, np)
-		break
-	default:
-		err = nodePoolUpdater.CreateElasticsearchClusterNodePool(c, np)
-	}
-
-	if err != nil {
-		if errors.IsTransient(err) {
-			return err
-		}
-
-		return nil
-	}
-
-	return nil
-}
-
-func (e *defaultElasticsearchClusterControl) nodePoolUpdater(np v1alpha1.ElasticsearchClusterNodePool) ElasticsearchClusterNodePoolControl {
-	if nodePoolIsStateful(np) {
-		return e.statefulNodePoolControl
-	}
-	return e.nodePoolControl
-}
-
-func (e *defaultElasticsearchClusterControl) nodePoolNeedsUpdate(c v1alpha1.ElasticsearchCluster, np v1alpha1.ElasticsearchClusterNodePool) (exists, needsUpdate bool, err error) {
-	if nodePoolIsStateful(np) {
-		return e.statefulNodePoolNeedsUpdate(c, np)
-	}
-	return e.deploymentNodePoolNeedsUpdate(c, np)
-}
-
-func (e *defaultElasticsearchClusterControl) statefulNodePoolNeedsUpdate(c v1alpha1.ElasticsearchCluster, np v1alpha1.ElasticsearchClusterNodePool) (exists, needsUpdate bool, err error) {
-	if !nodePoolIsStateful(np) {
-		return false, false, fmt.Errorf("node pool is not stateful, but statefulNodePoolNeedsUpdate called")
-	}
-
-	ss, err := e.statefulSetForNodePool(c, np)
-
-	if err != nil {
-		if err == notFoundErr {
-			return false, true, nil
-		}
-
-		return false, false, errors.Transient(fmt.Errorf("error checking for statefulsets for node pool '%s'", np.Name))
-	}
-
-	if !isManagedByCluster(c, ss.ObjectMeta) {
-		return false, false, fmt.Errorf("statefulset '%s' found but not managed by cluster", ss.Name)
-	}
-
-	// if the desired number of replicas is not equal to the actual
-	if *ss.Spec.Replicas != int32(np.Replicas) {
-		return true, true, nil
-	}
-
-	// if the version of the cluster has changed, trigger an update
-	if nodePoolVersionAnnotation(ss.Annotations) != c.Spec.Version {
-		return true, true, nil
-	}
-
-	if ss.Spec.Template.Spec.Containers[0].Image != c.Spec.Image.Repository+":"+c.Spec.Image.Tag {
-		return true, true, nil
-	}
-
-	return true, false, nil
-}
-
-func (e *defaultElasticsearchClusterControl) deploymentNodePoolNeedsUpdate(c v1alpha1.ElasticsearchCluster, np v1alpha1.ElasticsearchClusterNodePool) (exists, needsUpdate bool, err error) {
-	if nodePoolIsStateful(np) {
-		return false, false, fmt.Errorf("node pool is stateful, but deploymentNodePoolNeedsUpdate called")
-	}
-
-	depl, err := e.deploymentForNodePool(c, np)
-
-	if err != nil {
-		if err == notFoundErr {
-			return false, true, nil
-		}
-
-		return false, false, errors.Transient(fmt.Errorf("error checking for deployments for node pool '%s'", np.Name))
-	}
-
-	if !isManagedByCluster(c, depl.ObjectMeta) {
-		return false, false, fmt.Errorf("deployment '%s' found but not managed by cluster", depl.Name)
-	}
-
-	// if the desired number of replicas is not equal to the actual
-	if *depl.Spec.Replicas != int32(np.Replicas) {
-		return true, true, nil
-	}
-
-	// if the version of the cluster has changed, trigger an update
-	if nodePoolVersionAnnotation(depl.Annotations) != c.Spec.Version {
-		return true, true, nil
-	}
-
-	if depl.Spec.Template.Spec.Containers[0].Image != c.Spec.Image.Repository+":"+c.Spec.Image.Tag {
-		return true, true, nil
-	}
-
-	return true, false, nil
-}
-
 func (e *defaultElasticsearchClusterControl) serviceNeedsUpdate(c v1alpha1.ElasticsearchCluster, nameSuffix string) (exists, needsUpdate bool, err error) {
 	svcName := clusterService(c, nameSuffix, false, nil).Name
 
@@ -366,35 +235,6 @@ func (e *defaultElasticsearchClusterControl) serviceAccountNeedsUpdate(c v1alpha
 }
 
 var notFoundErr = fmt.Errorf("resource not found")
-
-func (e *defaultElasticsearchClusterControl) statefulSetForNodePool(c v1alpha1.ElasticsearchCluster, np v1alpha1.ElasticsearchClusterNodePool) (*apps.StatefulSet, error) {
-	if !nodePoolIsStateful(np) {
-		return nil, fmt.Errorf("node pool is not stateful, but statefulSetForNodePool called")
-	}
-
-	sets, err := e.statefulSetLister.StatefulSets(c.Namespace).List(labels.Everything())
-
-	if err != nil {
-		if k8serrors.IsNotFound(err) {
-			return nil, errors.Transient(fmt.Errorf("error getting list of statefulsets: %s", err.Error()))
-		}
-
-		return nil, errors.Transient(fmt.Errorf("error getting statefulsets from apiserver: %s", err.Error()))
-	}
-
-	for _, ss := range sets {
-		if !isManagedByCluster(c, ss.ObjectMeta) {
-			continue
-		}
-
-		// TODO: switch this to use UIDs set as annotations on the ElasticsearchCluster?
-		if ss.Name == nodePoolResourceName(c, np) {
-			return ss, nil
-		}
-	}
-
-	return nil, notFoundErr
-}
 
 func (e *defaultElasticsearchClusterControl) deploymentForNodePool(c v1alpha1.ElasticsearchCluster, np v1alpha1.ElasticsearchClusterNodePool) (*extensions.Deployment, error) {
 	if nodePoolIsStateful(np) {
