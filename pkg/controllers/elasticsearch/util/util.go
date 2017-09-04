@@ -1,12 +1,13 @@
 package util
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 
 	apps "k8s.io/api/apps/v1beta1"
 	apiv1 "k8s.io/api/core/v1"
-	extensions "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -18,8 +19,12 @@ import (
 const (
 	typeName = "es"
 	kindName = "ElasticsearchCluster"
+)
 
-	nodePoolVersionAnnotationKey = "navigator.jetstack.io/deployed-version"
+const (
+	NodePoolNameLabelKey      = "navigator.jetstack.io/node-pool-name"
+	NodePoolClusterLabelKey   = "navigator.jetstack.io/node-pool-cluster"
+	NodePoolHashAnnotationKey = "navigator.jetstack.io/node-pool-hash"
 )
 
 var (
@@ -243,42 +248,6 @@ func clusterService(c v1alpha1.ElasticsearchCluster, name string, http bool, ann
 	return &svc
 }
 
-func nodePoolDeployment(c v1alpha1.ElasticsearchCluster, np v1alpha1.ElasticsearchClusterNodePool) (*extensions.Deployment, error) {
-	elasticsearchPodTemplate, err := elasticsearchPodTemplateSpec(c, np)
-
-	if err != nil {
-		return nil, fmt.Errorf("error building elasticsearch container: %s", err.Error())
-	}
-
-	deploymentName := NodePoolResourceName(c, np)
-	depl := &extensions.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:            deploymentName,
-			Namespace:       c.Namespace,
-			OwnerReferences: []metav1.OwnerReference{ownerReference(c)},
-			Annotations: map[string]string{
-				nodePoolVersionAnnotationKey: c.Spec.Version,
-			},
-			Labels: buildNodePoolLabels(c, np.Name, np.Roles...),
-		},
-		Spec: extensions.DeploymentSpec{
-			Replicas: int32Ptr(int32(np.Replicas)),
-			Selector: &metav1.LabelSelector{
-				MatchLabels: buildNodePoolLabels(c, np.Name, np.Roles...),
-			},
-			Template: *elasticsearchPodTemplate,
-		},
-	}
-
-	// TODO: make this safer?
-	depl.Spec.Template.Spec.Containers[0].Args = append(
-		depl.Spec.Template.Spec.Containers[0].Args,
-		"--controllerKind=Deployment",
-		"--controllerName="+deploymentName,
-	)
-	return depl, nil
-}
-
 func NodePoolStatefulSet(c v1alpha1.ElasticsearchCluster, np v1alpha1.ElasticsearchClusterNodePool) (*apps.StatefulSet, error) {
 	volumeClaimTemplateAnnotations, volumeResourceRequests := map[string]string{}, apiv1.ResourceList{}
 
@@ -304,6 +273,12 @@ func NodePoolStatefulSet(c v1alpha1.ElasticsearchCluster, np v1alpha1.Elasticsea
 		return nil, fmt.Errorf("error building elasticsearch container: %s", err.Error())
 	}
 
+	nodePoolHash, err := nodePoolHash(np)
+
+	if err != nil {
+		return nil, fmt.Errorf("error hashing node pool object: %s", err.Error())
+	}
+
 	statefulSetName := NodePoolResourceName(c, np)
 
 	ss := &apps.StatefulSet{
@@ -312,7 +287,7 @@ func NodePoolStatefulSet(c v1alpha1.ElasticsearchCluster, np v1alpha1.Elasticsea
 			Namespace:       c.Namespace,
 			OwnerReferences: []metav1.OwnerReference{ownerReference(c)},
 			Annotations: map[string]string{
-				nodePoolVersionAnnotationKey: c.Spec.Version,
+				NodePoolHashAnnotationKey: nodePoolHash,
 			},
 			Labels: buildNodePoolLabels(c, np.Name, np.Roles...),
 		},
@@ -403,6 +378,12 @@ func NodePoolResourceName(c v1alpha1.ElasticsearchCluster, np v1alpha1.Elasticse
 	return fmt.Sprintf("%s-%s", resourceBaseName(c), np.Name)
 }
 
-func NodePoolVersionAnnotation(m map[string]string) string {
-	return m[nodePoolVersionAnnotationKey]
+func nodePoolHash(np v1alpha1.ElasticsearchClusterNodePool) (string, error) {
+	d, err := json.Marshal(np)
+	if err != nil {
+		return "", err
+	}
+	hasher := md5.New()
+	hasher.Write(d)
+	return hex.EncodeToString(hasher.Sum(nil)), nil
 }

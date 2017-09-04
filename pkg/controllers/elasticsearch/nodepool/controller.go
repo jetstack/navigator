@@ -4,18 +4,13 @@ import (
 	"fmt"
 	"strings"
 
-	apps "k8s.io/api/apps/v1beta1"
 	apiv1 "k8s.io/api/core/v1"
-	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
 	appslisters "k8s.io/client-go/listers/apps/v1beta1"
 	"k8s.io/client-go/tools/record"
 
 	v1alpha1 "github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack-experimental/navigator/pkg/controllers/elasticsearch/util"
-	"github.com/jetstack-experimental/navigator/pkg/util/errors"
 )
 
 type Interface interface {
@@ -49,58 +44,129 @@ func NewStatefulElasticsearchClusterNodePoolControl(
 }
 
 func (e *statefulElasticsearchClusterNodePoolControl) Sync(c v1alpha1.ElasticsearchCluster) (v1alpha1.ElasticsearchClusterStatus, error) {
+	err := e.reconcileNodePools(c)
+
+	if err != nil {
+		return c.Status, fmt.Errorf("error reconciling node pools: %s", err.Error())
+	}
+
 	for _, np := range c.Spec.NodePools {
-		ss, err := util.NodePoolStatefulSet(c, np)
-
+		err := e.syncNodePool(c, np)
 		if err != nil {
-			e.recordNodePoolEvent("update", c, np, err)
-			return c.Status, fmt.Errorf("error generating statefulset manifest: %s", err.Error())
+			return c.Status, fmt.Errorf("error syncing nodepool: %s", err.Error())
 		}
-
-		ss, err = e.kubeClient.AppsV1beta1().StatefulSets(c.Namespace).Update(ss)
-
-		if err != nil {
-			e.recordNodePoolEvent("update", c, np, err)
-			return c.Status, fmt.Errorf("error updating statefulset: %s", err.Error())
-		}
-
-		e.recordNodePoolEvent("update", c, np, err)
-		return c.Status, nil
 	}
 
 	return c.Status, nil
 }
 
-func (e *statefulElasticsearchClusterNodePoolControl) needsUpdate(c v1alpha1.ElasticsearchCluster, np v1alpha1.ElasticsearchClusterNodePool) (exists bool, needsUpdate bool, err error) {
-	ss, err := e.statefulSetForNodePool(c, np)
+func (e *statefulElasticsearchClusterNodePoolControl) syncNodePool(c v1alpha1.ElasticsearchCluster, np v1alpha1.ElasticsearchClusterNodePool) error {
+	// lookup existing StatefulSet with appropriate labels for np in cluster c
+	// if multiple exist, exit with an error
+	// if one exists:
+	//		- generate the expected StatefulSet manifest
+	// 		- compare the expected hashes
+	//		- if they differ, we perform an update of the StatefulSet
+	//		- otherwise, we check if any additional fields (e.g. image)
+	//		  have changed
+	// if none exist:
+	//		- generate the expected StatefulSet manifest
+	//		- create the StatefulSet
 
-	if k8sErrors.IsNotFound(err) {
-		return false, true, nil
-	}
-
+	// get the selector for the node pool
+	sel, err := selectorForNodePool(c, np)
 	if err != nil {
-		return false, false, errors.Transient(fmt.Errorf("error checking for statefulsets for node pool '%s'", np.Name))
+		return fmt.Errorf("error creating label selector for node pool '%s': %s", np.Name, err.Error())
+	}
+	// list statefulsets matching the selector
+	sets, err := e.statefulSetLister.StatefulSets(c.Namespace).List(sel)
+	if err != nil {
+		return err
+	}
+	// if more than one statefulset matches the labels, exit here to be safe
+	if len(sets) > 1 {
+		return fmt.Errorf("multiple StatefulSets match label selector (%s) for node pool '%s'", sel.String(), np.Name)
+	}
+	expected, err := util.NodePoolStatefulSet(c, np)
+	if err != nil {
+		return fmt.Errorf("error generating StatefulSet: %s", err.Error())
+	}
+	// TODO: extend this to more complex logic than a simple 'create'
+	// e.g. queue a new node pool introduced event for Pilots to watch for
+	if len(sets) == 0 {
+		_, err := e.kubeClient.AppsV1beta1().StatefulSets(c.Namespace).Create(expected)
+		return err
+	}
+	// this is safe as the above code ensures we only have one element in the array
+	actual := sets[0]
+	if actual.Annotations == nil {
+		return fmt.Errorf("StatefulSet '%s' does not contain node pool hash annotation", actual.Name)
 	}
 
-	if !util.IsManagedByCluster(c, ss.ObjectMeta) {
-		return false, false, fmt.Errorf("statefulset '%s' found but not managed by cluster", ss.Name)
+	// compare the hashes of the expected and actual node pool
+	actualNodePoolHash := actual.Annotations[util.NodePoolHashAnnotationKey]
+	if len(actualNodePoolHash) == 0 {
+		return fmt.Errorf("StatefulSet '%s' contains empty node pool hash annotation", actual.Name)
+	}
+	expectedNodePoolHash := expected.Annotations[util.NodePoolHashAnnotationKey]
+
+	// if the node pool hashes do not match, we perform an Update operation on the StatefulSet
+	if actualNodePoolHash != expectedNodePoolHash {
+		_, err := e.kubeClient.AppsV1beta1().StatefulSets(c.Namespace).Update(expected)
+		return err
 	}
 
-	// if the desired number of replicas is not equal to the actual
-	if *ss.Spec.Replicas != int32(np.Replicas) {
-		return true, true, nil
+	expectedContainers := expected.Spec.Template.Spec.Containers
+	actualContainers := actual.Spec.Template.Spec.Containers
+	if len(expectedContainers) != len(actualContainers) {
+		_, err = e.kubeClient.AppsV1beta1().StatefulSets(c.Namespace).Update(expected)
+		return err
+	}
+	// check the images are up to date
+	for i := 0; i < len(expectedContainers); i++ {
+		if expectedContainers[i].Image != actualContainers[i].Image {
+			_, err := e.kubeClient.AppsV1beta1().StatefulSets(c.Namespace).Update(expected)
+			return err
+		}
 	}
 
-	// if the version of the cluster has changed, trigger an update
-	if util.NodePoolVersionAnnotation(ss.Annotations) != c.Spec.Version {
-		return true, true, nil
-	}
+	// the hashes match, which means the properties of the node pool have not changed
+	return nil
+}
 
-	if ss.Spec.Template.Spec.Containers[0].Image != c.Spec.Image.Repository+":"+c.Spec.Image.Tag {
-		return true, true, nil
+// reconcileNodePools will look up all node pools that are owned by this
+// ElasticsearchCluster resource, and delete any that are no longer referenced.
+// This is used to delete old node pools that no longer exist in the cluster
+// specification.
+func (e *statefulElasticsearchClusterNodePoolControl) reconcileNodePools(c v1alpha1.ElasticsearchCluster) error {
+	// list all statefulsets that match the clusters selector
+	// loop through each node pool in c
+	sel, err := selectorForCluster(c)
+	if err != nil {
+		return fmt.Errorf("error creating label selector for cluster '%s': %s", c.Name, err.Error())
 	}
-
-	return true, false, nil
+	sets, err := e.statefulSetLister.StatefulSets(c.Namespace).List(sel)
+	if err != nil {
+		return err
+	}
+	// we delete each statefulset that has the node pool name set to the name
+	// of a valid node pool for sets
+	for _, np := range c.Spec.NodePools {
+		for i, ss := range sets {
+			if ss.Annotations != nil && ss.Annotations[util.NodePoolNameLabelKey] == np.Name {
+				sets = append(sets[:i], sets[i+1:]...)
+				break
+			}
+		}
+	}
+	// delete remaining statefulsets in sets
+	for _, ss := range sets {
+		err := e.kubeClient.AppsV1beta1().StatefulSets(ss.Namespace).Delete(ss.Name, nil)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // recordNodePoolEvent records an event for verb applied to a NodePool in an ElasticsearchCluster. If err is nil the generated event will
@@ -117,32 +183,4 @@ func (e *statefulElasticsearchClusterNodePoolControl) recordNodePoolEvent(verb s
 			strings.ToLower(verb), pool.Name, cluster.Name, err)
 		e.recorder.Event(&cluster, apiv1.EventTypeWarning, reason, message)
 	}
-}
-
-func (e *statefulElasticsearchClusterNodePoolControl) statefulSetForNodePool(c v1alpha1.ElasticsearchCluster, np v1alpha1.ElasticsearchClusterNodePool) (*apps.StatefulSet, error) {
-	sets, err := e.statefulSetLister.StatefulSets(c.Namespace).List(labels.Everything())
-
-	if err != nil {
-		if k8sErrors.IsNotFound(err) {
-			return nil, errors.Transient(fmt.Errorf("error getting list of statefulsets: %s", err.Error()))
-		}
-
-		return nil, errors.Transient(fmt.Errorf("error getting statefulsets from apiserver: %s", err.Error()))
-	}
-
-	for _, ss := range sets {
-		if !util.IsManagedByCluster(c, ss.ObjectMeta) {
-			continue
-		}
-
-		// TODO: switch this to use UIDs set as annotations on the ElasticsearchCluster?
-		if ss.Name == util.NodePoolResourceName(c, np) {
-			return ss, nil
-		}
-	}
-
-	return nil, k8sErrors.NewNotFound(schema.GroupResource{
-		Group:    apps.GroupName,
-		Resource: "StatefulSet",
-	}, "")
 }
