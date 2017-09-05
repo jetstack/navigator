@@ -31,6 +31,8 @@ import (
 	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/install"
 	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
 	informers "github.com/jetstack-experimental/navigator/pkg/client/informers_generated/internalversion"
+	navigatorregistry "github.com/jetstack-experimental/navigator/pkg/registry"
+	esclusterstorage "github.com/jetstack-experimental/navigator/pkg/registry/navigator/escluster"
 )
 
 var (
@@ -104,8 +106,7 @@ func (c completedConfig) New() (*NavigatorServer, error) {
 	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(navigator.GroupName, registry, Scheme, metav1.ParameterCodec, Codecs)
 	apiGroupInfo.GroupMeta.GroupVersion = v1alpha1.SchemeGroupVersion
 	v1alpha1storage := map[string]rest.Storage{}
-	v1alpha1storage["flunders"] = navigatorregistery.RESTInPeace(flunderstorage.NewREST(Scheme, c.GenericConfig.RESTOptionsGetter))
-	v1alpha1storage["fischers"] = navigatorregistery.RESTInPeace(fischerstorage.NewREST(Scheme, c.GenericConfig.RESTOptionsGetter))
+	v1alpha1storage["elasticsearchclusters"] = navigatorregistry.RESTInPeace(esclusterstorage.NewREST(Scheme, c.GenericConfig.RESTOptionsGetter))
 	apiGroupInfo.VersionedResourcesStorageMap["v1alpha1"] = v1alpha1storage
 
 	if err := s.GenericAPIServer.InstallAPIGroup(&apiGroupInfo); err != nil {

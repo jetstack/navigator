@@ -114,14 +114,14 @@ func (o NavigatorServerOptions) Config() (*apiserver.Config, error) {
 		return nil, err
 	}
 	informerFactory := informers.NewSharedInformerFactory(client, serverConfig.LoopbackClientConfig.Timeout)
-	admissionInitializer, err := navigatorinitializer.New(informerFactory)
-	if err != nil {
-		return nil, err
-	}
+	// admissionInitializer, err := navigatorinitializer.New(informerFactory)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	if err := o.Admission.ApplyTo(serverConfig, admissionInitializer); err != nil {
-		return nil, err
-	}
+	// if err := o.Admission.ApplyTo(serverConfig, admissionInitializer); err != nil {
+	// 	return nil, err
+	// }
 
 	config := &apiserver.Config{
 		GenericConfig:         serverConfig,
