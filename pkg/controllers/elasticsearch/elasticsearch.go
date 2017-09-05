@@ -45,7 +45,7 @@ type ElasticsearchController struct {
 	serviceListerSynced cache.InformerSynced
 
 	queue                       workqueue.RateLimitingInterface
-	elasticsearchClusterControl ElasticsearchClusterControl
+	elasticsearchClusterControl ControlInterface
 }
 
 // NewElasticsearch returns a new ElasticsearchController that can be used
@@ -97,7 +97,7 @@ func NewElasticsearch(
 	elasticsearchController.serviceListerSynced = services.Informer().HasSynced
 
 	// create the actual ElasticsearchCluster controller
-	elasticsearchController.elasticsearchClusterControl = NewElasticsearchClusterControl(
+	elasticsearchController.elasticsearchClusterControl = NewController(
 		elasticsearchController.statefulSetLister,
 		elasticsearchController.serviceAccountLister,
 		elasticsearchController.serviceLister,
@@ -187,7 +187,7 @@ func (e *ElasticsearchController) sync(key string) error {
 		return err
 	}
 
-	return e.elasticsearchClusterControl.SyncElasticsearchCluster(es)
+	return e.elasticsearchClusterControl.Sync(es)
 }
 
 func (e *ElasticsearchController) enqueueElasticsearchCluster(obj interface{}) {

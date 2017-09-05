@@ -36,9 +36,9 @@ type defaultElasticsearchClusterControl struct {
 	recorder record.EventRecorder
 }
 
-var _ ElasticsearchClusterControl = &defaultElasticsearchClusterControl{}
+var _ ControlInterface = &defaultElasticsearchClusterControl{}
 
-func NewElasticsearchClusterControl(
+func NewController(
 	statefulSetLister appslisters.StatefulSetLister,
 	serviceAccountLister corelisters.ServiceAccountLister,
 	serviceLister corelisters.ServiceLister,
@@ -46,7 +46,7 @@ func NewElasticsearchClusterControl(
 	serviceAccountControl serviceaccount.Interface,
 	serviceControl service.Interface,
 	recorder record.EventRecorder,
-) ElasticsearchClusterControl {
+) ControlInterface {
 	return &defaultElasticsearchClusterControl{
 		statefulSetLister:     statefulSetLister,
 		serviceAccountLister:  serviceAccountLister,
