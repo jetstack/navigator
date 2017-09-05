@@ -14,7 +14,7 @@ import (
 )
 
 type Interface interface {
-	Sync(v1alpha1.ElasticsearchCluster) (v1alpha1.ElasticsearchClusterStatus, error)
+	Sync(*v1alpha1.ElasticsearchCluster) (v1alpha1.ElasticsearchClusterStatus, error)
 }
 
 // statefulElasticsearchClusterNodePoolControl manages the lifecycle of a
@@ -23,7 +23,7 @@ type Interface interface {
 // This is an implementation of the ElasticsearchClusterNodePoolControl interface
 // as defined in interfaces.go.
 type statefulElasticsearchClusterNodePoolControl struct {
-	kubeClient        *kubernetes.Clientset
+	kubeClient        kubernetes.Interface
 	statefulSetLister appslisters.StatefulSetLister
 
 	recorder record.EventRecorder
@@ -31,8 +31,8 @@ type statefulElasticsearchClusterNodePoolControl struct {
 
 var _ Interface = &statefulElasticsearchClusterNodePoolControl{}
 
-func NewStatefulElasticsearchClusterNodePoolControl(
-	kubeClient *kubernetes.Clientset,
+func NewController(
+	kubeClient kubernetes.Interface,
 	statefulSetLister appslisters.StatefulSetLister,
 	recorder record.EventRecorder,
 ) Interface {
@@ -43,7 +43,7 @@ func NewStatefulElasticsearchClusterNodePoolControl(
 	}
 }
 
-func (e *statefulElasticsearchClusterNodePoolControl) Sync(c v1alpha1.ElasticsearchCluster) (v1alpha1.ElasticsearchClusterStatus, error) {
+func (e *statefulElasticsearchClusterNodePoolControl) Sync(c *v1alpha1.ElasticsearchCluster) (v1alpha1.ElasticsearchClusterStatus, error) {
 	err := e.reconcileNodePools(c)
 
 	if err != nil {
@@ -51,7 +51,7 @@ func (e *statefulElasticsearchClusterNodePoolControl) Sync(c v1alpha1.Elasticsea
 	}
 
 	for _, np := range c.Spec.NodePools {
-		err := e.syncNodePool(c, np)
+		err := e.syncNodePool(c, &np)
 		if err != nil {
 			return c.Status, fmt.Errorf("error syncing nodepool: %s", err.Error())
 		}
@@ -60,7 +60,7 @@ func (e *statefulElasticsearchClusterNodePoolControl) Sync(c v1alpha1.Elasticsea
 	return c.Status, nil
 }
 
-func (e *statefulElasticsearchClusterNodePoolControl) syncNodePool(c v1alpha1.ElasticsearchCluster, np v1alpha1.ElasticsearchClusterNodePool) error {
+func (e *statefulElasticsearchClusterNodePoolControl) syncNodePool(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.ElasticsearchClusterNodePool) error {
 	// lookup existing StatefulSet with appropriate labels for np in cluster c
 	// if multiple exist, exit with an error
 	// if one exists:
@@ -74,7 +74,7 @@ func (e *statefulElasticsearchClusterNodePoolControl) syncNodePool(c v1alpha1.El
 	//		- create the StatefulSet
 
 	// get the selector for the node pool
-	sel, err := selectorForNodePool(c, np)
+	sel, err := util.SelectorForNodePool(c, np)
 	if err != nil {
 		return fmt.Errorf("error creating label selector for node pool '%s': %s", np.Name, err.Error())
 	}
@@ -87,7 +87,7 @@ func (e *statefulElasticsearchClusterNodePoolControl) syncNodePool(c v1alpha1.El
 	if len(sets) > 1 {
 		return fmt.Errorf("multiple StatefulSets match label selector (%s) for node pool '%s'", sel.String(), np.Name)
 	}
-	expected, err := util.NodePoolStatefulSet(c, np)
+	expected, err := nodePoolStatefulSet(c, np)
 	if err != nil {
 		return fmt.Errorf("error generating StatefulSet: %s", err.Error())
 	}
@@ -138,10 +138,10 @@ func (e *statefulElasticsearchClusterNodePoolControl) syncNodePool(c v1alpha1.El
 // ElasticsearchCluster resource, and delete any that are no longer referenced.
 // This is used to delete old node pools that no longer exist in the cluster
 // specification.
-func (e *statefulElasticsearchClusterNodePoolControl) reconcileNodePools(c v1alpha1.ElasticsearchCluster) error {
+func (e *statefulElasticsearchClusterNodePoolControl) reconcileNodePools(c *v1alpha1.ElasticsearchCluster) error {
 	// list all statefulsets that match the clusters selector
 	// loop through each node pool in c
-	sel, err := selectorForCluster(c)
+	sel, err := util.SelectorForCluster(c)
 	if err != nil {
 		return fmt.Errorf("error creating label selector for cluster '%s': %s", c.Name, err.Error())
 	}
@@ -153,7 +153,8 @@ func (e *statefulElasticsearchClusterNodePoolControl) reconcileNodePools(c v1alp
 	// of a valid node pool for sets
 	for _, np := range c.Spec.NodePools {
 		for i, ss := range sets {
-			if ss.Annotations != nil && ss.Annotations[util.NodePoolNameLabelKey] == np.Name {
+
+			if ss.Labels != nil && ss.Labels[util.NodePoolNameLabelKey] == np.Name {
 				sets = append(sets[:i], sets[i+1:]...)
 				break
 			}
