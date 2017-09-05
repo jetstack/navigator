@@ -3,27 +3,9 @@ package kube
 import (
 	"fmt"
 
-	"k8s.io/api/extensions/v1beta1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-
-	"github.com/jetstack-experimental/navigator/pkg/apis/navigator"
 )
-
-var thirdPartyResource = &v1beta1.ThirdPartyResource{
-	ObjectMeta: metav1.ObjectMeta{
-		Name: "elasticsearch-cluster." + navigator.GroupName,
-	},
-	Description: "A specification of an Elasticsearch cluster",
-	Versions: []v1beta1.APIVersion{
-		{
-			Name: "v1alpha1",
-		},
-	},
-}
 
 // Config will return a rest.Config for communicating with the Kubernetes API server.
 // If apiServerHost is specified, a config without authentication that is configured
@@ -51,18 +33,4 @@ func Config(apiServerHost string) (*rest.Config, error) {
 	}
 
 	return cfg, nil
-}
-
-// EnsureTPR will ensure that the appropriate ThirdPartyResources exist in
-// the target Kubernetes cluster
-func EnsureTPR(cl *kubernetes.Clientset) error {
-	_, err := cl.Extensions().ThirdPartyResources().Create(thirdPartyResource)
-
-	if err != nil {
-		if !errors.IsAlreadyExists(err) {
-			return err
-		}
-	}
-
-	return nil
 }
