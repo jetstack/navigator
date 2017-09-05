@@ -14,7 +14,7 @@ import (
 )
 
 type defaultElasticsearchClusterNodePoolControl struct {
-	kubeClient       *kubernetes.Clientset
+	kubeClient       kubernetes.Interface
 	deploymentLister extensionslisters.DeploymentLister
 
 	recorder record.EventRecorder
@@ -23,7 +23,7 @@ type defaultElasticsearchClusterNodePoolControl struct {
 var _ ElasticsearchClusterNodePoolControl = &defaultElasticsearchClusterNodePoolControl{}
 
 func NewElasticsearchClusterNodePoolControl(
-	kubeClient *kubernetes.Clientset,
+	kubeClient kubernetes.Interface,
 	deploymentLister extensionslisters.DeploymentLister,
 	recorder record.EventRecorder,
 ) ElasticsearchClusterNodePoolControl {

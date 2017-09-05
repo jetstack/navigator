@@ -13,7 +13,7 @@ import (
 )
 
 type defaultElasticsearchClusterServiceAccountControl struct {
-	kubeClient *kubernetes.Clientset
+	kubeClient kubernetes.Interface
 
 	recorder record.EventRecorder
 }
@@ -21,7 +21,7 @@ type defaultElasticsearchClusterServiceAccountControl struct {
 var _ ElasticsearchClusterServiceAccountControl = &defaultElasticsearchClusterServiceAccountControl{}
 
 func NewElasticsearchClusterServiceAccountControl(
-	kubeClient *kubernetes.Clientset,
+	kubeClient kubernetes.Interface,
 	recorder record.EventRecorder,
 ) ElasticsearchClusterServiceAccountControl {
 	return &defaultElasticsearchClusterServiceAccountControl{

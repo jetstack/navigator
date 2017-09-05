@@ -19,7 +19,7 @@ import (
 // This is an implementation of the ElasticsearchClusterNodePoolControl interface
 // as defined in interfaces.go.
 type statefulElasticsearchClusterNodePoolControl struct {
-	kubeClient        *kubernetes.Clientset
+	kubeClient        kubernetes.Interface
 	statefulSetLister appslisters.StatefulSetLister
 
 	recorder record.EventRecorder
@@ -28,7 +28,7 @@ type statefulElasticsearchClusterNodePoolControl struct {
 var _ ElasticsearchClusterNodePoolControl = &statefulElasticsearchClusterNodePoolControl{}
 
 func NewStatefulElasticsearchClusterNodePoolControl(
-	kubeClient *kubernetes.Clientset,
+	kubeClient kubernetes.Interface,
 	statefulSetLister appslisters.StatefulSetLister,
 	recorder record.EventRecorder,
 ) ElasticsearchClusterNodePoolControl {

@@ -36,5 +36,6 @@ func Start(ctx *Context, fns map[string]InitFn, stop <-chan struct{}) error {
 	ctx.InformerFactory.Start(stop)
 	ctx.NavigatorInformerFactory.Start(stop)
 
-	select {}
+	<-stop
+	return nil
 }

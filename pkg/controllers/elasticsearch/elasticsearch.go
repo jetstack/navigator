@@ -33,7 +33,7 @@ import (
 )
 
 type ElasticsearchController struct {
-	kubeClient *kubernetes.Clientset
+	kubeClient kubernetes.Interface
 
 	esLister       listersv1alpha1.ElasticsearchClusterLister
 	esListerSynced cache.InformerSynced
@@ -66,7 +66,7 @@ func NewElasticsearch(
 	statefulsets appsinformers.StatefulSetInformer,
 	serviceaccounts coreinformers.ServiceAccountInformer,
 	services coreinformers.ServiceInformer,
-	cl *kubernetes.Clientset,
+	cl kubernetes.Interface,
 ) *ElasticsearchController {
 	// create an event broadcaster that can be used to send events to an event sink (eg. k8s)
 	eventBroadcaster := record.NewBroadcaster()

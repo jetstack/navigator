@@ -9,7 +9,6 @@ import (
 	extensions "k8s.io/api/extensions/v1beta1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/client-go/kubernetes"
 	appslisters "k8s.io/client-go/listers/apps/v1beta1"
 	corelisters "k8s.io/client-go/listers/core/v1"
 	extensionslisters "k8s.io/client-go/listers/extensions/v1beta1"
@@ -20,8 +19,6 @@ import (
 )
 
 type defaultElasticsearchClusterControl struct {
-	kubeClient *kubernetes.Clientset
-
 	statefulSetLister    appslisters.StatefulSetLister
 	deploymentLister     extensionslisters.DeploymentLister
 	serviceAccountLister corelisters.ServiceAccountLister

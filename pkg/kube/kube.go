@@ -69,7 +69,7 @@ func Config(apiServerHost string) (*rest.Config, error) {
 
 // EnsureTPR will ensure that the appropriate ThirdPartyResources exist in
 // the target Kubernetes cluster
-func EnsureTPR(cl *kubernetes.Clientset, tpr *v1beta1.ThirdPartyResource) error {
+func EnsureTPR(cl kubernetes.Interface, tpr *v1beta1.ThirdPartyResource) error {
 
 	_, err := cl.Extensions().ThirdPartyResources().Create(tpr)
 
