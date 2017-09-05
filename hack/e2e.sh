@@ -45,13 +45,14 @@ if ! retry navigator_ready; then
 fi
 
 # Create and delete an ElasticSearchCluster
-kubectl create \
-        --namespace "${USER_NAMESPACE}" \
-        --filename "${ROOT_DIR}/docs/quick-start/es-cluster-demo.yaml"
-kubectl get \
-        --namespace "${USER_NAMESPACE}" \
-        ElasticSearchClusters
-kubectl delete \
-        --namespace "${USER_NAMESPACE}" \
-        ElasticSearchClusters \
-        --all
+# --- Disabled for now whilst we move to using a custom apiserver
+# kubectl create \
+#         --namespace "${USER_NAMESPACE}" \
+#         --filename "${ROOT_DIR}/docs/quick-start/es-cluster-demo.yaml"
+# kubectl get \
+#         --namespace "${USER_NAMESPACE}" \
+#         ElasticSearchClusters
+# kubectl delete \
+#         --namespace "${USER_NAMESPACE}" \
+#         ElasticSearchClusters \
+#         --all
