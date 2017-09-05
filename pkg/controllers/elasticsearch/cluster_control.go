@@ -11,6 +11,7 @@ import (
 	"k8s.io/client-go/tools/record"
 
 	v1alpha1 "github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
+	"github.com/jetstack-experimental/navigator/pkg/controllers/elasticsearch/configmap"
 	"github.com/jetstack-experimental/navigator/pkg/controllers/elasticsearch/nodepool"
 	"github.com/jetstack-experimental/navigator/pkg/controllers/elasticsearch/service"
 	"github.com/jetstack-experimental/navigator/pkg/controllers/elasticsearch/serviceaccount"
@@ -29,7 +30,8 @@ type defaultElasticsearchClusterControl struct {
 	serviceAccountLister corelisters.ServiceAccountLister
 	serviceLister        corelisters.ServiceLister
 
-	nodePoolController    nodepool.Interface
+	nodePoolControl       nodepool.Interface
+	configMapControl      configmap.Interface
 	serviceAccountControl serviceaccount.Interface
 	serviceControl        service.Interface
 
@@ -42,7 +44,8 @@ func NewController(
 	statefulSetLister appslisters.StatefulSetLister,
 	serviceAccountLister corelisters.ServiceAccountLister,
 	serviceLister corelisters.ServiceLister,
-	nodePoolController nodepool.Interface,
+	nodePoolControl nodepool.Interface,
+	configMapControl configmap.Interface,
 	serviceAccountControl serviceaccount.Interface,
 	serviceControl service.Interface,
 	recorder record.EventRecorder,
@@ -51,7 +54,8 @@ func NewController(
 		statefulSetLister:     statefulSetLister,
 		serviceAccountLister:  serviceAccountLister,
 		serviceLister:         serviceLister,
-		nodePoolController:    nodePoolController,
+		nodePoolControl:       nodePoolControl,
+		configMapControl:      configMapControl,
 		serviceAccountControl: serviceAccountControl,
 		serviceControl:        serviceControl,
 		recorder:              recorder,
@@ -67,13 +71,20 @@ func (e *defaultElasticsearchClusterControl) Sync(c *v1alpha1.ElasticsearchClust
 		return err
 	}
 
+	// TODO: handle status
+	if _, err = e.configMapControl.Sync(c); err != nil {
+		e.recordClusterEvent("sync", c, err)
+		return err
+	}
+
+	// TODO: handle status
 	if _, err = e.serviceControl.Sync(c); err != nil {
 		e.recordClusterEvent("sync", c, err)
 		return err
 	}
 
 	// TODO: handle status
-	if _, err = e.nodePoolController.Sync(c); err != nil {
+	if _, err = e.nodePoolControl.Sync(c); err != nil {
 		e.recordClusterEvent("sync", c, err)
 		return err
 	}

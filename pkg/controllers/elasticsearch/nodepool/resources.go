@@ -22,6 +22,9 @@ const (
 
 	esDataVolumeName      = "elasticsearch-data"
 	esDataVolumeMountPath = "/usr/share/elasticsearch/data"
+
+	esConfigVolumeName      = "config"
+	esConfigVolumeMountPath = "/config"
 )
 
 func nodePoolStatefulSet(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.ElasticsearchClusterNodePool) (*apps.StatefulSet, error) {
@@ -104,6 +107,16 @@ func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.Elasticsear
 			Name: sharedVolumeName,
 			VolumeSource: apiv1.VolumeSource{
 				EmptyDir: &apiv1.EmptyDirVolumeSource{},
+			},
+		},
+		apiv1.Volume{
+			Name: esConfigVolumeName,
+			VolumeSource: apiv1.VolumeSource{
+				ConfigMap: &apiv1.ConfigMapVolumeSource{
+					LocalObjectReference: apiv1.LocalObjectReference{
+						Name: util.ConfigMapName(c),
+					},
+				},
 			},
 		},
 	}
@@ -243,6 +256,11 @@ exec %s/pilot \
 						{
 							Name:      sharedVolumeName,
 							MountPath: sharedVolumeMountPath,
+							ReadOnly:  false,
+						},
+						{
+							Name:      esConfigVolumeName,
+							MountPath: esConfigVolumeMountPath,
 							ReadOnly:  false,
 						},
 					},
