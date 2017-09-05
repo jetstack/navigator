@@ -11,7 +11,7 @@ import (
 func clusterServiceAccount(c *v1alpha1.ElasticsearchCluster) *apiv1.ServiceAccount {
 	return &apiv1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            util.ResourceBaseName(c),
+			Name:            util.ServiceAccountName(c),
 			Namespace:       c.Namespace,
 			OwnerReferences: []metav1.OwnerReference{util.NewControllerRef(c)},
 			Labels:          util.ClusterLabels(c),

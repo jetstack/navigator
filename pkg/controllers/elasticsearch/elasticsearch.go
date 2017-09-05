@@ -24,6 +24,7 @@ import (
 	informerv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/informers_generated/externalversions/navigator/v1alpha1"
 	listersv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/listers_generated/navigator/v1alpha1"
 	"github.com/jetstack-experimental/navigator/pkg/controllers"
+	"github.com/jetstack-experimental/navigator/pkg/controllers/elasticsearch/configmap"
 	"github.com/jetstack-experimental/navigator/pkg/controllers/elasticsearch/nodepool"
 	"github.com/jetstack-experimental/navigator/pkg/controllers/elasticsearch/service"
 	"github.com/jetstack-experimental/navigator/pkg/controllers/elasticsearch/serviceaccount"
@@ -44,6 +45,9 @@ type ElasticsearchController struct {
 	serviceLister       corelisters.ServiceLister
 	serviceListerSynced cache.InformerSynced
 
+	configMapLister       corelisters.ConfigMapLister
+	configMapListerSynced cache.InformerSynced
+
 	queue                       workqueue.RateLimitingInterface
 	elasticsearchClusterControl ControlInterface
 }
@@ -59,6 +63,7 @@ func NewElasticsearch(
 	statefulsets appsinformers.StatefulSetInformer,
 	serviceaccounts coreinformers.ServiceAccountInformer,
 	services coreinformers.ServiceInformer,
+	configmaps coreinformers.ConfigMapInformer,
 	cl kubernetes.Interface,
 ) *ElasticsearchController {
 	// create an event broadcaster that can be used to send events to an event sink (eg. k8s)
@@ -96,6 +101,11 @@ func NewElasticsearch(
 	elasticsearchController.serviceLister = services.Lister()
 	elasticsearchController.serviceListerSynced = services.Informer().HasSynced
 
+	// add an event handler to the Service informer
+	configmaps.Informer().AddEventHandler(&controllers.BlockingEventHandler{WorkFunc: elasticsearchController.handleObject})
+	elasticsearchController.configMapLister = configmaps.Lister()
+	elasticsearchController.configMapListerSynced = configmaps.Informer().HasSynced
+
 	// create the actual ElasticsearchCluster controller
 	elasticsearchController.elasticsearchClusterControl = NewController(
 		elasticsearchController.statefulSetLister,
@@ -104,6 +114,11 @@ func NewElasticsearch(
 		nodepool.NewController(
 			cl,
 			elasticsearchController.statefulSetLister,
+			recorder,
+		),
+		configmap.NewController(
+			cl,
+			elasticsearchController.configMapLister,
 			recorder,
 		),
 		serviceaccount.NewController(
@@ -229,6 +244,7 @@ func init() {
 			ctx.InformerFactory.Apps().V1beta1().StatefulSets(),
 			ctx.InformerFactory.Core().V1().ServiceAccounts(),
 			ctx.InformerFactory.Core().V1().Services(),
+			ctx.InformerFactory.Core().V1().ConfigMaps(),
 			ctx.Client,
 		).Run(2, ctx.Stop)
 
