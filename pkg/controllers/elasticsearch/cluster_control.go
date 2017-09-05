@@ -16,6 +16,12 @@ import (
 	"github.com/jetstack-experimental/navigator/pkg/controllers/elasticsearch/serviceaccount"
 )
 
+type ControlInterface interface {
+	Sync(*v1alpha1.ElasticsearchCluster) error
+}
+
+var _ ControlInterface = &defaultElasticsearchClusterControl{}
+
 type defaultElasticsearchClusterControl struct {
 	kubeClient *kubernetes.Clientset
 
@@ -52,9 +58,7 @@ func NewElasticsearchClusterControl(
 	}
 }
 
-func (e *defaultElasticsearchClusterControl) SyncElasticsearchCluster(
-	c *v1alpha1.ElasticsearchCluster,
-) error {
+func (e *defaultElasticsearchClusterControl) Sync(c *v1alpha1.ElasticsearchCluster) error {
 	var err error
 
 	// TODO: handle status
