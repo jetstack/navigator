@@ -52,6 +52,10 @@ func RegisterConversions(scheme *runtime.Scheme) error {
 		Convert_navigator_ElasticsearchClusterStatus_To_v1alpha1_ElasticsearchClusterStatus,
 		Convert_v1alpha1_ElasticsearchImage_To_navigator_ElasticsearchImage,
 		Convert_navigator_ElasticsearchImage_To_v1alpha1_ElasticsearchImage,
+		Convert_v1alpha1_ElasticsearchPilotImage_To_navigator_ElasticsearchPilotImage,
+		Convert_navigator_ElasticsearchPilotImage_To_v1alpha1_ElasticsearchPilotImage,
+		Convert_v1alpha1_ImageSpec_To_navigator_ImageSpec,
+		Convert_navigator_ImageSpec_To_v1alpha1_ImageSpec,
 	)
 }
 
@@ -114,7 +118,9 @@ func autoConvert_v1alpha1_ElasticsearchClusterNodePool_To_navigator_Elasticsearc
 	out.Replicas = in.Replicas
 	out.Roles = *(*[]string)(unsafe.Pointer(&in.Roles))
 	out.Resources = (*v1.ResourceRequirements)(unsafe.Pointer(in.Resources))
-	out.Persistence = (*navigator.ElasticsearchClusterPersistenceConfig)(unsafe.Pointer(in.Persistence))
+	if err := Convert_v1alpha1_ElasticsearchClusterPersistenceConfig_To_navigator_ElasticsearchClusterPersistenceConfig(&in.Persistence, &out.Persistence, s); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -128,7 +134,9 @@ func autoConvert_navigator_ElasticsearchClusterNodePool_To_v1alpha1_Elasticsearc
 	out.Replicas = in.Replicas
 	out.Roles = *(*[]string)(unsafe.Pointer(&in.Roles))
 	out.Resources = (*v1.ResourceRequirements)(unsafe.Pointer(in.Resources))
-	out.Persistence = (*ElasticsearchClusterPersistenceConfig)(unsafe.Pointer(in.Persistence))
+	if err := Convert_navigator_ElasticsearchClusterPersistenceConfig_To_v1alpha1_ElasticsearchClusterPersistenceConfig(&in.Persistence, &out.Persistence, s); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -138,6 +146,7 @@ func Convert_navigator_ElasticsearchClusterNodePool_To_v1alpha1_ElasticsearchClu
 }
 
 func autoConvert_v1alpha1_ElasticsearchClusterPersistenceConfig_To_navigator_ElasticsearchClusterPersistenceConfig(in *ElasticsearchClusterPersistenceConfig, out *navigator.ElasticsearchClusterPersistenceConfig, s conversion.Scope) error {
+	out.Enabled = in.Enabled
 	out.Size = in.Size
 	out.StorageClass = in.StorageClass
 	return nil
@@ -149,6 +158,7 @@ func Convert_v1alpha1_ElasticsearchClusterPersistenceConfig_To_navigator_Elastic
 }
 
 func autoConvert_navigator_ElasticsearchClusterPersistenceConfig_To_v1alpha1_ElasticsearchClusterPersistenceConfig(in *navigator.ElasticsearchClusterPersistenceConfig, out *ElasticsearchClusterPersistenceConfig, s conversion.Scope) error {
+	out.Enabled = in.Enabled
 	out.Size = in.Size
 	out.StorageClass = in.StorageClass
 	return nil
@@ -180,9 +190,11 @@ func Convert_navigator_ElasticsearchClusterPlugin_To_v1alpha1_ElasticsearchClust
 }
 
 func autoConvert_v1alpha1_ElasticsearchClusterSpec_To_navigator_ElasticsearchClusterSpec(in *ElasticsearchClusterSpec, out *navigator.ElasticsearchClusterSpec, s conversion.Scope) error {
-	out.Version = in.Version
 	out.Plugins = *(*[]navigator.ElasticsearchClusterPlugin)(unsafe.Pointer(&in.Plugins))
 	out.NodePools = *(*[]navigator.ElasticsearchClusterNodePool)(unsafe.Pointer(&in.NodePools))
+	if err := Convert_v1alpha1_ElasticsearchPilotImage_To_navigator_ElasticsearchPilotImage(&in.Pilot, &out.Pilot, s); err != nil {
+		return err
+	}
 	if err := Convert_v1alpha1_ElasticsearchImage_To_navigator_ElasticsearchImage(&in.Image, &out.Image, s); err != nil {
 		return err
 	}
@@ -196,9 +208,11 @@ func Convert_v1alpha1_ElasticsearchClusterSpec_To_navigator_ElasticsearchCluster
 }
 
 func autoConvert_navigator_ElasticsearchClusterSpec_To_v1alpha1_ElasticsearchClusterSpec(in *navigator.ElasticsearchClusterSpec, out *ElasticsearchClusterSpec, s conversion.Scope) error {
-	out.Version = in.Version
 	out.Plugins = *(*[]ElasticsearchClusterPlugin)(unsafe.Pointer(&in.Plugins))
 	out.NodePools = *(*[]ElasticsearchClusterNodePool)(unsafe.Pointer(&in.NodePools))
+	if err := Convert_navigator_ElasticsearchPilotImage_To_v1alpha1_ElasticsearchPilotImage(&in.Pilot, &out.Pilot, s); err != nil {
+		return err
+	}
 	if err := Convert_navigator_ElasticsearchImage_To_v1alpha1_ElasticsearchImage(&in.Image, &out.Image, s); err != nil {
 		return err
 	}
@@ -230,9 +244,9 @@ func Convert_navigator_ElasticsearchClusterStatus_To_v1alpha1_ElasticsearchClust
 }
 
 func autoConvert_v1alpha1_ElasticsearchImage_To_navigator_ElasticsearchImage(in *ElasticsearchImage, out *navigator.ElasticsearchImage, s conversion.Scope) error {
-	out.Repository = in.Repository
-	out.Tag = in.Tag
-	out.PullPolicy = in.PullPolicy
+	if err := Convert_v1alpha1_ImageSpec_To_navigator_ImageSpec(&in.ImageSpec, &out.ImageSpec, s); err != nil {
+		return err
+	}
 	out.FsGroup = in.FsGroup
 	return nil
 }
@@ -243,9 +257,9 @@ func Convert_v1alpha1_ElasticsearchImage_To_navigator_ElasticsearchImage(in *Ela
 }
 
 func autoConvert_navigator_ElasticsearchImage_To_v1alpha1_ElasticsearchImage(in *navigator.ElasticsearchImage, out *ElasticsearchImage, s conversion.Scope) error {
-	out.Repository = in.Repository
-	out.Tag = in.Tag
-	out.PullPolicy = in.PullPolicy
+	if err := Convert_navigator_ImageSpec_To_v1alpha1_ImageSpec(&in.ImageSpec, &out.ImageSpec, s); err != nil {
+		return err
+	}
 	out.FsGroup = in.FsGroup
 	return nil
 }
@@ -253,4 +267,52 @@ func autoConvert_navigator_ElasticsearchImage_To_v1alpha1_ElasticsearchImage(in 
 // Convert_navigator_ElasticsearchImage_To_v1alpha1_ElasticsearchImage is an autogenerated conversion function.
 func Convert_navigator_ElasticsearchImage_To_v1alpha1_ElasticsearchImage(in *navigator.ElasticsearchImage, out *ElasticsearchImage, s conversion.Scope) error {
 	return autoConvert_navigator_ElasticsearchImage_To_v1alpha1_ElasticsearchImage(in, out, s)
+}
+
+func autoConvert_v1alpha1_ElasticsearchPilotImage_To_navigator_ElasticsearchPilotImage(in *ElasticsearchPilotImage, out *navigator.ElasticsearchPilotImage, s conversion.Scope) error {
+	if err := Convert_v1alpha1_ImageSpec_To_navigator_ImageSpec(&in.ImageSpec, &out.ImageSpec, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_v1alpha1_ElasticsearchPilotImage_To_navigator_ElasticsearchPilotImage is an autogenerated conversion function.
+func Convert_v1alpha1_ElasticsearchPilotImage_To_navigator_ElasticsearchPilotImage(in *ElasticsearchPilotImage, out *navigator.ElasticsearchPilotImage, s conversion.Scope) error {
+	return autoConvert_v1alpha1_ElasticsearchPilotImage_To_navigator_ElasticsearchPilotImage(in, out, s)
+}
+
+func autoConvert_navigator_ElasticsearchPilotImage_To_v1alpha1_ElasticsearchPilotImage(in *navigator.ElasticsearchPilotImage, out *ElasticsearchPilotImage, s conversion.Scope) error {
+	if err := Convert_navigator_ImageSpec_To_v1alpha1_ImageSpec(&in.ImageSpec, &out.ImageSpec, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_navigator_ElasticsearchPilotImage_To_v1alpha1_ElasticsearchPilotImage is an autogenerated conversion function.
+func Convert_navigator_ElasticsearchPilotImage_To_v1alpha1_ElasticsearchPilotImage(in *navigator.ElasticsearchPilotImage, out *ElasticsearchPilotImage, s conversion.Scope) error {
+	return autoConvert_navigator_ElasticsearchPilotImage_To_v1alpha1_ElasticsearchPilotImage(in, out, s)
+}
+
+func autoConvert_v1alpha1_ImageSpec_To_navigator_ImageSpec(in *ImageSpec, out *navigator.ImageSpec, s conversion.Scope) error {
+	out.Repository = in.Repository
+	out.Tag = in.Tag
+	out.PullPolicy = in.PullPolicy
+	return nil
+}
+
+// Convert_v1alpha1_ImageSpec_To_navigator_ImageSpec is an autogenerated conversion function.
+func Convert_v1alpha1_ImageSpec_To_navigator_ImageSpec(in *ImageSpec, out *navigator.ImageSpec, s conversion.Scope) error {
+	return autoConvert_v1alpha1_ImageSpec_To_navigator_ImageSpec(in, out, s)
+}
+
+func autoConvert_navigator_ImageSpec_To_v1alpha1_ImageSpec(in *navigator.ImageSpec, out *ImageSpec, s conversion.Scope) error {
+	out.Repository = in.Repository
+	out.Tag = in.Tag
+	out.PullPolicy = in.PullPolicy
+	return nil
+}
+
+// Convert_navigator_ImageSpec_To_v1alpha1_ImageSpec is an autogenerated conversion function.
+func Convert_navigator_ImageSpec_To_v1alpha1_ImageSpec(in *navigator.ImageSpec, out *ImageSpec, s conversion.Scope) error {
+	return autoConvert_navigator_ImageSpec_To_v1alpha1_ImageSpec(in, out, s)
 }

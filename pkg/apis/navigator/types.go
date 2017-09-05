@@ -38,9 +38,9 @@ type ElasticsearchClusterList struct {
 }
 
 type ElasticsearchClusterSpec struct {
-	Version   string
 	Plugins   []ElasticsearchClusterPlugin
 	NodePools []ElasticsearchClusterNodePool
+	Pilot     ElasticsearchPilotImage
 	Image     ElasticsearchImage
 	Sysctl    []string
 }
@@ -54,17 +54,26 @@ type ElasticsearchClusterNodePool struct {
 	Replicas    int32
 	Roles       []string
 	Resources   *v1.ResourceRequirements
-	Persistence *ElasticsearchClusterPersistenceConfig
+	Persistence ElasticsearchClusterPersistenceConfig
 }
 
 type ElasticsearchClusterPersistenceConfig struct {
+	Enabled      bool
 	Size         string
 	StorageClass string
 }
 
-type ElasticsearchImage struct {
+type ImageSpec struct {
 	Repository string
 	Tag        string
 	PullPolicy string
-	FsGroup    int64
+}
+
+type ElasticsearchPilotImage struct {
+	ImageSpec
+}
+
+type ElasticsearchImage struct {
+	ImageSpec
+	FsGroup int64
 }
