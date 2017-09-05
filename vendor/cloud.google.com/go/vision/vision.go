@@ -18,6 +18,7 @@ import (
 	"image/color"
 	"math"
 
+	"cloud.google.com/go/internal/version"
 	vkit "cloud.google.com/go/vision/apiv1"
 	"golang.org/x/net/context"
 	"google.golang.org/api/option"
@@ -30,16 +31,18 @@ const Scope = "https://www.googleapis.com/auth/cloud-platform"
 
 // Client is a Google Cloud Vision API client.
 type Client struct {
-	client *vkit.Client
+	client *vkit.ImageAnnotatorClient
 }
 
 // NewClient creates a new vision client.
+//
+// Deprecated: Use NewImageAnnotatorClient from cloud.google.com/go/vision/apiv1 instead.
 func NewClient(ctx context.Context, opts ...option.ClientOption) (*Client, error) {
-	c, err := vkit.NewClient(ctx, opts...)
+	c, err := vkit.NewImageAnnotatorClient(ctx, opts...)
 	if err != nil {
 		return nil, err
 	}
-	c.SetGoogleClientInfo("vision", "0.1.0")
+	c.SetGoogleClientInfo("gccl", version.Repo)
 	return &Client{client: c}, nil
 }
 
@@ -48,7 +51,7 @@ func (c *Client) Close() error {
 	return c.client.Close()
 }
 
-// Annotate annotates multiple images, each with a potentially differeent set
+// Annotate annotates multiple images, each with a potentially different set
 // of features.
 func (c *Client) Annotate(ctx context.Context, requests ...*AnnotateRequest) ([]*Annotations, error) {
 	var reqs []*pb.AnnotateImageRequest
@@ -79,16 +82,23 @@ type AnnotateRequest struct {
 	// MaxLogos is the maximum number of logos to detect in the image.
 	// Specifying a number greater than zero enables logo detection.
 	MaxLogos int
-	// MaxLabels is the maximum number of logos to detect in the image.
-	// Specifying a number greater than zero enables logo detection.
+	// MaxLabels is the maximum number of labels to detect in the image.
+	// Specifying a number greater than zero enables labels detection.
 	MaxLabels int
 	// MaxTexts is the maximum number of separate pieces of text to detect in the
 	// image. Specifying a number greater than zero enables text detection.
 	MaxTexts int
+	// DocumentText specifies whether a dense text document OCR should be run
+	// on the image. When true, takes precedence over MaxTexts.
+	DocumentText bool
 	// SafeSearch specifies whether a safe-search detection should be run on the image.
 	SafeSearch bool
 	// ImageProps specifies whether image properties should be obtained for the image.
 	ImageProps bool
+	// Web specifies whether web annotations should be obtained for the image.
+	Web bool
+	// CropHints specifies whether crop hints should be computed for the image.
+	CropHints *CropHintsParams
 }
 
 func (ar *AnnotateRequest) toProto() *pb.AnnotateImageRequest {
@@ -118,17 +128,43 @@ func (ar *AnnotateRequest) toProto() *pb.AnnotateImageRequest {
 	if ar.MaxTexts > 0 {
 		add(pb.Feature_TEXT_DETECTION, ar.MaxTexts)
 	}
+	if ar.DocumentText {
+		add(pb.Feature_DOCUMENT_TEXT_DETECTION, 0)
+	}
 	if ar.SafeSearch {
 		add(pb.Feature_SAFE_SEARCH_DETECTION, 0)
 	}
 	if ar.ImageProps {
 		add(pb.Feature_IMAGE_PROPERTIES, 0)
 	}
+	if ar.Web {
+		add(pb.Feature_WEB_DETECTION, 0)
+	}
+	if ar.CropHints != nil {
+		add(pb.Feature_CROP_HINTS, 0)
+		if ictx == nil {
+			ictx = &pb.ImageContext{}
+		}
+		ictx.CropHintsParams = &pb.CropHintsParams{
+			AspectRatios: ar.CropHints.AspectRatios,
+		}
+	}
 	return &pb.AnnotateImageRequest{
 		Image:        img,
 		Features:     features,
 		ImageContext: ictx,
 	}
+}
+
+// CropHintsParams are parameters for a request for crop hints.
+type CropHintsParams struct {
+	// Aspect ratios for desired crop hints, representing the ratio of the
+	// width to the height of the image. For example, if the desired aspect
+	// ratio is 4:3, the corresponding float value should be 1.33333. If not
+	// specified, the best possible crop is returned. The number of provided
+	// aspect ratios is limited to a maximum of 16; any aspect ratios provided
+	// after the 16th are ignored.
+	AspectRatios []float32
 }
 
 // Called for a single image and a single feature.
@@ -140,10 +176,7 @@ func (c *Client) annotateOne(ctx context.Context, req *AnnotateRequest) (*Annota
 	anns := annsSlice[0]
 	// When there is only one image and one feature, the Annotations.Error field is
 	// unambiguously about that one detection, so we "promote" it to the error return value.
-	if anns.Error != nil {
-		return nil, anns.Error
-	}
-	return anns, nil
+	return anns, anns.Error
 }
 
 // TODO(jba): add examples for all single-feature functions (below).
@@ -198,6 +231,15 @@ func (c *Client) DetectTexts(ctx context.Context, img *Image, maxResults int) ([
 	return anns.Texts, nil
 }
 
+// DetectDocumentText performs full text (OCR) detection on the image.
+func (c *Client) DetectDocumentText(ctx context.Context, img *Image) (*TextAnnotation, error) {
+	anns, err := c.annotateOne(ctx, &AnnotateRequest{Image: img, DocumentText: true})
+	if err != nil {
+		return nil, err
+	}
+	return anns.FullText, nil
+}
+
 // DetectSafeSearch performs safe-search detection on the image.
 func (c *Client) DetectSafeSearch(ctx context.Context, img *Image) (*SafeSearchAnnotation, error) {
 	anns, err := c.annotateOne(ctx, &AnnotateRequest{Image: img, SafeSearch: true})
@@ -214,6 +256,30 @@ func (c *Client) DetectImageProps(ctx context.Context, img *Image) (*ImageProps,
 		return nil, err
 	}
 	return anns.ImageProps, nil
+}
+
+// DetectWeb computes a web annotation on the image.
+func (c *Client) DetectWeb(ctx context.Context, img *Image) (*WebDetection, error) {
+	anns, err := c.annotateOne(ctx, &AnnotateRequest{Image: img, Web: true})
+	if err != nil {
+		return nil, err
+	}
+	return anns.Web, nil
+}
+
+// CropHints computes crop hints for the image.
+func (c *Client) CropHints(ctx context.Context, img *Image, params *CropHintsParams) ([]*CropHint, error) {
+	// A nil AnnotateRequest.CropHints means do not perform CropHints. But
+	// here the user is explicitly asking for CropHints, so treat nil as
+	// an empty CropHintsParams.
+	if params == nil {
+		params = &CropHintsParams{}
+	}
+	anns, err := c.annotateOne(ctx, &AnnotateRequest{Image: img, CropHints: params})
+	if err != nil {
+		return nil, err
+	}
+	return anns.CropHints, nil
 }
 
 // A Likelihood is an approximate representation of a probability.

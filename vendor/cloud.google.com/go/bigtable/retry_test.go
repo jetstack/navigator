@@ -277,6 +277,14 @@ func TestRetainRowsAfter(t *testing.T) {
 		t.Errorf("range retry: got %v, want %v", got, want)
 	}
 
+	prevRowRangeList := RowRangeList{NewRange("a", "d"), NewRange("e", "g"), NewRange("h", "l")}
+	prevRowKey = "f"
+	wantRowRangeList := RowRangeList{NewRange("f\x00", "g"), NewRange("h", "l")}
+	got = prevRowRangeList.retainRowsAfter(prevRowKey)
+	if !reflect.DeepEqual(wantRowRangeList, got) {
+		t.Errorf("range list retry: got %v, want %v", got, wantRowRangeList)
+	}
+
 	prevRowList := RowList{"a", "b", "c", "d", "e", "f"}
 	prevRowKey = "b"
 	wantList := RowList{"c", "d", "e", "f"}
@@ -317,6 +325,9 @@ func TestRetryReadRows(t *testing.T) {
 			err = grpc.Errorf(codes.Unavailable, "")
 		case 1:
 			// Write two rows then error
+			if want, got := "a", string(req.Rows.RowRanges[0].GetStartKeyClosed()); want != got {
+				t.Errorf("first retry, no data received yet: got %q, want %q", got, want)
+			}
 			writeReadRowsResponse(ss, "a", "b")
 			err = grpc.Errorf(codes.Unavailable, "")
 		case 2:

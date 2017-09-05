@@ -15,8 +15,12 @@
 package bigquery
 
 import (
-	"reflect"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
+
+	"cloud.google.com/go/internal/pretty"
+	"cloud.google.com/go/internal/testutil"
 
 	"golang.org/x/net/context"
 )
@@ -31,28 +35,20 @@ func (ts testSaver) Save() (map[string]Value, string, error) {
 }
 
 func TestRejectsNonValueSavers(t *testing.T) {
-	u := Uploader{t: defaultTable(nil)}
-
-	testCases := []struct {
-		src interface{}
-	}{
-		{
-			src: 1,
+	client := &Client{projectID: "project-id"}
+	u := Uploader{t: client.Dataset("dataset-id").Table("table-id")}
+	inputs := []interface{}{
+		1,
+		[]int{1, 2},
+		[]interface{}{
+			testSaver{ir: &insertionRow{"a", map[string]Value{"one": 1}}},
+			1,
 		},
-		{
-			src: []int{1, 2},
-		},
-		{
-			src: []interface{}{
-				testSaver{ir: &insertionRow{"a", map[string]Value{"one": 1}}},
-				1,
-			},
-		},
+		StructSaver{},
 	}
-
-	for _, tc := range testCases {
-		if err := u.Put(context.Background(), tc.src); err == nil {
-			t.Errorf("put value: %v; got err: %v; want nil", tc.src, err)
+	for _, in := range inputs {
+		if err := u.Put(context.Background(), in); err == nil {
+			t.Errorf("put value: %v; got nil, want error", in)
 		}
 	}
 }
@@ -68,12 +64,6 @@ func (irr *insertRowsRecorder) insertRows(ctx context.Context, projectID, datase
 }
 
 func TestInsertsData(t *testing.T) {
-	table := &Table{
-		ProjectID: "project-id",
-		DatasetID: "dataset-id",
-		TableID:   "table-id",
-	}
-
 	testCases := []struct {
 		data [][]*insertionRow
 	}{
@@ -120,8 +110,11 @@ func TestInsertsData(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		irr := &insertRowsRecorder{}
-		table.service = irr
-		u := Uploader{t: table}
+		client := &Client{
+			projectID: "project-id",
+			service:   irr,
+		}
+		u := client.Dataset("dataset-id").Table("table-id").Uploader()
 		for _, batch := range tc.data {
 			if len(batch) == 0 {
 				continue
@@ -142,7 +135,7 @@ func TestInsertsData(t *testing.T) {
 				t.Errorf("expected successful Put of ValueSaver; got: %v", err)
 			}
 		}
-		if got, want := irr.rowBatches, tc.data; !reflect.DeepEqual(got, want) {
+		if got, want := irr.rowBatches, tc.data; !testutil.Equal(got, want) {
 			t.Errorf("got: %v, want: %v", got, want)
 		}
 	}
@@ -161,43 +154,61 @@ func (u *uploadOptionRecorder) insertRows(ctx context.Context, projectID, datase
 func TestUploadOptionsPropagate(t *testing.T) {
 	// we don't care for the data in this testcase.
 	dummyData := testSaver{ir: &insertionRow{}}
+	recorder := new(uploadOptionRecorder)
+	c := &Client{service: recorder}
+	table := &Table{
+		ProjectID: "project-id",
+		DatasetID: "dataset-id",
+		TableID:   "table-id",
+		c:         c,
+	}
 
 	tests := [...]struct {
-		opts []UploadOption
+		ul   *Uploader
 		conf insertRowsConf
 	}{
-		{ // test zero options lead to zero value for insertRowsConf
+		{
+			// test zero options lead to zero value for insertRowsConf
+			ul: table.Uploader(),
 		},
 		{
-			opts: []UploadOption{
-				TableTemplateSuffix("suffix"),
-			},
+			ul: func() *Uploader {
+				u := table.Uploader()
+				u.TableTemplateSuffix = "suffix"
+				return u
+			}(),
 			conf: insertRowsConf{
 				templateSuffix: "suffix",
 			},
 		},
 		{
-			opts: []UploadOption{
-				UploadIgnoreUnknownValues(),
-			},
+			ul: func() *Uploader {
+				u := table.Uploader()
+				u.IgnoreUnknownValues = true
+				return u
+			}(),
 			conf: insertRowsConf{
 				ignoreUnknownValues: true,
 			},
 		},
 		{
-			opts: []UploadOption{
-				SkipInvalidRows(),
-			},
+			ul: func() *Uploader {
+				u := table.Uploader()
+				u.SkipInvalidRows = true
+				return u
+			}(),
 			conf: insertRowsConf{
 				skipInvalidRows: true,
 			},
 		},
 		{ // multiple upload options combine
-			opts: []UploadOption{
-				TableTemplateSuffix("suffix"),
-				SkipInvalidRows(),
-				UploadIgnoreUnknownValues(),
-			},
+			ul: func() *Uploader {
+				u := table.Uploader()
+				u.TableTemplateSuffix = "suffix"
+				u.IgnoreUnknownValues = true
+				u.SkipInvalidRows = true
+				return u
+			}(),
 			conf: insertRowsConf{
 				templateSuffix:      "suffix",
 				skipInvalidRows:     true,
@@ -207,16 +218,7 @@ func TestUploadOptionsPropagate(t *testing.T) {
 	}
 
 	for i, tc := range tests {
-		recorder := new(uploadOptionRecorder)
-		table := &Table{
-			ProjectID: "project-id",
-			DatasetID: "dataset-id",
-			TableID:   "table-id",
-			service:   recorder,
-		}
-
-		u := table.NewUploader(tc.opts...)
-		err := u.Put(context.Background(), dummyData)
+		err := tc.ul.Put(context.Background(), dummyData)
 		if err != nil {
 			t.Fatalf("%d: expected successful Put of ValueSaver; got: %v", i, err)
 		}
@@ -228,7 +230,52 @@ func TestUploadOptionsPropagate(t *testing.T) {
 		want := tc.conf
 		got := *recorder.received
 		if got != want {
-			t.Errorf("%d: got %#v, want %#v, opts=%#v", i, got, want, tc.opts)
+			t.Errorf("%d: got %#v, want %#v, ul=%#v", i, got, want, tc.ul)
+		}
+	}
+}
+
+func TestValueSavers(t *testing.T) {
+	ts := &testSaver{ir: &insertionRow{}}
+	type T struct{ I int }
+	schema, err := InferSchema(T{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, test := range []struct {
+		in   interface{}
+		want []ValueSaver
+	}{
+		{ts, []ValueSaver{ts}},
+		{T{I: 1}, []ValueSaver{&StructSaver{Schema: schema, Struct: T{I: 1}}}},
+		{[]ValueSaver{ts, ts}, []ValueSaver{ts, ts}},
+		{[]interface{}{ts, ts}, []ValueSaver{ts, ts}},
+		{[]T{{I: 1}, {I: 2}}, []ValueSaver{
+			&StructSaver{Schema: schema, Struct: T{I: 1}},
+			&StructSaver{Schema: schema, Struct: T{I: 2}},
+		}},
+		{[]interface{}{T{I: 1}, &T{I: 2}}, []ValueSaver{
+			&StructSaver{Schema: schema, Struct: T{I: 1}},
+			&StructSaver{Schema: schema, Struct: &T{I: 2}},
+		}},
+		{&StructSaver{Struct: T{I: 3}, InsertID: "foo"},
+			[]ValueSaver{
+				&StructSaver{Schema: schema, Struct: T{I: 3}, InsertID: "foo"},
+			}},
+	} {
+		got, err := valueSavers(test.in)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !testutil.Equal(got, test.want, cmp.AllowUnexported(testSaver{})) {
+			t.Errorf("%+v: got %v, want %v", test.in, pretty.Value(got), pretty.Value(test.want))
+		}
+		// Make sure Save is successful.
+		for i, vs := range got {
+			_, _, err := vs.Save()
+			if err != nil {
+				t.Fatalf("%+v, #%d: got error %v, want nil", test.in, i, err)
+			}
 		}
 	}
 }

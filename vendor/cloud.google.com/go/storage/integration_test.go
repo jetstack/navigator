@@ -18,8 +18,11 @@ import (
 	"bytes"
 	"compress/gzip"
 	"crypto/md5"
+	"crypto/sha256"
+	"encoding/base64"
 	"flag"
 	"fmt"
+	"hash/crc32"
 	"io"
 	"io/ioutil"
 	"log"
@@ -27,18 +30,22 @@ import (
 	"net/http"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
 	"golang.org/x/net/context"
 
+	"cloud.google.com/go/iam"
 	"cloud.google.com/go/internal/testutil"
 	"google.golang.org/api/googleapi"
+	"google.golang.org/api/iterator"
+	itesting "google.golang.org/api/iterator/testing"
 	"google.golang.org/api/option"
 )
 
-const testPrefix = "-go-cloud-storage-test"
+const testPrefix = "-go-test"
 
 // suffix is a timestamp-based suffix which is added to all buckets created by
 // tests. This reduces flakiness when the tests are run in parallel and allows
@@ -50,7 +57,9 @@ func TestMain(m *testing.M) {
 	exit := m.Run()
 	if integrationTest {
 		if err := cleanup(); err != nil {
-			log.Fatalf("Post-test cleanup failed: %v", err)
+			// No need to be loud if cleanup() fails; we'll get
+			// any undeleted buckets next time.
+			log.Printf("Post-test cleanup failed: %v\n", err)
 		}
 	}
 	os.Exit(exit)
@@ -112,23 +121,157 @@ func TestBucketMethods(t *testing.T) {
 
 	projectID := testutil.ProjID()
 	newBucket := bucket + "-new"
+	b := client.Bucket(newBucket)
 	// Test Create and Delete.
-	if err := client.Bucket(newBucket).Create(ctx, projectID, nil); err != nil {
-		t.Errorf("Bucket(%v).Create(%v, %v) failed: %v", newBucket, projectID, nil, err)
+	if err := b.Create(ctx, projectID, nil); err != nil {
+		t.Fatalf("Bucket(%v).Create(%v, %v) failed: %v", newBucket, projectID, nil, err)
+	}
+	attrs, err := b.Attrs(ctx)
+	if err != nil {
+		t.Error(err)
+	} else {
+		if got, want := attrs.MetaGeneration, int64(1); got != want {
+			t.Errorf("got metagen %d, want %d", got, want)
+		}
+		if got, want := attrs.StorageClass, "STANDARD"; got != want {
+			t.Errorf("got storage class %q, want %q", got, want)
+		}
+		if attrs.VersioningEnabled {
+			t.Error("got versioning enabled, wanted it disabled")
+		}
 	}
 	if err := client.Bucket(newBucket).Delete(ctx); err != nil {
 		t.Errorf("Bucket(%v).Delete failed: %v", newBucket, err)
 	}
 
 	// Test Create and Delete with attributes.
-	attrs := BucketAttrs{
-		DefaultObjectACL: []ACLRule{{Entity: "domain-google.com", Role: RoleReader}},
+	labels := map[string]string{
+		"l1":    "v1",
+		"empty": "",
 	}
-	if err := client.Bucket(newBucket).Create(ctx, projectID, &attrs); err != nil {
-		t.Errorf("Bucket(%v).Create(%v, %v) failed: %v", newBucket, projectID, attrs, err)
+	attrs = &BucketAttrs{
+		StorageClass:      "NEARLINE",
+		VersioningEnabled: true,
+		Labels:            labels,
+		Lifecycle: Lifecycle{
+			Rules: []LifecycleRule{{
+				Action: LifecycleAction{
+					Type:         SetStorageClassAction,
+					StorageClass: "NEARLINE",
+				},
+				Condition: LifecycleCondition{
+					AgeInDays:             10,
+					Liveness:              Archived,
+					CreatedBefore:         time.Date(2017, 1, 1, 0, 0, 0, 0, time.UTC),
+					MatchesStorageClasses: []string{"MULTI_REGIONAL", "STANDARD"},
+					NumNewerVersions:      3,
+				},
+			}, {
+				Action: LifecycleAction{
+					Type: DeleteAction,
+				},
+				Condition: LifecycleCondition{
+					AgeInDays:             30,
+					Liveness:              Live,
+					CreatedBefore:         time.Date(2017, 1, 1, 0, 0, 0, 0, time.UTC),
+					MatchesStorageClasses: []string{"NEARLINE"},
+					NumNewerVersions:      10,
+				},
+			}},
+		},
+	}
+	if err := client.Bucket(newBucket).Create(ctx, projectID, attrs); err != nil {
+		t.Fatalf("Bucket(%v).Create(%v, %+v) failed: %v", newBucket, projectID, attrs, err)
+	}
+	attrs, err = b.Attrs(ctx)
+	if err != nil {
+		t.Error(err)
+	} else {
+		if got, want := attrs.MetaGeneration, int64(1); got != want {
+			t.Errorf("got metagen %d, want %d", got, want)
+		}
+		if got, want := attrs.StorageClass, "NEARLINE"; got != want {
+			t.Errorf("got storage class %q, want %q", got, want)
+		}
+		if !attrs.VersioningEnabled {
+			t.Error("got versioning disabled, wanted it enabled")
+		}
+		if got, want := attrs.Labels, labels; !testutil.Equal(got, want) {
+			t.Errorf("labels: got %v, want %v", got, want)
+		}
 	}
 	if err := client.Bucket(newBucket).Delete(ctx); err != nil {
 		t.Errorf("Bucket(%v).Delete failed: %v", newBucket, err)
+	}
+}
+
+func TestIntegration_BucketUpdate(t *testing.T) {
+	ctx := context.Background()
+	client, bucket := testConfig(ctx, t)
+	defer client.Close()
+
+	b := client.Bucket(bucket)
+	attrs, err := b.Attrs(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if attrs.VersioningEnabled {
+		t.Fatal("bucket should not have versioning by default")
+	}
+	if len(attrs.Labels) > 0 {
+		t.Fatal("bucket should not have labels initially")
+	}
+
+	// Using empty BucketAttrsToUpdate should be a no-nop.
+	attrs, err = b.Update(ctx, BucketAttrsToUpdate{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if attrs.VersioningEnabled {
+		t.Fatal("should not have versioning")
+	}
+	if len(attrs.Labels) > 0 {
+		t.Fatal("should not have labels")
+	}
+
+	// Turn on versioning, add some labels.
+	ua := BucketAttrsToUpdate{VersioningEnabled: true}
+	ua.SetLabel("l1", "v1")
+	ua.SetLabel("empty", "")
+	attrs, err = b.Update(ctx, ua)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !attrs.VersioningEnabled {
+		t.Fatal("should have versioning now")
+	}
+	wantLabels := map[string]string{
+		"l1":    "v1",
+		"empty": "",
+	}
+	if !testutil.Equal(attrs.Labels, wantLabels) {
+		t.Fatalf("got %v, want %v", attrs.Labels, wantLabels)
+	}
+
+	// Turn  off versioning again; add and remove some more labels.
+	ua = BucketAttrsToUpdate{VersioningEnabled: false}
+	ua.SetLabel("l1", "v2")   // update
+	ua.SetLabel("new", "new") // create
+	ua.DeleteLabel("empty")   // delete
+	ua.DeleteLabel("absent")  // delete non-existent
+	attrs, err = b.Update(ctx, ua)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if attrs.VersioningEnabled {
+		t.Fatal("should have versioning off")
+	}
+	wantLabels = map[string]string{
+		"l1":  "v2",
+		"new": "new",
+	}
+	if !testutil.Equal(attrs.Labels, wantLabels) {
+		t.Fatalf("got %v, want %v", attrs.Labels, wantLabels)
 	}
 }
 
@@ -149,18 +292,18 @@ func TestIntegration_ConditionalDelete(t *testing.T) {
 	}
 
 	gen := wc.Attrs().Generation
-	metaGen := wc.Attrs().MetaGeneration
+	metaGen := wc.Attrs().Metageneration
 
-	if err := o.WithConditions(Generation(gen - 1)).Delete(ctx); err == nil {
+	if err := o.Generation(gen - 1).Delete(ctx); err == nil {
 		t.Fatalf("Unexpected successful delete with Generation")
 	}
-	if err := o.WithConditions(IfMetaGenerationMatch(metaGen + 1)).Delete(ctx); err == nil {
+	if err := o.If(Conditions{MetagenerationMatch: metaGen + 1}).Delete(ctx); err == nil {
 		t.Fatalf("Unexpected successful delete with IfMetaGenerationMatch")
 	}
-	if err := o.WithConditions(IfMetaGenerationNotMatch(metaGen)).Delete(ctx); err == nil {
+	if err := o.If(Conditions{MetagenerationNotMatch: metaGen}).Delete(ctx); err == nil {
 		t.Fatalf("Unexpected successful delete with IfMetaGenerationNotMatch")
 	}
-	if err := o.WithConditions(Generation(gen)).Delete(ctx); err != nil {
+	if err := o.Generation(gen).Delete(ctx); err != nil {
 		t.Fatalf("final delete failed: %v", err)
 	}
 }
@@ -189,29 +332,24 @@ func TestObjects(t *testing.T) {
 
 	// Test Writer.
 	for _, obj := range objects {
-		t.Logf("Writing %q", obj)
-		wc := bkt.Object(obj).NewWriter(ctx)
-		wc.ContentType = defaultType
 		c := randomContents()
-		if _, err := wc.Write(c); err != nil {
+		if err := writeObject(ctx, bkt.Object(obj), defaultType, c); err != nil {
 			t.Errorf("Write for %v failed with %v", obj, err)
-		}
-		if err := wc.Close(); err != nil {
-			t.Errorf("Close for %v failed with %v", obj, err)
 		}
 		contents[obj] = c
 	}
 
-	testBucketList(t, bkt, objects)
 	testObjectIterator(t, bkt, objects)
 
 	// Test Reader.
 	for _, obj := range objects {
-		t.Logf("Creating a reader to read %v", obj)
 		rc, err := bkt.Object(obj).NewReader(ctx)
 		if err != nil {
 			t.Errorf("Can't create a reader for %v, errored with %v", obj, err)
 			continue
+		}
+		if !rc.checkCRC {
+			t.Errorf("%v: not checking CRC", obj)
 		}
 		slurp, err := ioutil.ReadAll(rc)
 		if err != nil {
@@ -226,14 +364,34 @@ func TestObjects(t *testing.T) {
 		if got, want := rc.ContentType(), "text/plain"; got != want {
 			t.Errorf("ContentType (%q) = %q; want %q", obj, got, want)
 		}
+		if got, want := rc.CacheControl(), "public, max-age=60"; got != want {
+			t.Errorf("CacheControl (%q) = %q; want %q", obj, got, want)
+		}
 		rc.Close()
+
+		// Check early close.
+		buf := make([]byte, 1)
+		rc, err = bkt.Object(obj).NewReader(ctx)
+		if err != nil {
+			t.Fatalf("%v: %v", obj, err)
+		}
+		_, err = rc.Read(buf)
+		if err != nil {
+			t.Fatalf("%v: %v", obj, err)
+		}
+		if got, want := buf, contents[obj][:1]; !bytes.Equal(got, want) {
+			t.Errorf("Contents[0] (%q) = %q; want %q", obj, got, want)
+		}
+		if err := rc.Close(); err != nil {
+			t.Errorf("%v Close: %v", obj, err)
+		}
 
 		// Test SignedURL
 		opts := &SignedURLOptions{
 			GoogleAccessID: "xxx@clientid",
 			PrivateKey:     dummyKey("rsa"),
 			Method:         "GET",
-			MD5:            []byte("202cb962ac59075b964b07152d234b70"),
+			MD5:            "ICy5YqxZB1uWSwcVLSNLcA==",
 			Expires:        time.Date(2020, time.October, 2, 10, 0, 0, 0, time.UTC),
 			ContentType:    "application/json",
 			Headers:        []string{"x-header1", "x-header2"},
@@ -270,7 +428,6 @@ func TestObjects(t *testing.T) {
 		{objlen / 2, -1, objlen / 2},
 		{0, objlen * 2, objlen},
 	} {
-		t.Logf("%d: bkt.Object(%v).NewRangeReader(ctx, %d, %d)", i, obj, r.offset, r.length)
 		rc, err := bkt.Object(obj).NewRangeReader(ctx, r.offset, r.length)
 		if err != nil {
 			t.Errorf("%d: Can't create a range reader for %v, errored with %v", i, obj, err)
@@ -372,33 +529,82 @@ func TestObjects(t *testing.T) {
 
 	// Test object copy.
 	copyName := "copy-" + objName
-	copyObj, err := bkt.Object(objName).CopyTo(ctx, bkt.Object(copyName), nil)
+	copyObj, err := bkt.Object(copyName).CopierFrom(bkt.Object(objName)).Run(ctx)
 	if err != nil {
-		t.Errorf("CopyTo failed with %v", err)
+		t.Errorf("Copier.Run failed with %v", err)
+	} else if !namesEqual(copyObj, bucket, copyName) {
+		t.Errorf("Copy object bucket, name: got %q.%q, want %q.%q",
+			copyObj.Bucket, copyObj.Name, bucket, copyName)
 	}
-	if copyObj.Name != copyName {
-		t.Errorf("Copy object's name = %q; want %q", copyObj.Name, copyName)
-	}
-	if copyObj.Bucket != bucket {
-		t.Errorf("Copy object's bucket = %q; want %q", copyObj.Bucket, bucket)
+
+	// Copying with attributes.
+	const contentEncoding = "identity"
+	copier := bkt.Object(copyName).CopierFrom(bkt.Object(objName))
+	copier.ContentEncoding = contentEncoding
+	copyObj, err = copier.Run(ctx)
+	if err != nil {
+		t.Errorf("Copier.Run failed with %v", err)
+	} else {
+		if !namesEqual(copyObj, bucket, copyName) {
+			t.Errorf("Copy object bucket, name: got %q.%q, want %q.%q",
+				copyObj.Bucket, copyObj.Name, bucket, copyName)
+		}
+		if copyObj.ContentEncoding != contentEncoding {
+			t.Errorf("Copy ContentEncoding: got %q, want %q", copyObj.ContentEncoding, contentEncoding)
+		}
 	}
 
 	// Test UpdateAttrs.
-	updated, err := bkt.Object(objName).Update(ctx, ObjectAttrs{
-		ContentType: "text/html",
-		ACL:         []ACLRule{{Entity: "domain-google.com", Role: RoleReader}},
+	metadata := map[string]string{"key": "value"}
+	updated, err := bkt.Object(objName).Update(ctx, ObjectAttrsToUpdate{
+		ContentType:     "text/html",
+		ContentLanguage: "en",
+		Metadata:        metadata,
+		ACL:             []ACLRule{{Entity: "domain-google.com", Role: RoleReader}},
 	})
 	if err != nil {
 		t.Errorf("UpdateAttrs failed with %v", err)
+	} else {
+		if got, want := updated.ContentType, "text/html"; got != want {
+			t.Errorf("updated.ContentType == %q; want %q", got, want)
+		}
+		if got, want := updated.ContentLanguage, "en"; got != want {
+			t.Errorf("updated.ContentLanguage == %q; want %q", updated.ContentLanguage, want)
+		}
+		if got, want := updated.Metadata, metadata; !testutil.Equal(got, want) {
+			t.Errorf("updated.Metadata == %+v; want %+v", updated.Metadata, want)
+		}
+		if got, want := updated.Created, created; got != want {
+			t.Errorf("updated.Created == %q; want %q", got, want)
+		}
+		if !updated.Created.Before(updated.Updated) {
+			t.Errorf("updated.Updated should be newer than update.Created")
+		}
 	}
-	if want := "text/html"; updated.ContentType != want {
-		t.Errorf("updated.ContentType == %q; want %q", updated.ContentType, want)
-	}
-	if want := created; updated.Created != want {
-		t.Errorf("updated.Created == %q; want %q", updated.Created, want)
-	}
-	if !updated.Created.Before(updated.Updated) {
-		t.Errorf("updated.Updated should be newer than update.Created")
+	// Delete ContentType and ContentLanguage.
+	updated, err = bkt.Object(objName).Update(ctx, ObjectAttrsToUpdate{
+		ContentType:     "",
+		ContentLanguage: "",
+		Metadata:        map[string]string{},
+	})
+	if err != nil {
+		t.Errorf("UpdateAttrs failed with %v", err)
+	} else {
+		if got, want := updated.ContentType, ""; got != want {
+			t.Errorf("updated.ContentType == %q; want %q", got, want)
+		}
+		if got, want := updated.ContentLanguage, ""; got != want {
+			t.Errorf("updated.ContentLanguage == %q; want %q", updated.ContentLanguage, want)
+		}
+		if updated.Metadata != nil {
+			t.Errorf("updated.Metadata == %+v; want nil", updated.Metadata)
+		}
+		if got, want := updated.Created, created; got != want {
+			t.Errorf("updated.Created == %q; want %q", got, want)
+		}
+		if !updated.Created.Before(updated.Updated) {
+			t.Errorf("updated.Updated should be newer than update.Created")
+		}
 	}
 
 	// Test checksums.
@@ -455,18 +661,13 @@ func TestObjects(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rc, err := publicClient.Bucket(bucket).Object(publicObj).NewReader(ctx)
+
+	slurp, err := readObject(ctx, publicClient.Bucket(bucket).Object(publicObj))
 	if err != nil {
-		t.Error(err)
-	}
-	slurp, err := ioutil.ReadAll(rc)
-	if err != nil {
-		t.Errorf("ReadAll failed with %v", err)
-	}
-	if !bytes.Equal(slurp, contents[publicObj]) {
+		t.Errorf("readObject failed with %v", err)
+	} else if !bytes.Equal(slurp, contents[publicObj]) {
 		t.Errorf("Public object's content: got %q, want %q", slurp, contents[publicObj])
 	}
-	rc.Close()
 
 	// Test writer error handling.
 	wc := publicClient.Bucket(bucket).Object(publicObj).NewWriter(ctx)
@@ -491,59 +692,50 @@ func TestObjects(t *testing.T) {
 	}
 
 	// Test object composition.
-	compDst := bkt.Object("composed")
 	var compSrcs []*ObjectHandle
 	var wantContents []byte
 	for _, obj := range objects {
 		compSrcs = append(compSrcs, bkt.Object(obj))
 		wantContents = append(wantContents, contents[obj]...)
 	}
-	if _, err := compDst.ComposeFrom(ctx, compSrcs, &ObjectAttrs{
-		ContentType: "text/json",
-	}); err != nil {
+	checkCompose := func(obj *ObjectHandle, wantContentType string) {
+		rc, err := obj.NewReader(ctx)
+		if err != nil {
+			t.Fatalf("NewReader: %v", err)
+		}
+		slurp, err = ioutil.ReadAll(rc)
+		if err != nil {
+			t.Fatalf("ioutil.ReadAll: %v", err)
+		}
+		defer rc.Close()
+		if !bytes.Equal(slurp, wantContents) {
+			t.Errorf("Composed object contents\ngot:  %q\nwant: %q", slurp, wantContents)
+		}
+		if got := rc.ContentType(); got != wantContentType {
+			t.Errorf("Composed object content-type = %q, want %q", got, wantContentType)
+		}
+	}
+
+	// Compose should work even if the user sets no destination attributes.
+	compDst := bkt.Object("composed1")
+	c := compDst.ComposerFrom(compSrcs...)
+	if _, err := c.Run(ctx); err != nil {
 		t.Fatalf("ComposeFrom error: %v", err)
 	}
-	rc, err = compDst.NewReader(ctx)
-	if err != nil {
-		t.Fatalf("compDst.NewReader: %v", err)
+	checkCompose(compDst, "application/octet-stream")
+
+	// It should also work if we do.
+	compDst = bkt.Object("composed2")
+	c = compDst.ComposerFrom(compSrcs...)
+	c.ContentType = "text/json"
+	if _, err := c.Run(ctx); err != nil {
+		t.Fatalf("ComposeFrom error: %v", err)
 	}
-	slurp, err = ioutil.ReadAll(rc)
-	if err != nil {
-		t.Fatalf("compDst ioutil.ReadAll: %v", err)
-	}
-	defer rc.Close()
-	if !bytes.Equal(slurp, wantContents) {
-		t.Errorf("Composed object contents\ngot:  %q\nwant: %q", slurp, wantContents)
-	}
-	if got, want := rc.ContentType(), "text/json"; got != want {
-		t.Errorf("Composed object content-type = %q, want %q", got, want)
-	}
+	checkCompose(compDst, "text/json")
 }
 
-func testBucketList(t *testing.T, bkt *BucketHandle, objects []string) {
-	ctx := context.Background()
-	q := &Query{Prefix: "obj"}
-	missing := map[string]bool{}
-	for _, o := range objects {
-		missing[o] = true
-	}
-	for {
-		objs, err := bkt.List(ctx, q)
-		if err != nil {
-			t.Errorf("List: unexpected error: %v", err)
-			break
-		}
-		for _, oa := range objs.Results {
-			delete(missing, oa.Name)
-		}
-		if objs.Next == nil {
-			break
-		}
-		q = objs.Next
-	}
-	if len(missing) > 0 {
-		t.Errorf("bucket.List: missing %v", missing)
-	}
+func namesEqual(obj *ObjectAttrs, bucketName, objectName string) bool {
+	return obj.Bucket == bucketName && obj.Name == objectName
 }
 
 func testObjectIterator(t *testing.T, bkt *BucketHandle, objects []string) {
@@ -561,14 +753,12 @@ func testObjectIterator(t *testing.T, bkt *BucketHandle, objects []string) {
 		}
 		attrs = append(attrs, attr)
 	}
-
-	it := bkt.Objects(ctx, &Query{Prefix: "obj"})
-	msg, ok := testutil.TestIteratorNext(attrs, Done, func() (interface{}, error) { return it.Next() })
+	msg, ok := itesting.TestIterator(attrs,
+		func() interface{} { return bkt.Objects(ctx, &Query{Prefix: "obj"}) },
+		func(it interface{}) (interface{}, error) { return it.(*ObjectIterator).Next() })
 	if !ok {
 		t.Errorf("ObjectIterator.Next: %s", msg)
 	}
-
-	// TODO(jba): test pagination.
 	// TODO(jba): test query.Delimiter != ""
 }
 
@@ -592,14 +782,9 @@ func TestACL(t *testing.T) {
 	}
 	aclObjects := []string{"acl1", "acl2"}
 	for _, obj := range aclObjects {
-		t.Logf("Writing %v", obj)
-		wc := bkt.Object(obj).NewWriter(ctx)
 		c := randomContents()
-		if _, err := wc.Write(c); err != nil {
+		if err := writeObject(ctx, bkt.Object(obj), "", c); err != nil {
 			t.Errorf("Write for %v failed with %v", obj, err)
-		}
-		if err := wc.Close(); err != nil {
-			t.Errorf("Close for %v failed with %v", obj, err)
 		}
 	}
 	name := aclObjects[0]
@@ -660,13 +845,8 @@ func TestValidObjectNames(t *testing.T) {
 		strings.Repeat("a", 1024),
 	}
 	for _, name := range validNames {
-		w := bkt.Object(name).NewWriter(ctx)
-		if _, err := w.Write([]byte("data")); err != nil {
+		if err := writeObject(ctx, bkt.Object(name), "", []byte("data")); err != nil {
 			t.Errorf("Object %q write failed: %v. Want success", name, err)
-			continue
-		}
-		if err := w.Close(); err != nil {
-			t.Errorf("Object %q close failed: %v. Want success", name, err)
 			continue
 		}
 		defer bkt.Object(name).Delete(ctx)
@@ -679,12 +859,8 @@ func TestValidObjectNames(t *testing.T) {
 		"bad\xffunicode",
 	}
 	for _, name := range invalidNames {
-		w := bkt.Object(name).NewWriter(ctx)
 		// Invalid object names will either cause failure during Write or Close.
-		if _, err := w.Write([]byte("data")); err != nil {
-			continue
-		}
-		if err := w.Close(); err != nil {
+		if err := writeObject(ctx, bkt.Object(name), "", []byte("data")); err != nil {
 			continue
 		}
 		defer bkt.Object(name).Delete(ctx)
@@ -721,14 +897,9 @@ func TestWriterContentType(t *testing.T) {
 			wantType: "image/jpeg",
 		},
 	}
-	for _, tt := range testCases {
-		w := obj.NewWriter(ctx)
-		w.ContentType = tt.setType
-		if _, err := w.Write([]byte(tt.content)); err != nil {
-			t.Errorf("w.Write: %v", err)
-		}
-		if err := w.Close(); err != nil {
-			t.Errorf("w.Close: %v", err)
+	for i, tt := range testCases {
+		if err := writeObject(ctx, obj, tt.setType, []byte(tt.content)); err != nil {
+			t.Errorf("writing #%d: %v", i, err)
 		}
 		attrs, err := obj.Attrs(ctx)
 		if err != nil {
@@ -742,6 +913,7 @@ func TestWriterContentType(t *testing.T) {
 }
 
 func TestZeroSizedObject(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	client, bucket := testConfig(ctx, t)
 	defer client.Close()
@@ -756,18 +928,546 @@ func TestZeroSizedObject(t *testing.T) {
 	defer obj.Delete(ctx)
 
 	// Check we can read it too.
-	r, err := obj.NewReader(ctx)
+	body, err := readObject(ctx, obj)
 	if err != nil {
-		t.Fatalf("NewReader: %v", err)
-	}
-	defer r.Close()
-	body, err := ioutil.ReadAll(r)
-	if err != nil {
-		t.Fatalf("ioutil.ReadAll: %v", err)
+		t.Fatalf("readObject: %v", err)
 	}
 	if len(body) != 0 {
 		t.Errorf("Body is %v, want empty []byte{}", body)
 	}
+}
+
+func TestIntegration_Encryption(t *testing.T) {
+	// This function tests customer-supplied encryption keys for all operations
+	// involving objects. Bucket and ACL operations aren't tested because they
+	// aren't affected by customer encryption. Neither is deletion.
+	ctx := context.Background()
+	client, bucket := testConfig(ctx, t)
+	defer client.Close()
+
+	obj := client.Bucket(bucket).Object("customer-encryption")
+	key := []byte("my-secret-AES-256-encryption-key")
+	keyHash := sha256.Sum256(key)
+	keyHashB64 := base64.StdEncoding.EncodeToString(keyHash[:])
+	key2 := []byte("My-Secret-AES-256-Encryption-Key")
+	contents := "top secret."
+
+	checkMetadataCall := func(msg string, f func(o *ObjectHandle) (*ObjectAttrs, error)) {
+		// Performing a metadata operation without the key should succeed.
+		attrs, err := f(obj)
+		if err != nil {
+			t.Fatalf("%s: %v", msg, err)
+		}
+		// The key hash should match...
+		if got, want := attrs.CustomerKeySHA256, keyHashB64; got != want {
+			t.Errorf("%s: key hash: got %q, want %q", msg, got, want)
+		}
+		// ...but CRC and MD5 should not be present.
+		if attrs.CRC32C != 0 {
+			t.Errorf("%s: CRC: got %v, want 0", msg, attrs.CRC32C)
+		}
+		if len(attrs.MD5) > 0 {
+			t.Errorf("%s: MD5: got %v, want len == 0", msg, attrs.MD5)
+		}
+
+		// Performing a metadata operation with the key should succeed.
+		attrs, err = f(obj.Key(key))
+		if err != nil {
+			t.Fatalf("%s: %v", msg, err)
+		}
+		// Check the key and content hashes.
+		if got, want := attrs.CustomerKeySHA256, keyHashB64; got != want {
+			t.Errorf("%s: key hash: got %q, want %q", msg, got, want)
+		}
+		if attrs.CRC32C == 0 {
+			t.Errorf("%s: CRC: got 0, want non-zero", msg)
+		}
+		if len(attrs.MD5) == 0 {
+			t.Errorf("%s: MD5: got len == 0, want len > 0", msg)
+		}
+	}
+
+	checkRead := func(msg string, o *ObjectHandle, k []byte, wantContents string) {
+		// Reading the object without the key should fail.
+		if _, err := readObject(ctx, o); err == nil {
+			t.Errorf("%s: reading without key: want error, got nil", msg)
+		}
+		// Reading the object with the key should succeed.
+		got, err := readObject(ctx, o.Key(k))
+		if err != nil {
+			t.Fatalf("%s: %v", msg, err)
+		}
+		gotContents := string(got)
+		// And the contents should match what we wrote.
+		if gotContents != wantContents {
+			t.Errorf("%s: contents: got %q, want %q", msg, gotContents, wantContents)
+		}
+	}
+
+	checkReadUnencrypted := func(msg string, obj *ObjectHandle, wantContents string) {
+		got, err := readObject(ctx, obj)
+		if err != nil {
+			t.Fatalf("%s: %v", msg, err)
+		}
+		gotContents := string(got)
+		if gotContents != wantContents {
+			t.Errorf("%s: got %q, want %q", gotContents, wantContents)
+		}
+	}
+
+	// Write to obj using our own encryption key, which is a valid 32-byte
+	// AES-256 key.
+	w := obj.Key(key).NewWriter(ctx)
+	w.Write([]byte(contents))
+	if err := w.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	checkMetadataCall("Attrs", func(o *ObjectHandle) (*ObjectAttrs, error) {
+		return o.Attrs(ctx)
+	})
+
+	checkMetadataCall("Update", func(o *ObjectHandle) (*ObjectAttrs, error) {
+		return o.Update(ctx, ObjectAttrsToUpdate{ContentLanguage: "en"})
+	})
+
+	checkRead("first object", obj, key, contents)
+
+	obj2 := client.Bucket(bucket).Object("customer-encryption-2")
+	// Copying an object without the key should fail.
+	if _, err := obj2.CopierFrom(obj).Run(ctx); err == nil {
+		t.Fatal("want error, got nil")
+	}
+	// Copying an object with the key should succeed.
+	if _, err := obj2.CopierFrom(obj.Key(key)).Run(ctx); err != nil {
+		t.Fatal(err)
+	}
+	// The destination object is not encrypted; we can read it without a key.
+	checkReadUnencrypted("copy dest", obj2, contents)
+
+	// Providing a key on the destination but not the source should fail,
+	// since the source is encrypted.
+	if _, err := obj2.Key(key2).CopierFrom(obj).Run(ctx); err == nil {
+		t.Fatal("want error, got nil")
+	}
+
+	// But copying with keys for both source and destination should succeed.
+	if _, err := obj2.Key(key2).CopierFrom(obj.Key(key)).Run(ctx); err != nil {
+		t.Fatal(err)
+	}
+	// And the destination should be encrypted, meaning we can only read it
+	// with a key.
+	checkRead("copy destination", obj2, key2, contents)
+
+	// Change obj2's key to prepare for compose, where all objects must have
+	// the same key. Also illustrates key rotation: copy an object to itself
+	// with a different key.
+	if _, err := obj2.Key(key).CopierFrom(obj2.Key(key2)).Run(ctx); err != nil {
+		t.Fatal(err)
+	}
+	obj3 := client.Bucket(bucket).Object("customer-encryption-3")
+	// Composing without keys should fail.
+	if _, err := obj3.ComposerFrom(obj, obj2).Run(ctx); err == nil {
+		t.Fatal("want error, got nil")
+	}
+	// Keys on the source objects result in an error.
+	if _, err := obj3.ComposerFrom(obj.Key(key), obj2).Run(ctx); err == nil {
+		t.Fatal("want error, got nil")
+	}
+	// A key on the destination object both decrypts the source objects
+	// and encrypts the destination.
+	if _, err := obj3.Key(key).ComposerFrom(obj, obj2).Run(ctx); err != nil {
+		t.Fatalf("got %v, want nil", err)
+	}
+	// Check that the destination in encrypted.
+	checkRead("compose destination", obj3, key, contents+contents)
+
+	// You can't compose one or more unencrypted source objects into an
+	// encrypted destination object.
+	_, err := obj2.CopierFrom(obj2.Key(key)).Run(ctx) // unencrypt obj2
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := obj3.Key(key).ComposerFrom(obj2).Run(ctx); err == nil {
+		t.Fatal("got nil, want error")
+	}
+}
+
+func TestIntegration_NonexistentBucket(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	client, bucket := testConfig(ctx, t)
+	defer client.Close()
+
+	bkt := client.Bucket(bucket + "-nonexistent")
+	if _, err := bkt.Attrs(ctx); err != ErrBucketNotExist {
+		t.Errorf("Attrs: got %v, want ErrBucketNotExist", err)
+	}
+	it := bkt.Objects(ctx, nil)
+	if _, err := it.Next(); err != ErrBucketNotExist {
+		t.Errorf("Objects: got %v, want ErrBucketNotExist", err)
+	}
+}
+
+func TestIntegration_PerObjectStorageClass(t *testing.T) {
+	const (
+		defaultStorageClass = "STANDARD"
+		newStorageClass     = "MULTI_REGIONAL"
+	)
+	ctx := context.Background()
+	client, bucket := testConfig(ctx, t)
+	defer client.Close()
+
+	bkt := client.Bucket(bucket)
+
+	// The bucket should have the default storage class.
+	battrs, err := bkt.Attrs(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if battrs.StorageClass != defaultStorageClass {
+		t.Fatalf("bucket storage class: got %q, want %q",
+			battrs.StorageClass, defaultStorageClass)
+	}
+	// Write an object; it should start with the bucket's storage class.
+	obj := bkt.Object("posc")
+	if err := writeObject(ctx, obj, "", []byte("foo")); err != nil {
+		t.Fatal(err)
+	}
+	oattrs, err := obj.Attrs(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if oattrs.StorageClass != defaultStorageClass {
+		t.Fatalf("object storage class: got %q, want %q",
+			oattrs.StorageClass, defaultStorageClass)
+	}
+	// Now use Copy to change the storage class.
+	copier := obj.CopierFrom(obj)
+	copier.StorageClass = newStorageClass
+	oattrs2, err := copier.Run(ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if oattrs2.StorageClass != newStorageClass {
+		t.Fatalf("new object storage class: got %q, want %q",
+			oattrs2.StorageClass, newStorageClass)
+	}
+
+	// We can also write a new object using a non-default storage class.
+	obj2 := bkt.Object("posc2")
+	w := obj2.NewWriter(ctx)
+	w.StorageClass = newStorageClass
+	if _, err := w.Write([]byte("xxx")); err != nil {
+		t.Fatal(err)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if w.Attrs().StorageClass != newStorageClass {
+		t.Fatalf("new object storage class: got %q, want %q",
+			w.Attrs().StorageClass, newStorageClass)
+	}
+}
+
+func TestIntegration_BucketInCopyAttrs(t *testing.T) {
+	// Confirm that if bucket is included in the object attributes of a rewrite
+	// call, but object name and content-type aren't, then we get an error. See
+	// the comment in Copier.Run.
+	ctx := context.Background()
+	client, bucket := testConfig(ctx, t)
+	defer client.Close()
+
+	bkt := client.Bucket(bucket)
+	obj := bkt.Object("bucketInCopyAttrs")
+	if err := writeObject(ctx, obj, "", []byte("foo")); err != nil {
+		t.Fatal(err)
+	}
+	copier := obj.CopierFrom(obj)
+	rawObject := copier.ObjectAttrs.toRawObject(bucket)
+	_, err := copier.callRewrite(ctx, rawObject)
+	if err == nil {
+		t.Errorf("got nil, want error")
+	}
+}
+
+func TestIntegration_NoUnicodeNormalization(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	client, _ := testConfig(ctx, t)
+	defer client.Close()
+	bkt := client.Bucket("storage-library-test-bucket")
+
+	for _, tst := range []struct {
+		nameQuoted, content string
+	}{
+		{`"Caf\u00e9"`, "Normalization Form C"},
+		{`"Cafe\u0301"`, "Normalization Form D"},
+	} {
+		name, err := strconv.Unquote(tst.nameQuoted)
+		if err != nil {
+			t.Fatalf("invalid name: %s: %v", tst.nameQuoted, err)
+		}
+		got, err := readObject(ctx, bkt.Object(name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if g := string(got); g != tst.content {
+			t.Errorf("content of %s is %q, want %q", tst.nameQuoted, g, tst.content)
+		}
+	}
+}
+
+func TestIntegration_HashesOnUpload(t *testing.T) {
+	// Check that the user can provide hashes on upload, and that these are checked.
+	if testing.Short() {
+		t.Skip("Integration tests skipped in short mode")
+	}
+	ctx := context.Background()
+	client, bucket := testConfig(ctx, t)
+	if client == nil {
+		t.Skip("Integration tests skipped. See CONTRIBUTING.md for details")
+	}
+	defer client.Close()
+	obj := client.Bucket(bucket).Object("hashesOnUpload-1")
+	data := []byte("I can't wait to be verified")
+
+	write := func(w *Writer) error {
+		if _, err := w.Write(data); err != nil {
+			w.Close()
+			return err
+		}
+		return w.Close()
+	}
+
+	crc32c := crc32.Checksum(data, crc32cTable)
+	// The correct CRC should succeed.
+	w := obj.NewWriter(ctx)
+	w.CRC32C = crc32c
+	w.SendCRC32C = true
+	if err := write(w); err != nil {
+		t.Fatal(err)
+	}
+
+	// If we change the CRC, validation should fail.
+	w = obj.NewWriter(ctx)
+	w.CRC32C = crc32c + 1
+	w.SendCRC32C = true
+	if err := write(w); err == nil {
+		t.Fatal("write with bad CRC32c: want error, got nil")
+	}
+
+	// If we have the wrong CRC but forget to send it, we succeed.
+	w = obj.NewWriter(ctx)
+	w.CRC32C = crc32c + 1
+	if err := write(w); err != nil {
+		t.Fatal(err)
+	}
+
+	// MD5
+	md5 := md5.Sum(data)
+	// The correct MD5 should succeed.
+	w = obj.NewWriter(ctx)
+	w.MD5 = md5[:]
+	if err := write(w); err != nil {
+		t.Fatal(err)
+	}
+
+	// If we change the MD5, validation should fail.
+	w = obj.NewWriter(ctx)
+	w.MD5 = append([]byte(nil), md5[:]...)
+	w.MD5[0]++
+	if err := write(w); err == nil {
+		t.Fatal("write with bad MD5: want error, got nil")
+	}
+}
+
+func TestIntegration_BucketIAM(t *testing.T) {
+	ctx := context.Background()
+	client, bucket := testConfig(ctx, t)
+	defer client.Close()
+
+	bkt := client.Bucket(bucket)
+
+	// This bucket is unique to this test run. So we don't have
+	// to worry about other runs interfering with our IAM policy
+	// changes.
+
+	member := "projectViewer:" + testutil.ProjID()
+	role := iam.RoleName("roles/storage.objectViewer")
+	// Get the bucket's IAM policy.
+	policy, err := bkt.IAM().Policy(ctx)
+	if err != nil {
+		t.Fatalf("Getting policy: %v", err)
+	}
+	// The member should not have the role.
+	if policy.HasRole(member, role) {
+		t.Errorf("member %q has role %q", member, role)
+	}
+	// Change the policy.
+	policy.Add(member, role)
+	if err := bkt.IAM().SetPolicy(ctx, policy); err != nil {
+		t.Fatalf("SetPolicy: %v", err)
+	}
+	// Confirm that the binding was added.
+	policy, err = bkt.IAM().Policy(ctx)
+	if err != nil {
+		t.Fatalf("Getting policy: %v", err)
+	}
+	if !policy.HasRole(member, role) {
+		t.Errorf("member %q does not have role %q", member, role)
+	}
+
+	// Check TestPermissions.
+	// This client should have all these permissions (and more).
+	perms := []string{"storage.buckets.get", "storage.buckets.delete"}
+	got, err := bkt.IAM().TestPermissions(ctx, perms)
+	if err != nil {
+		t.Fatalf("TestPermissions: %v", err)
+	}
+	sort.Strings(perms)
+	sort.Strings(got)
+	if !testutil.Equal(got, perms) {
+		t.Errorf("got %v, want %v", got, perms)
+	}
+}
+
+func TestIntegration_RequesterPays(t *testing.T) {
+	ctx := context.Background()
+	client, bucketName := testConfig(ctx, t)
+	defer client.Close()
+	b := client.Bucket(bucketName + "-rp")
+	projID := testutil.ProjID()
+
+	// Extract the error code from err if it's a googleapi.Error.
+	errCode := func(err error) int {
+		if err == nil {
+			return 0
+		}
+		if err, ok := err.(*googleapi.Error); ok {
+			return err.Code
+		}
+		return -1
+	}
+
+	// Call f twice on b, first without and then with a user project.
+	call := func(msg string, f func(b *BucketHandle) error) {
+		if err := f(b); err == nil {
+			if got, want := errCode(err), 400; got != want {
+				t.Errorf("%s: got error code %d, want %d", msg, got, want)
+			}
+		}
+		if err := f(b.UserProject(projID)); err != nil {
+			t.Errorf("%s: got %v, want nil", msg, err)
+		}
+	}
+
+	// Create a requester-pays bucket.
+	err := b.Create(ctx, projID, &BucketAttrs{RequesterPays: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Getting its attributes requires a user project.
+	var attrs *BucketAttrs
+	call("Bucket attrs", func(b *BucketHandle) (err error) {
+		attrs, err = b.Attrs(ctx)
+		return err
+	})
+	if got, want := attrs.RequesterPays, true; got != want {
+		t.Fatalf("attr.RequesterPays = %b, want %b", got, want)
+	}
+
+	// Object operations.
+	call("write object", func(b *BucketHandle) error {
+		return writeObject(ctx, b.Object("foo"), "text/plain", []byte("hello"))
+	})
+	// // TODO(jba): add read test when XML API has requester-pays support.
+	// callObject("object attrs", o, func(o *ObjectHandle) error {
+	// 	_, err := o.Attrs(ctx)
+	// 	return err
+	// })
+	call("update object", func(b *BucketHandle) error {
+		_, err := b.Object("foo").Update(ctx, ObjectAttrsToUpdate{ContentLanguage: "en"})
+		return err
+	})
+
+	// ACL operations.
+	entity := ACLEntity("domain-google.com")
+	call("bucket acl set", func(b *BucketHandle) error {
+		return b.ACL().Set(ctx, entity, RoleReader)
+	})
+	call("bucket acl list", func(b *BucketHandle) error {
+		_, err := b.ACL().List(ctx)
+		return err
+	})
+	call("bucket acl delete", func(b *BucketHandle) error {
+		return b.ACL().Delete(ctx, entity)
+	})
+	call("default object acl set", func(b *BucketHandle) error {
+		return b.DefaultObjectACL().Set(ctx, entity, RoleReader)
+	})
+	call("default object acl list", func(b *BucketHandle) error {
+		_, err := b.DefaultObjectACL().List(ctx)
+		return err
+	})
+	call("default object acl delete", func(b *BucketHandle) error {
+		return b.DefaultObjectACL().Delete(ctx, entity)
+	})
+	call("object acl set", func(b *BucketHandle) error {
+		return b.Object("foo").ACL().Set(ctx, entity, RoleReader)
+	})
+	call("object acl list", func(b *BucketHandle) error {
+		_, err := b.Object("foo").ACL().List(ctx)
+		return err
+	})
+	call("object acl delete", func(b *BucketHandle) error {
+		return b.Object("foo").ACL().Delete(ctx, entity)
+	})
+
+	// Copy and compose.
+	call("copy", func(b *BucketHandle) error {
+		_, err := b.Object("copy").CopierFrom(b.Object("foo")).Run(ctx)
+		return err
+	})
+	call("compose", func(b *BucketHandle) error {
+		_, err := b.Object("compose").ComposerFrom(b.Object("foo"), b.Object("copy")).Run(ctx)
+		return err
+	})
+
+	// Deletion.
+	call("delete object", func(b *BucketHandle) error {
+		return b.Object("foo").Delete(ctx)
+	})
+	for _, obj := range []string{"copy", "compose"} {
+		if err := b.UserProject(projID).Object(obj).Delete(ctx); err != nil {
+			t.Fatalf("could not delete %q: %v", obj, err)
+		}
+	}
+	call("delete bucket", func(b *BucketHandle) error {
+		return b.Delete(ctx)
+	})
+}
+
+func writeObject(ctx context.Context, obj *ObjectHandle, contentType string, contents []byte) error {
+	w := obj.NewWriter(ctx)
+	w.ContentType = contentType
+	w.CacheControl = "public, max-age=60"
+	if contents != nil {
+		if _, err := w.Write(contents); err != nil {
+			_ = w.Close()
+			return err
+		}
+	}
+	return w.Close()
+}
+
+func readObject(ctx context.Context, obj *ObjectHandle) ([]byte, error) {
+	r, err := obj.NewReader(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+	return ioutil.ReadAll(r)
 }
 
 // cleanup deletes the bucket used for testing, as well as old
@@ -795,14 +1495,14 @@ func cleanup() error {
 	it.Prefix = projectID + testPrefix
 	for {
 		bktAttrs, err := it.Next()
-		if err == Done {
+		if err == iterator.Done {
 			break
 		}
 		if err != nil {
 			return err
 		}
 		if time.Since(bktAttrs.Created) > expireAge {
-			log.Printf("deleting bucket %q, which more than %s old", bktAttrs.Name, expireAge)
+			log.Printf("deleting bucket %q, which is more than %s old", bktAttrs.Name, expireAge)
 			if err := killBucket(ctx, client, bktAttrs.Name); err != nil {
 				return err
 			}
@@ -818,7 +1518,7 @@ func killBucket(ctx context.Context, client *Client, bucketName string) error {
 	it := bkt.Objects(ctx, nil)
 	for {
 		objAttrs, err := it.Next()
-		if err == Done {
+		if err == iterator.Done {
 			break
 		}
 		if err != nil {

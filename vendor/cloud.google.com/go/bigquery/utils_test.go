@@ -19,23 +19,16 @@ import (
 	bq "google.golang.org/api/bigquery/v2"
 )
 
-var defaultGCS = &GCSReference{
-	uris: []string{"uri"},
+func defaultGCS() *GCSReference {
+	return &GCSReference{
+		uris: []string{"uri"},
+	}
 }
 
-var defaultQuery = &Query{
+var defaultQuery = &QueryConfig{
 	Q:                "query string",
 	DefaultProjectID: "def-project-id",
 	DefaultDatasetID: "def-dataset-id",
-}
-
-func defaultTable(s service) *Table {
-	return &Table{
-		ProjectID: "project-id",
-		DatasetID: "dataset-id",
-		TableID:   "table-id",
-		service:   s,
-	}
 }
 
 type testService struct {
@@ -44,8 +37,8 @@ type testService struct {
 	service
 }
 
-func (s *testService) insertJob(ctx context.Context, job *bq.Job, projectID string) (*Job, error) {
-	s.Job = job
+func (s *testService) insertJob(ctx context.Context, projectID string, conf *insertJobConf) (*Job, error) {
+	s.Job = conf.job
 	return &Job{}, nil
 }
 

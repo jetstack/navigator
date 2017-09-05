@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/emicklei/go-restful"
-	"github.com/emicklei/go-restful/swagger"
+	"github.com/emicklei/go-restful-swagger12"
 )
 
 // This example is functionally the same as the example in restful-user-resource.go
@@ -133,11 +133,11 @@ func main() {
 		WebServicesUrl: "http://localhost:8080",
 		ApiPath:        "/apidocs.json",
 
-		// Optionally, specifiy where the UI is located
+		// Optionally, specify where the UI is located
 		SwaggerPath:     "/apidocs/",
 		SwaggerFilePath: "/Users/emicklei/Projects/swagger-ui/dist"}
 	swagger.InstallSwaggerService(config)
 
-	log.Printf("start listening on localhost:8080")
+	log.Print("start listening on localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
