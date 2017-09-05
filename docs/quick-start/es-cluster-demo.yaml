@@ -3,17 +3,20 @@ kind: ElasticsearchCluster
 metadata:
   name: demo
 spec:
-  version: '5.2.2'
   plugins:
-  - name: "io.fabric8:elasticsearch-cloud-kubernetes:5.2.2"
+  # - name: "io.fabric8:elasticsearch-cloud-kubernetes:5.2.2"
 
-  # NOTE: DO NOT SPECIFY MORE THAN ONE SYSCTL FOR NOW
   sysctl:
   - vm.max_map_count=262144
 
-  image:
+  pilot:
     repository: jetstackexperimental/pilot-elasticsearch
     tag: latest
+    pullPolicy: Always
+
+  image:
+    repository: docker.elastic.co/elasticsearch/elasticsearch
+    tag: 5.2.2
     pullPolicy: Always
     ## This sets the group of the persistent volume created for
     ## the data nodes. This must be the same as the user that elasticsearch

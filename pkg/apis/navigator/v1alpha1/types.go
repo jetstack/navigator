@@ -39,12 +39,11 @@ type ElasticsearchClusterList struct {
 
 // ElasticsearchClusterSpec describes a specification for an ElasticsearchCluster
 type ElasticsearchClusterSpec struct {
-	Version   string                         `json:"version"`
 	Plugins   []ElasticsearchClusterPlugin   `json:"plugins"`
 	NodePools []ElasticsearchClusterNodePool `json:"nodePools"`
-	// TODO: Remove this field
-	Image  ElasticsearchImage `json:"image"`
-	Sysctl []string           `json:"sysctl"`
+	Pilot     ElasticsearchPilotImage        `json:"pilot"`
+	Image     ElasticsearchImage             `json:"image"`
+	Sysctl    []string                       `json:"sysctl"`
 }
 
 // ElasticsearchClusterPlugin describes a specification of an ElasticsearchCluster plugin
@@ -57,22 +56,30 @@ type ElasticsearchClusterPlugin struct {
 // ElasticsearchClusterNodePool describes a node pool within an ElasticsearchCluster.
 // The nodes in this pool will be configured to be of the specified roles
 type ElasticsearchClusterNodePool struct {
-	Name        string                                 `json:"name"`
-	Replicas    int32                                  `json:"replicas"`
-	Roles       []string                               `json:"roles"`
-	Resources   *v1.ResourceRequirements               `json:"resources,omitempty"`
-	Persistence *ElasticsearchClusterPersistenceConfig `json:"persistence,omitempty"`
+	Name        string                                `json:"name"`
+	Replicas    int32                                 `json:"replicas"`
+	Roles       []string                              `json:"roles"`
+	Resources   *v1.ResourceRequirements              `json:"resources,omitempty"`
+	Persistence ElasticsearchClusterPersistenceConfig `json:"persistence,omitempty"`
 }
 
 type ElasticsearchClusterPersistenceConfig struct {
+	Enabled      bool   `json:"enabled"`
 	Size         string `json:"size"`
 	StorageClass string `json:"storageClass"`
 }
 
-// TODO: Remove this struct
-type ElasticsearchImage struct {
+type ImageSpec struct {
 	Repository string `json:"repository"`
 	Tag        string `json:"tag"`
 	PullPolicy string `json:"pullPolicy"`
-	FsGroup    int64  `json:"fsGroup"`
+}
+
+type ElasticsearchPilotImage struct {
+	ImageSpec `json:",inline"`
+}
+
+type ElasticsearchImage struct {
+	ImageSpec `json:",inline"`
+	FsGroup   int64 `json:"fsGroup"`
 }

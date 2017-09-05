@@ -16,26 +16,18 @@ import (
 	"github.com/jetstack-experimental/navigator/pkg/controllers/elasticsearch/util"
 )
 
+const (
+	sharedVolumeName      = "shared"
+	sharedVolumeMountPath = "/shared"
+
+	esDataVolumeName      = "elasticsearch-data"
+	esDataVolumeMountPath = "/usr/share/elasticsearch/data"
+)
+
 func nodePoolStatefulSet(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.ElasticsearchClusterNodePool) (*apps.StatefulSet, error) {
-	volumeClaimTemplateAnnotations, volumeResourceRequests := map[string]string{}, apiv1.ResourceList{}
+	statefulSetName := util.NodePoolResourceName(c, np)
 
-	if np.Persistence != nil {
-		if np.Persistence.StorageClass != "" {
-			volumeClaimTemplateAnnotations["volume.beta.kubernetes.io/storage-class"] = np.Persistence.StorageClass
-		}
-
-		if size := np.Persistence.Size; size != "" {
-			storageRequests, err := resource.ParseQuantity(size)
-
-			if err != nil {
-				return nil, fmt.Errorf("error parsing storage size quantity '%s': %s", size, err.Error())
-			}
-
-			volumeResourceRequests[apiv1.ResourceStorage] = storageRequests
-		}
-	}
-
-	elasticsearchPodTemplate, err := elasticsearchPodTemplateSpec(c, np)
+	elasticsearchPodTemplate, err := elasticsearchPodTemplateSpec(statefulSetName, c, np)
 
 	if err != nil {
 		return nil, fmt.Errorf("error building elasticsearch container: %s", err.Error())
@@ -46,8 +38,6 @@ func nodePoolStatefulSet(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.Elastics
 	if err != nil {
 		return nil, fmt.Errorf("error hashing node pool object: %s", err.Error())
 	}
-
-	statefulSetName := util.NodePoolResourceName(c, np)
 
 	ss := &apps.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -66,41 +56,61 @@ func nodePoolStatefulSet(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.Elastics
 				MatchLabels: util.NodePoolLabels(c, np.Name, np.Roles...),
 			},
 			Template: *elasticsearchPodTemplate,
-			VolumeClaimTemplates: []apiv1.PersistentVolumeClaim{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:        "elasticsearch-data",
-						Annotations: volumeClaimTemplateAnnotations,
-					},
-					Spec: apiv1.PersistentVolumeClaimSpec{
-						AccessModes: []apiv1.PersistentVolumeAccessMode{
-							apiv1.ReadWriteOnce,
-						},
-						Resources: apiv1.ResourceRequirements{
-							Requests: volumeResourceRequests,
-						},
-					},
-				},
-			},
 		},
 	}
 
-	// TODO: make this safer?
-	ss.Spec.Template.Spec.Containers[0].Args = append(
-		ss.Spec.Template.Spec.Containers[0].Args,
-		"--controllerKind=StatefulSet",
-		"--controllerName="+statefulSetName,
-	)
+	if np.Persistence.Enabled {
+		volumeClaimTemplateAnnotations := map[string]string{}
+		volumeResourceRequests := apiv1.ResourceList{}
+
+		if np.Persistence.StorageClass != "" {
+			volumeClaimTemplateAnnotations["volume.beta.kubernetes.io/storage-class"] = np.Persistence.StorageClass
+		}
+
+		if size := np.Persistence.Size; size != "" {
+			storageRequests, err := resource.ParseQuantity(size)
+
+			if err != nil {
+				return nil, fmt.Errorf("error parsing storage size quantity '%s': %s", size, err.Error())
+			}
+
+			volumeResourceRequests[apiv1.ResourceStorage] = storageRequests
+		}
+
+		ss.Spec.VolumeClaimTemplates = []apiv1.PersistentVolumeClaim{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "elasticsearch-data",
+					Annotations: volumeClaimTemplateAnnotations,
+				},
+				Spec: apiv1.PersistentVolumeClaimSpec{
+					AccessModes: []apiv1.PersistentVolumeAccessMode{
+						apiv1.ReadWriteOnce,
+					},
+					Resources: apiv1.ResourceRequirements{
+						Requests: volumeResourceRequests,
+					},
+				},
+			},
+		}
+	}
 
 	return ss, nil
 }
 
-func elasticsearchPodTemplateSpec(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.ElasticsearchClusterNodePool) (*apiv1.PodTemplateSpec, error) {
-	volumes := []apiv1.Volume{}
+func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.ElasticsearchCluster, np *v1alpha1.ElasticsearchClusterNodePool) (*apiv1.PodTemplateSpec, error) {
+	volumes := []apiv1.Volume{
+		apiv1.Volume{
+			Name: sharedVolumeName,
+			VolumeSource: apiv1.VolumeSource{
+				EmptyDir: &apiv1.EmptyDirVolumeSource{},
+			},
+		},
+	}
 
-	if np.Persistence == nil {
+	if !np.Persistence.Enabled {
 		volumes = append(volumes, apiv1.Volume{
-			Name: "elasticsearch-data",
+			Name: esDataVolumeName,
 			VolumeSource: apiv1.VolumeSource{
 				EmptyDir: &apiv1.EmptyDirVolumeSource{},
 			},
@@ -113,10 +123,13 @@ func elasticsearchPodTemplateSpec(c *v1alpha1.ElasticsearchCluster, np *v1alpha1
 		return nil, fmt.Errorf("error marshaling roles: %s", err.Error())
 	}
 
-	pluginsBytes, err := json.Marshal(c.Spec.Plugins)
+	pluginsBytes := []byte("[]")
+	if len(c.Spec.Plugins) > 0 {
+		pluginsBytes, err = json.Marshal(c.Spec.Plugins)
 
-	if err != nil {
-		return nil, fmt.Errorf("error marshaling plugins: %s", err.Error())
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling plugins: %s", err.Error())
+		}
 	}
 
 	return &apiv1.PodTemplateSpec{
@@ -137,13 +150,19 @@ func elasticsearchPodTemplateSpec(c *v1alpha1.ElasticsearchCluster, np *v1alpha1
 					Name:            "elasticsearch",
 					Image:           c.Spec.Image.Repository + ":" + c.Spec.Image.Tag,
 					ImagePullPolicy: apiv1.PullPolicy(c.Spec.Image.PullPolicy),
-					Args: []string{
-						"start",
-						"--podName=$(POD_NAME)",
-						"--clusterURL=$(CLUSTER_URL)",
-						"--namespace=$(NAMESPACE)",
-						"--plugins=" + string(pluginsBytes),
-						"--roles=" + string(rolesBytes),
+					Command: []string{
+						"/bin/sh",
+						"-c",
+						fmt.Sprintf(`#!/bin/sh
+exec %s/pilot \
+  start \
+  --podName=$(POD_NAME) \
+  --clusterURL=$(CLUSTER_URL) \
+  --namespace=$(NAMESPACE) \
+  --controllerKind=StatefulSet \
+  --plugins=%s \
+  --roles=%s \
+  --controllerName=%s`, sharedVolumeMountPath, string(pluginsBytes), string(rolesBytes), controllerName),
 					},
 					Env: []apiv1.EnvVar{
 						// TODO: Tidy up generation of discovery & client URLs
@@ -217,8 +236,13 @@ func elasticsearchPodTemplateSpec(c *v1alpha1.ElasticsearchCluster, np *v1alpha1
 					},
 					VolumeMounts: []apiv1.VolumeMount{
 						{
-							Name:      "elasticsearch-data",
-							MountPath: "/usr/share/elasticsearch/data",
+							Name:      esDataVolumeName,
+							MountPath: esDataVolumeMountPath,
+							ReadOnly:  false,
+						},
+						{
+							Name:      sharedVolumeName,
+							MountPath: sharedVolumeMountPath,
 							ReadOnly:  false,
 						},
 					},
@@ -229,9 +253,28 @@ func elasticsearchPodTemplateSpec(c *v1alpha1.ElasticsearchCluster, np *v1alpha1
 }
 
 func buildInitContainers(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.ElasticsearchClusterNodePool) []apiv1.Container {
-	containers := make([]apiv1.Container, len(c.Spec.Sysctl))
+	containers := make([]apiv1.Container, len(c.Spec.Sysctl)+1)
+	containers[0] = apiv1.Container{
+		Name:            "install-pilot",
+		Image:           fmt.Sprintf("%s:%s", c.Spec.Pilot.Repository, c.Spec.Pilot.Tag),
+		ImagePullPolicy: apiv1.PullPolicy(c.Spec.Pilot.PullPolicy),
+		Command:         []string{"cp", "/pilot", fmt.Sprintf("%s/pilot", sharedVolumeMountPath)},
+		VolumeMounts: []apiv1.VolumeMount{
+			{
+				Name:      sharedVolumeName,
+				MountPath: sharedVolumeMountPath,
+				ReadOnly:  false,
+			},
+		},
+		Resources: apiv1.ResourceRequirements{
+			Requests: apiv1.ResourceList{
+				apiv1.ResourceCPU:    resource.MustParse("10m"),
+				apiv1.ResourceMemory: resource.MustParse("8Mi"),
+			},
+		},
+	}
 	for i, sysctl := range c.Spec.Sysctl {
-		containers[i] = apiv1.Container{
+		containers[i+1] = apiv1.Container{
 			Name:            fmt.Sprintf("tune-sysctl-%d", i),
 			Image:           "busybox:latest",
 			ImagePullPolicy: apiv1.PullIfNotPresent,
@@ -240,6 +283,12 @@ func buildInitContainers(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.Elastics
 			},
 			Command: []string{
 				"sysctl", "-w", sysctl,
+			},
+			Resources: apiv1.ResourceRequirements{
+				Requests: apiv1.ResourceList{
+					apiv1.ResourceCPU:    resource.MustParse("10m"),
+					apiv1.ResourceMemory: resource.MustParse("8Mi"),
+				},
 			},
 		}
 	}
