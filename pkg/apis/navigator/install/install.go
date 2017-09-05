@@ -33,7 +33,6 @@ func Install(groupFactoryRegistry announced.APIGroupFactoryRegistry, registry *r
 		&announced.GroupMetaFactoryArgs{
 			GroupName:                  navigator.GroupName,
 			VersionPreferenceOrder:     []string{v1alpha1.SchemeGroupVersion.Version},
-			ImportPrefix:               "github.com/jetstack-experimental/navigator/pkg/apis/navigator",
 			AddInternalObjectsToScheme: navigator.AddToScheme,
 		},
 		announced.VersionToSchemeFunc{
