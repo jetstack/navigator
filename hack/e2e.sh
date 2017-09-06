@@ -26,8 +26,8 @@ retry TIMEOUT=60 helm version
 
 echo "Installing navigator..."
 helm install --name nav-e2e contrib/charts/navigator \
-        --set apiserver.image.tag=build \
-        --set controller.image.tag=build
+        --set apiserver.image.pullPolicy=Never \
+        --set controller.image.pullPolicy=Never
 
 # Wait for navigator pods to be running
 function navigator_ready() {

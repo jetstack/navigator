@@ -4,7 +4,7 @@
 apiserver:
   image:
     repository: jetstackexperimental/navigator-apiserver
-    tag: canary
+    tag: latest
     pullPolicy: IfNotPresent
 
 controller:
