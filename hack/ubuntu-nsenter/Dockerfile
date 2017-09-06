@@ -6,6 +6,7 @@ RUN apt-get update && \
 RUN git clone git://git.kernel.org/pub/scm/utils/util-linux/util-linux.git util-linux
 RUN cd util-linux/ && \
     ./autogen.sh && \
-    ./configure --without-python --disable-all-programs --enable-nsenter
+    ./configure --without-python --disable-all-programs --enable-nsenter && \
+    make
 
 RUN mv /util-linux/nsenter /nsenter
