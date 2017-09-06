@@ -28,7 +28,7 @@ import (
 	genericoptions "k8s.io/apiserver/pkg/server/options"
 	// "k8s.io/sample-apiserver/pkg/admission/plugin/banflunder"
 
-	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
+	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha2"
 	"github.com/jetstack-experimental/navigator/pkg/apiserver"
 	clientset "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/internalclientset"
 	informers "github.com/jetstack-experimental/navigator/pkg/client/informers_generated/internalversion"
@@ -46,7 +46,7 @@ type NavigatorServerOptions struct {
 
 func NewNavigatorServerOptions(out, errOut io.Writer) *NavigatorServerOptions {
 	o := &NavigatorServerOptions{
-		RecommendedOptions: genericoptions.NewRecommendedOptions(defaultEtcdPathPrefix, apiserver.Scheme, apiserver.Codecs.LegacyCodec(v1alpha1.SchemeGroupVersion)),
+		RecommendedOptions: genericoptions.NewRecommendedOptions(defaultEtcdPathPrefix, apiserver.Scheme, apiserver.Codecs.LegacyCodec(v1alpha2.SchemeGroupVersion)),
 		Admission:          genericoptions.NewAdmissionOptions(),
 
 		StdOut: out,
