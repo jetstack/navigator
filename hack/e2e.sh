@@ -64,6 +64,7 @@ function apiversion_ready() {
     if [[ "${apiversion_navigator_length}" -lt 1 ]]; then
         return 1
     fi
+    sleep 15
     return 0
 }
 
