@@ -35,7 +35,7 @@ test: go_test
 .hack_e2e:
 	@${HACK_DIR}/e2e.sh
 
-e2e-test: build docker_build .hack_e2e
+e2e-test: docker_build .hack_e2e
 
 build: $(CMDS)
 

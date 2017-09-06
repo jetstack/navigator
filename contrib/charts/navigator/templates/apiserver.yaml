@@ -27,12 +27,16 @@ spec:
           image: "{{ .Values.apiserver.image.repository }}:{{ .Values.apiserver.image.tag }}"
           imagePullPolicy: {{ .Values.apiserver.image.pullPolicy }}
           args:
-          - "navigator-apiserver"
-          - "--etcd-servers=http://localhost:2379"
+          - navigator-apiserver
+          - --etcd-servers=http://localhost:2379
+          - --requestheader-client-ca-file=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+          - --requestheader-username-headers=X-Remote-User
+          - --requestheader-group-headers=X-Remote-Group
+          - --requestheader-extra-headers-prefix=X-Remote-Extra
           resources:
 {{ toYaml .Values.resources | indent 12 }}
         - name: etcd
           image: quay.io/coreos/etcd:v3.2.7
-          imagePullPolicy: {{ .Values.apiserver.image.pullPolicy }}
+          imagePullPolicy: IfNotPresent
           resources:
 {{ toYaml .Values.resources | indent 12 }}
