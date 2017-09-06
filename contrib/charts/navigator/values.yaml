@@ -1,16 +1,28 @@
 # Default values for navigator.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
+createAPIService: true
+
+rbac:
+  enabled: true
+
 apiserver:
+  ## Optional: if not set, a service account will be automatically created
+  # serviceAccount: "apiserver-svc-acct"
   image:
     repository: jetstackexperimental/navigator-apiserver
     tag: latest
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
 
 controller:
+  ## Optional: if not set, a service account will be automatically created
+  # serviceAccount: "controller-svc-acct"
   image:
     repository: jetstackexperimental/navigator-controller
     tag: latest
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
 
-resources: {}
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi

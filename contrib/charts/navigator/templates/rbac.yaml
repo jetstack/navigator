@@ -1,0 +1,112 @@
+{{- if .Values.rbac.enabled }}
+apiVersion: v1
+kind: List
+items:
+
+### API Server ###
+# TODO: if this is just for namespace lifecycle admission, move to a generic role
+# the role for the apiserver 
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRole
+  metadata:
+    name: "{{ template "fullname" . }}:apiserver"
+  # this rule defined on the role for specifically the
+  # namespace-lifecycle admission-controller
+  rules:
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs:     ["get", "list", "watch"]
+# API-server service-account gets its own role
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRoleBinding
+  metadata:
+    name: "{{ template "fullname" . }}:apiserver"
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: "{{ template "fullname" . }}:apiserver"
+  subjects:
+  - apiGroup: ""
+    kind: ServiceAccount
+{{- if .Values.apiserver.serviceAccount }}
+    name: "{{ .Values.apiserver.serviceAccount }}"
+{{- else }}
+    name: "{{ template "fullname" . }}-apiserver"
+{{- end }}
+    namespace: "{{ .Release.Namespace }}"
+# apiserver gets the auth-delegator role to delegate auth decisions to
+# the core apiserver
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRoleBinding
+  metadata:
+    name: "{{ template "fullname" . }}:apiserver-auth-delegator"
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: system:auth-delegator
+  subjects:
+  - apiGroup: ""
+    kind: ServiceAccount
+{{- if .Values.apiserver.serviceAccount }}
+    name: "{{ .Values.apiserver.serviceAccount }}"
+{{- else }}
+    name: "{{ template "fullname" . }}-apiserver"
+{{- end }}
+    namespace: "{{ .Release.Namespace }}"
+# apiserver gets the ability to read authentication. This allows it to
+# read the specific configmap that has the requestheader-* entries to
+# enable api aggregation
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: RoleBinding
+  metadata:
+    name: "{{ template "fullname" . }}:apiserver-authentication-reader"
+    namespace: kube-system
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: Role
+    name: extension-apiserver-authentication-reader
+  subjects:
+  - apiGroup: ""
+    kind: ServiceAccount
+{{- if .Values.apiserver.serviceAccount }}
+    name: "{{ .Values.apiserver.serviceAccount }}"
+{{- else }}
+    name: "{{ template "fullname" . }}-apiserver"
+{{- end }}
+    namespace: "{{ .Release.Namespace }}"
+
+### Controller ###
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRole
+  metadata:
+    name: "{{ template "fullname" . }}:controller-elasticsearch"
+  rules:
+  - apiGroups: ["navigator.jetstack.io"]
+    resources: ["elasticsearchclusters"]
+    verbs:     ["get", "list", "watch", "update"]
+  - apiGroups: [""]
+    resources: ["services","configmaps","serviceaccounts"]
+    verbs:     ["get", "list", "watch", "update", "create", "delete"]
+  - apiGroups: ["apps"]
+    resources: ["statefulsets"]
+    verbs:     ["get", "list", "watch", "update", "create", "delete"]
+
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRoleBinding
+  metadata:
+    name: "{{ template "fullname" . }}:controller-elasticsearch"
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: "{{ template "fullname" . }}:controller-elasticsearch"
+  subjects:
+  - apiGroup: ""
+    kind: ServiceAccount
+{{- if .Values.controller.serviceAccount }}
+    name: "{{ .Values.controller.serviceAccount }}"
+{{- else }}
+    name: "{{ template "fullname" . }}-controller"
+{{- end }}
+    namespace: "{{ .Release.Namespace }}"
+
+{{- end }}

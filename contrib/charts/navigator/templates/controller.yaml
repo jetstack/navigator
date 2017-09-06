@@ -22,6 +22,13 @@ spec:
         release: {{ .Release.Name }}
         component: controller
     spec:
+{{- if .Values.controller.serviceAccount }}
+      serviceAccountName: {{ .Values.controller.serviceAccount }}
+      serviceAccount: {{ .Values.controller.serviceAccount }}
+{{- else }}
+      serviceAccountName: {{ template "fullname" . }}-controller
+      serviceAccount: {{ template "fullname" . }}-controller
+{{- end }}
       containers:
         - name: controller
           image: "{{ .Values.controller.image.repository }}:{{ .Values.controller.image.tag }}"

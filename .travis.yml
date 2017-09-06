@@ -14,7 +14,12 @@ jobs:
       # Install nsenter
       - docker build -t ubuntu-nsenter ./hack/ubuntu-nsenter
       - docker run -v /usr/local/bin:/hostbin ubuntu-nsenter cp /nsenter /hostbin/nsenter
-      - sudo -E CHANGE_MINIKUBE_NONE_USER=true minikube start --vm-driver=none --kubernetes-version="$KUBERNETES_VERSION"
+      # Create a cluster. We do this as root as we are using the 'docker' driver.
+      # We enable RBAC on the cluster too, to test the RBAC in Navigators chart
+      - sudo -E CHANGE_MINIKUBE_NONE_USER=true minikube start --vm-driver=none --kubernetes-version="$KUBERNETES_VERSION" --extra-config=apiserver.Authorization.Mode=RBAC
+      - while true; do if kubectl get nodes; then break; fi; echo "Waiting 5s for kubernetes to be ready..."; sleep 5; done
+      # Fix problems with kube-dns + rbac
+      - kubectl create serviceaccount --namespace kube-system kube-dns
       - make BUILD_TAG=latest build e2e-test
 
     - stage: test
