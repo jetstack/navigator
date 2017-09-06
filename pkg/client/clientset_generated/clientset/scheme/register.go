@@ -17,6 +17,7 @@ package scheme
 
 import (
 	navigatorv1alpha1 "github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
+	navigatorv1alpha2 "github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha2"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -48,5 +49,6 @@ func init() {
 // correctly.
 func AddToScheme(scheme *runtime.Scheme) {
 	navigatorv1alpha1.AddToScheme(scheme)
+	navigatorv1alpha2.AddToScheme(scheme)
 
 }

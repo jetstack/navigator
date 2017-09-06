@@ -55,14 +55,14 @@ verify: .hack_verify go_verify
 # Docker targets
 ################
 DOCKER_BUILD_TARGETS = $(addprefix docker_build_, $(CMDS))
-DOCKER_BUILD_CMD = $(subst docker_build_,,$@)
 $(DOCKER_BUILD_TARGETS):
+	$(eval DOCKER_BUILD_CMD := $(subst docker_build_,,$@))
 	docker build -t $(REGISTRY)/$(IMAGE_NAME)-$(DOCKER_BUILD_CMD):$(BUILD_TAG) -f Dockerfile.$(DOCKER_BUILD_CMD) .
 docker_build: $(DOCKER_BUILD_TARGETS)
 
 DOCKER_PUSH_TARGETS = $(addprefix docker_push_, $(CMDS))
-DOCKER_PUSH_CMD := $(subst docker_push_,,$@)
 $(DOCKER_PUSH_TARGETS):
+	$(eval DOCKER_PUSH_CMD := $(subst docker_push_,,$@))
 	set -e; \
 		for tag in $(IMAGE_TAGS); do \
 		docker tag $(REGISTRY)/$(IMAGE_NAME)-$(DOCKER_PUSH_CMD):$(BUILD_TAG) $(REGISTRY)/$(IMAGE_NAME)-$(DOCKER_PUSH_CMD):$${tag} ; \
@@ -113,6 +113,7 @@ $(BINDIR)/%:
 		--go-header-file "$(HACK_DIR)/boilerplate.go.txt" \
 		--input-dirs "$(NAVIGATOR_PKG)/pkg/apis/navigator" \
 		--input-dirs "$(NAVIGATOR_PKG)/pkg/apis/navigator/v1alpha1" \
+		--input-dirs "$(NAVIGATOR_PKG)/pkg/apis/navigator/v1alpha2" \
 		--extra-peer-dirs "$(NAVIGATOR_PKG)/pkg/apis/navigator" \
 		--extra-peer-dirs "$(NAVIGATOR_PKG)/pkg/apis/navigator/v1alpha1" \
 		--output-file-base "zz_generated.defaults"
@@ -122,6 +123,7 @@ $(BINDIR)/%:
 		--go-header-file "$(HACK_DIR)/boilerplate.go.txt" \
 		--input-dirs "$(NAVIGATOR_PKG)/pkg/apis/navigator" \
 		--input-dirs "$(NAVIGATOR_PKG)/pkg/apis/navigator/v1alpha1" \
+		--input-dirs "$(NAVIGATOR_PKG)/pkg/apis/navigator/v1alpha2" \
 		--bounding-dirs "github.com/openshift/open-service-broker-sdk" \
 		--output-file-base zz_generated.deepcopy
 	# Generate conversions
@@ -130,6 +132,7 @@ $(BINDIR)/%:
 		--go-header-file "$(HACK_DIR)/boilerplate.go.txt" \
 		--input-dirs "$(NAVIGATOR_PKG)/pkg/apis/navigator" \
 		--input-dirs "$(NAVIGATOR_PKG)/pkg/apis/navigator/v1alpha1" \
+		--input-dirs "$(NAVIGATOR_PKG)/pkg/apis/navigator/v1alpha2" \
 		--output-file-base zz_generated.conversion
 	# generate all pkg/client contents
 	$(HACK_DIR)/update-client-gen.sh

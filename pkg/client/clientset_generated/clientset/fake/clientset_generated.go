@@ -19,6 +19,8 @@ import (
 	clientset "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset"
 	navigatorv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset/typed/navigator/v1alpha1"
 	fakenavigatorv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset/typed/navigator/v1alpha1/fake"
+	navigatorv1alpha2 "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset/typed/navigator/v1alpha2"
+	fakenavigatorv1alpha2 "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset/typed/navigator/v1alpha2/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -67,4 +69,9 @@ func (c *Clientset) NavigatorV1alpha1() navigatorv1alpha1.NavigatorV1alpha1Inter
 // Navigator retrieves the NavigatorV1alpha1Client
 func (c *Clientset) Navigator() navigatorv1alpha1.NavigatorV1alpha1Interface {
 	return &fakenavigatorv1alpha1.FakeNavigatorV1alpha1{Fake: &c.Fake}
+}
+
+// NavigatorV1alpha2 retrieves the NavigatorV1alpha2Client
+func (c *Clientset) NavigatorV1alpha2() navigatorv1alpha2.NavigatorV1alpha2Interface {
+	return &fakenavigatorv1alpha2.FakeNavigatorV1alpha2{Fake: &c.Fake}
 }
