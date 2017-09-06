@@ -26,7 +26,7 @@ echo "Waiting for tiller to be ready..."
 retry TIMEOUT=60 helm version
 
 echo "Installing navigator..."
-helm install --name "${RELEASE_NAME}" contrib/charts/navigator \
+helm install --wait --name "${RELEASE_NAME}" contrib/charts/navigator \
         --set apiserver.image.pullPolicy=Never \
         --set controller.image.pullPolicy=Never
 
@@ -49,9 +49,9 @@ function navigator_ready() {
 
 if ! retry navigator_ready; then
         kubectl get pods --all-namespaces
-        kubectl describe deploy ${RELEASE_NAME}-navigator-controller
-        kubectl describe deploy ${RELEASE_NAME}-navigator-apiserver
-        return 1
+        kubectl describe deploy
+        kubectl describe pod
+        exit 1
 fi
 
 # Create and delete an ElasticSearchCluster
