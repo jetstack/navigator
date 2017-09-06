@@ -23,6 +23,15 @@ import (
 // REST implements a RESTStorage for API services against etcd
 type REST struct {
 	*genericregistry.Store
+	// ShortNames is a list of short names for this resource type
+	ResourceShortNames []string
+}
+
+var _ rest.ShortNamesProvider = &REST{}
+
+// ShortNames implements the ShortNamesProvider interface. Returns a list of short names for a resource.
+func (r *REST) ShortNames() []string {
+	return r.ResourceShortNames
 }
 
 // RESTInPeace is just a simple function that panics on error.
