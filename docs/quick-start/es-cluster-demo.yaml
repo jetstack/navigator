@@ -39,6 +39,7 @@ spec:
         memory: 3Gi
     
     persistence:
+      enabled: true
       # size of the volume
       size: 10Gi
       # storageClass of the volume
