@@ -41,5 +41,8 @@ func NewREST(scheme *runtime.Scheme, optsGetter generic.RESTOptionsGetter) (*reg
 	if err := store.CompleteWithOptions(options); err != nil {
 		return nil, err
 	}
-	return &registry.REST{store}, nil
+	return &registry.REST{
+		Store:              store,
+		ResourceShortNames: []string{"esc"},
+	}, nil
 }

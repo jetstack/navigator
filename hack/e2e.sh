@@ -72,6 +72,14 @@ echo "Waiting for navigator API version to be registered"
 retry TIMEOUT=30 apiversion_ready
 
 kubectl api-versions
+
+echo "Testing ElasticsearchCluster shortname (esc)"
+if ! kubectl get esc; then
+    echo "Failed to use shortname to get ElasticsearchClusters"
+    exit 1
+fi
+
+echo "Testing creating ElasticsearchCluster"
 # Create and delete an ElasticSearchCluster
 kubectl create namespace "${USER_NAMESPACE}"
 kubectl create \
