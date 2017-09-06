@@ -35,13 +35,13 @@ function navigator_ready() {
     local replica_count_controller=$(
         kubectl get deployment ${RELEASE_NAME}-navigator-controller \
                 --output 'jsonpath={.status.readyReplicas}' || true)
-    if [[ "${replica_count}" -eq 0 ]]; then
+    if [[ "${replica_count_controller}" -eq 0 ]]; then
         return 1
     fi
     local replica_count_apiserver=$(
         kubectl get deployment ${RELEASE_NAME}-navigator-apiserver \
                 --output 'jsonpath={.status.readyReplicas}' || true)
-    if [[ "${replica_count}" -eq 0 ]]; then
+    if [[ "${replica_count_apiserver}" -eq 0 ]]; then
         return 1
     fi
     return 0
