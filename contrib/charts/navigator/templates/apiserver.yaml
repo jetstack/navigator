@@ -22,6 +22,11 @@ spec:
         release: {{ .Release.Name }}
         component: apiserver
     spec:
+{{- if .Values.apiserver.serviceAccount }}
+      serviceAccountName: {{ .Values.apiserver.serviceAccount }}
+{{- else }}
+      serviceAccountName: {{ template "fullname" . }}-apiserver
+{{- end }}
       containers:
         - name: apiserver
           image: "{{ .Values.apiserver.image.repository }}:{{ .Values.apiserver.image.tag }}"
