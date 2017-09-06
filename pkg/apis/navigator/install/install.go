@@ -25,6 +25,7 @@ import (
 
 	"github.com/jetstack-experimental/navigator/pkg/apis/navigator"
 	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
+	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha2"
 )
 
 // Install registers the API group and adds types to a scheme
@@ -32,11 +33,12 @@ func Install(groupFactoryRegistry announced.APIGroupFactoryRegistry, registry *r
 	if err := announced.NewGroupMetaFactory(
 		&announced.GroupMetaFactoryArgs{
 			GroupName:                  navigator.GroupName,
-			VersionPreferenceOrder:     []string{v1alpha1.SchemeGroupVersion.Version},
+			VersionPreferenceOrder:     []string{v1alpha2.SchemeGroupVersion.Version},
 			AddInternalObjectsToScheme: navigator.AddToScheme,
 		},
 		announced.VersionToSchemeFunc{
 			v1alpha1.SchemeGroupVersion.Version: v1alpha1.AddToScheme,
+			v1alpha2.SchemeGroupVersion.Version: v1alpha2.AddToScheme,
 		},
 	).Announce(groupFactoryRegistry).RegisterAndEnable(registry, scheme); err != nil {
 		panic(err)
