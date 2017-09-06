@@ -12,6 +12,8 @@ IMAGE_TAGS := canary
 BUILD_IMAGE_DIR := hack/builder
 BUILD_IMAGE_NAME := navigator/builder
 
+CMDS := controller apiserver
+
 GOPATH ?= /tmp/go
 
 help:
@@ -24,7 +26,7 @@ help:
 
 # Util targets
 ##############
-.PHONY: all test verify
+.PHONY: all test verify $(CMDS) generate
 
 all: verify build docker_build
 
@@ -35,7 +37,7 @@ test: go_test
 
 e2e-test: build docker_build .hack_e2e
 
-build: go_build
+build: $(CMDS)
 
 generate: .generate_files
 
@@ -50,39 +52,32 @@ verify: .hack_verify go_verify
 	@echo Running generated client checker:
 	@${HACK_DIR}/verify-client-gen.sh
 
-# Builder image targets
-#######################
-docker_%: .builder_image
-	docker run -it \
-		-v ${GOPATH}/src:/go/src \
-		-v $(shell pwd):/go/src/${NAVIGATOR_PKG} \
-		-w /go/src/${NAVIGATOR_PKG} \
-		-e GOPATH=/go \
-		${BUILD_IMAGE_NAME} \
-		/bin/sh -c "make $*"
-
-.builder_image:
-	docker build -t ${BUILD_IMAGE_NAME} ${BUILD_IMAGE_DIR}
-
 # Docker targets
 ################
-docker_build:
-	docker build -t $(REGISTRY)/$(IMAGE_NAME):$(BUILD_TAG) .
+DOCKER_BUILD_TARGETS = $(addprefix docker_build_, $(CMDS))
+DOCKER_BUILD_CMD = $(subst docker_build_,,$@)
+$(DOCKER_BUILD_TARGETS):
+	docker build -t $(REGISTRY)/$(IMAGE_NAME)-$(DOCKER_BUILD_CMD):$(BUILD_TAG) -f Dockerfile.$(DOCKER_BUILD_CMD) .
+docker_build: $(DOCKER_BUILD_TARGETS)
 
-docker_push: docker_build
+DOCKER_PUSH_TARGETS = $(addprefix docker_push_, $(CMDS))
+DOCKER_PUSH_CMD := $(subst docker_push_,,$@)
+$(DOCKER_PUSH_TARGETS):
 	set -e; \
 		for tag in $(IMAGE_TAGS); do \
-		docker tag $(REGISTRY)/$(IMAGE_NAME):$(BUILD_TAG) $(REGISTRY)/$(IMAGE_NAME):$${tag} ; \
-		docker push $(REGISTRY)/$(IMAGE_NAME):$${tag}; \
+		docker tag $(REGISTRY)/$(IMAGE_NAME)-$(DOCKER_PUSH_CMD):$(BUILD_TAG) $(REGISTRY)/$(IMAGE_NAME)-$(DOCKER_PUSH_CMD):$${tag} ; \
+		docker push $(REGISTRY)/$(IMAGE_NAME)-$(DOCKER_PUSH_CMD):$${tag}; \
 	done
-
+docker_push: $(DOCKER_PUSH_TARGETS)
 
 # Go targets
 #################
-go_verify: go_fmt go_vet go_test
+go_verify: go_fmt go_test go_build
 
-go_build:
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -tags netgo -ldflags '-w' -o navigator_linux_amd64 ./cmd/controller
+$(CMDS):
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -tags netgo -ldflags '-w' -o navigator-$@_linux_amd64 ./cmd/$@
+
+go_build: $(CMDS)
 
 go_test:
 	go test $$(go list ./... | grep -v '/vendor/')
@@ -95,9 +90,6 @@ go_fmt:
 		echo "$$GO_FMT"; \
 		exit 1; \
 	fi
-
-go_vet:
-	go vet $$(go list ./... | grep -v '/vendor/')
 
 # This section contains the code generation stuff
 #################################################
