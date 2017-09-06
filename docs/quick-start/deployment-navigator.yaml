@@ -11,7 +11,7 @@ metadata:
   labels:
     app: navigator
 spec:
-  replicas: 1
+  replicas: 0
   strategy:
     type: Recreate
   template:
@@ -23,3 +23,62 @@ spec:
       - name: navigator
         image: jetstackexperimental/navigator:latest
         imagePullPolicy: IfNotPresent
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: navigator-apiserver
+  namespace: navigator
+  labels:
+    app: navigator
+    role: apiserver
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: navigator
+      role: apiserver
+  template:
+    metadata:
+      labels:
+        app: navigator
+        role: apiserver
+    spec:
+      containers:
+      - name: navigator-server
+        image: quay.io/jetstack/navigator-apiserver:canary
+        imagePullPolicy: Always
+        args:
+        - "navigator-apiserver"
+        - "--etcd-servers=http://localhost:2379"
+        - --v=100
+      - name: etcd
+        image: quay.io/coreos/etcd:v3.0.17
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: navigator-apiserver
+  namespace: navigator
+spec:
+  ports:
+  - port: 443
+    protocol: TCP
+    targetPort: 443
+  selector:
+    app: navigator
+    role: apiserver
+---
+apiVersion: apiregistration.k8s.io/v1beta1
+kind: APIService
+metadata:
+  name: v1alpha1.navigator.jetstack.io
+spec:
+  insecureSkipTLSVerify: true
+  group: navigator.jetstack.io
+  groupPriorityMinimum: 1000
+  versionPriority: 15
+  service:
+    name: navigator-apiserver
+    namespace: navigator
+  version: v1alpha1

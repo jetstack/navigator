@@ -16,12 +16,12 @@ package pubsub // import "cloud.google.com/go/pubsub"
 
 import (
 	"fmt"
-	"net/http"
 	"os"
+	"runtime"
 
+	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
-	raw "google.golang.org/api/pubsub/v1"
-	"google.golang.org/api/transport"
+	"google.golang.org/grpc"
 
 	"golang.org/x/net/context"
 )
@@ -37,10 +37,11 @@ const (
 )
 
 const prodAddr = "https://pubsub.googleapis.com/"
-const userAgent = "gcloud-golang-pubsub/20151008"
 
-// Client is a Google Pub/Sub client, which may be used to perform Pub/Sub operations with a project.
-// It must be constructed via NewClient.
+// Client is a Google Pub/Sub client scoped to a single project.
+//
+// Clients should be reused rather than being created as needed.
+// A Client may be shared by multiple goroutines.
 type Client struct {
 	projectID string
 	s         service
@@ -50,26 +51,25 @@ type Client struct {
 func NewClient(ctx context.Context, projectID string, opts ...option.ClientOption) (*Client, error) {
 	var o []option.ClientOption
 	// Environment variables for gcloud emulator:
-	// https://option.google.com/sdk/gcloud/reference/beta/emulators/pubsub/
+	// https://cloud.google.com/sdk/gcloud/reference/beta/emulators/pubsub/
 	if addr := os.Getenv("PUBSUB_EMULATOR_HOST"); addr != "" {
-		o = []option.ClientOption{
-			option.WithEndpoint("http://" + addr + "/"),
-			option.WithHTTPClient(http.DefaultClient),
+		conn, err := grpc.Dial(addr, grpc.WithInsecure())
+		if err != nil {
+			return nil, fmt.Errorf("grpc.Dial: %v", err)
 		}
+		o = []option.ClientOption{option.WithGRPCConn(conn)}
 	} else {
 		o = []option.ClientOption{
-			option.WithEndpoint(prodAddr),
-			option.WithScopes(raw.PubsubScope, raw.CloudPlatformScope),
-			option.WithUserAgent(userAgent),
+			// Create multiple connections to increase throughput.
+			option.WithGRPCConnectionPool(runtime.GOMAXPROCS(0)),
+
+			// TODO(grpc/grpc-go#1388) using connection pool without WithBlock
+			// can cause RPCs to fail randomly. We can delete this after the issue is fixed.
+			option.WithGRPCDialOption(grpc.WithBlock()),
 		}
 	}
 	o = append(o, opts...)
-	httpClient, endpoint, err := transport.NewHTTPClient(ctx, o...)
-	if err != nil {
-		return nil, fmt.Errorf("dialing: %v", err)
-	}
-
-	s, err := newPubSubService(httpClient, endpoint)
+	s, err := newPubSubService(ctx, o)
 	if err != nil {
 		return nil, fmt.Errorf("constructing pubsub client: %v", err)
 	}
@@ -80,6 +80,13 @@ func NewClient(ctx context.Context, projectID string, opts ...option.ClientOptio
 	}
 
 	return c, nil
+}
+
+// Close closes any resources held by the client.
+//
+// Close need not be called at program exit.
+func (c *Client) Close() error {
+	return c.s.close()
 }
 
 func (c *Client) fullyQualifiedProjectName() string {
@@ -114,7 +121,7 @@ type stringsIterator struct {
 	fetch   func(ctx context.Context, tok string) (*stringsPage, error)
 }
 
-// Next returns the next string. If there are no more strings, Done will be returned.
+// Next returns the next string. If there are no more strings, iterator.Done will be returned.
 func (si *stringsIterator) Next() (string, error) {
 	for len(si.strings) == 0 && si.token.more() {
 		page, err := si.fetch(si.ctx, si.token.get())
@@ -126,7 +133,7 @@ func (si *stringsIterator) Next() (string, error) {
 	}
 
 	if len(si.strings) == 0 {
-		return "", Done
+		return "", iterator.Done
 	}
 
 	s := si.strings[0]

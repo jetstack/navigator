@@ -173,14 +173,14 @@ exec %s/pilot \
   --clusterURL=$(CLUSTER_URL) \
   --namespace=$(NAMESPACE) \
   --controllerKind=StatefulSet \
-  --plugins=%s \
-  --roles=%s \
-  --controllerName=%s`, sharedVolumeMountPath, string(pluginsBytes), string(rolesBytes), controllerName),
+  --plugins='%s' \
+  --roles='%s' \
+  --controllerName='%s'`, sharedVolumeMountPath, string(pluginsBytes), string(rolesBytes), controllerName),
 					},
 					Env: []apiv1.EnvVar{
 						// TODO: Tidy up generation of discovery & client URLs
 						{
-							Name:  "DISCOVERY_HOST",
+							Name:  "DISCOVERY_SERVICE",
 							Value: util.DiscoveryServiceName(c),
 						},
 						{

@@ -44,3 +44,11 @@ required = [
 [[constraint]]
   name = "k8s.io/api"
   branch = "master"
+
+[[constraint]]
+  name = "k8s.io/apiserver"
+  branch = "master"
+
+[[override]]
+  name = "google.golang.org/grpc"
+  version = "=1.2.1"

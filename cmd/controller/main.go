@@ -79,11 +79,6 @@ to quickly create a Cobra application.`,
 			logrus.Fatalf("error creating kubernetes client: %s", err.Error())
 		}
 
-		// Create the ThirdPartyResource in the Kubernetes API server
-		if err = kube.EnsureTPR(cl); err != nil {
-			logrus.Fatalf("error creating ThirdPartyResources: %s", err.Error())
-		}
-
 		// Create a context for controllers to use
 		ctx := controllers.Context{
 			Client:                   cl,

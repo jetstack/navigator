@@ -32,7 +32,7 @@ var (
 		Path: []*pb.Key_PathElement{
 			{
 				Kind:   "Gopher",
-				IdType: &pb.Key_PathElement_Id{6},
+				IdType: &pb.Key_PathElement_Id{Id: 6},
 			},
 		},
 	}
@@ -40,11 +40,11 @@ var (
 		Path: []*pb.Key_PathElement{
 			{
 				Kind:   "Gopher",
-				IdType: &pb.Key_PathElement_Id{6},
+				IdType: &pb.Key_PathElement_Id{Id: 6},
 			},
 			{
 				Kind:   "Gopher",
-				IdType: &pb.Key_PathElement_Id{8},
+				IdType: &pb.Key_PathElement_Id{Id: 8},
 			},
 		},
 	}
@@ -66,7 +66,7 @@ func (c *fakeClient) Commit(_ context.Context, req *pb.CommitRequest, _ ...grpc.
 
 func fakeRunQuery(in *pb.RunQueryRequest) (*pb.RunQueryResponse, error) {
 	expectedIn := &pb.RunQueryRequest{
-		QueryType: &pb.RunQueryRequest_Query{&pb.Query{
+		QueryType: &pb.RunQueryRequest_Query{Query: &pb.Query{
 			Kind: []*pb.KindExpression{{Name: "Gopher"}},
 		}},
 	}
@@ -82,8 +82,8 @@ func fakeRunQuery(in *pb.RunQueryRequest) (*pb.RunQueryResponse, error) {
 					Entity: &pb.Entity{
 						Key: key1,
 						Properties: map[string]*pb.Value{
-							"Name":   {ValueType: &pb.Value_StringValue{"George"}},
-							"Height": {ValueType: &pb.Value_IntegerValue{32}},
+							"Name":   {ValueType: &pb.Value_StringValue{StringValue: "George"}},
+							"Height": {ValueType: &pb.Value_IntegerValue{IntegerValue: 32}},
 						},
 					},
 				},
@@ -91,7 +91,7 @@ func fakeRunQuery(in *pb.RunQueryRequest) (*pb.RunQueryResponse, error) {
 					Entity: &pb.Entity{
 						Key: key2,
 						Properties: map[string]*pb.Value{
-							"Name": {ValueType: &pb.Value_StringValue{"Rufus"}},
+							"Name": {ValueType: &pb.Value_StringValue{StringValue: "Rufus"}},
 							// No height for Rufus.
 						},
 					},
@@ -311,10 +311,10 @@ func TestSimpleQuery(t *testing.T) {
 			continue
 		}
 
-		key1 := NewKey(ctx, "Gopher", "", 6, nil)
+		key1 := IDKey("Gopher", 6, nil)
 		expectedKeys := []*Key{
 			key1,
-			NewKey(ctx, "Gopher", "", 8, key1),
+			IDKey("Gopher", 8, key1),
 		}
 		if l1, l2 := len(keys), len(expectedKeys); l1 != l2 {
 			t.Errorf("dst type %T: got %d keys, want %d keys", tc.dst, l1, l2)
@@ -344,10 +344,10 @@ func TestSimpleQuery(t *testing.T) {
 // keysEqual is like (*Key).Equal, but ignores the App ID.
 func keysEqual(a, b *Key) bool {
 	for a != nil && b != nil {
-		if a.Kind() != b.Kind() || a.Name() != b.Name() || a.ID() != b.ID() {
+		if a.Kind != b.Kind || a.Name != b.Name || a.ID != b.ID {
 			return false
 		}
-		a, b = a.Parent(), b.Parent()
+		a, b = a.Parent, b.Parent
 	}
 	return a == b
 }
@@ -482,13 +482,11 @@ func TestNamespaceQuery(t *testing.T) {
 	}
 
 	const ns = "not_default"
-	ctx = WithNamespace(ctx, ns)
-
-	client.GetAll(ctx, NewQuery("gopher"), &gs)
+	client.GetAll(ctx, NewQuery("gopher").Namespace(ns), &gs)
 	if got, want := <-gotNamespace, ns; got != want {
 		t.Errorf("GetAll: got namespace %q, want %q", got, want)
 	}
-	client.Count(ctx, NewQuery("gopher"))
+	client.Count(ctx, NewQuery("gopher").Namespace(ns))
 	if got, want := <-gotNamespace, ns; got != want {
 		t.Errorf("Count: got namespace %q, want %q", got, want)
 	}
@@ -509,12 +507,20 @@ func TestReadOptions(t *testing.T) {
 			want: nil,
 		},
 		{
-			q:    NewQuery("").Transaction(&Transaction{id: tid}),
-			want: &pb.ReadOptions{&pb.ReadOptions_Transaction{tid}},
+			q: NewQuery("").Transaction(&Transaction{id: tid}),
+			want: &pb.ReadOptions{
+				ConsistencyType: &pb.ReadOptions_Transaction{
+					Transaction: tid,
+				},
+			},
 		},
 		{
-			q:    NewQuery("").EventualConsistency(),
-			want: &pb.ReadOptions{&pb.ReadOptions_ReadConsistency_{pb.ReadOptions_EVENTUAL}},
+			q: NewQuery("").EventualConsistency(),
+			want: &pb.ReadOptions{
+				ConsistencyType: &pb.ReadOptions_ReadConsistency_{
+					ReadConsistency: pb.ReadOptions_EVENTUAL,
+				},
+			},
 		},
 	} {
 		req := &pb.RunQueryRequest{}

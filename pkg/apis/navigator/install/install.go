@@ -31,11 +31,9 @@ import (
 func Install(groupFactoryRegistry announced.APIGroupFactoryRegistry, registry *registered.APIRegistrationManager, scheme *runtime.Scheme) {
 	if err := announced.NewGroupMetaFactory(
 		&announced.GroupMetaFactoryArgs{
-			GroupName:              navigator.GroupName,
-			VersionPreferenceOrder: []string{v1alpha1.SchemeGroupVersion.Version},
-			ImportPrefix:           "github.com/jetstack-experimental/navigator/pkg/apis/navigator",
-			// We don't currently have internal objects, so we set this to nil
-			AddInternalObjectsToScheme: nil,
+			GroupName:                  navigator.GroupName,
+			VersionPreferenceOrder:     []string{v1alpha1.SchemeGroupVersion.Version},
+			AddInternalObjectsToScheme: navigator.AddToScheme,
 		},
 		announced.VersionToSchemeFunc{
 			v1alpha1.SchemeGroupVersion.Version: v1alpha1.AddToScheme,

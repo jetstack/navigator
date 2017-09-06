@@ -15,7 +15,6 @@
 package bigquery
 
 import (
-	"reflect"
 	"testing"
 
 	"golang.org/x/net/context"
@@ -25,10 +24,11 @@ import (
 
 func defaultExtractJob() *bq.Job {
 	return &bq.Job{
+		JobReference: &bq.JobReference{ProjectId: "client-project-id"},
 		Configuration: &bq.JobConfiguration{
 			Extract: &bq.JobConfigurationExtract{
 				SourceTable: &bq.TableReference{
-					ProjectId: "project-id",
+					ProjectId: "client-project-id",
 					DatasetId: "dataset-id",
 					TableId:   "table-id",
 				},
@@ -39,23 +39,27 @@ func defaultExtractJob() *bq.Job {
 }
 
 func TestExtract(t *testing.T) {
+	s := &testService{}
+	c := &Client{
+		service:   s,
+		projectID: "client-project-id",
+	}
+
 	testCases := []struct {
-		dst     *GCSReference
-		src     *Table
-		options []Option
-		want    *bq.Job
+		dst    *GCSReference
+		src    *Table
+		config ExtractConfig
+		want   *bq.Job
 	}{
 		{
-			dst:  defaultGCS,
-			src:  defaultTable(nil),
+			dst:  defaultGCS(),
+			src:  c.Dataset("dataset-id").Table("table-id"),
 			want: defaultExtractJob(),
 		},
 		{
-			dst: defaultGCS,
-			src: defaultTable(nil),
-			options: []Option{
-				DisableHeader(),
-			},
+			dst:    defaultGCS(),
+			src:    c.Dataset("dataset-id").Table("table-id"),
+			config: ExtractConfig{DisableHeader: true},
 			want: func() *bq.Job {
 				j := defaultExtractJob()
 				f := false
@@ -64,13 +68,14 @@ func TestExtract(t *testing.T) {
 			}(),
 		},
 		{
-			dst: &GCSReference{
-				uris:              []string{"uri"},
-				Compression:       Gzip,
-				DestinationFormat: JSON,
-				FieldDelimiter:    "\t",
-			},
-			src: defaultTable(nil),
+			dst: func() *GCSReference {
+				g := NewGCSReference("uri")
+				g.Compression = Gzip
+				g.DestinationFormat = JSON
+				g.FieldDelimiter = "\t"
+				return g
+			}(),
+			src: c.Dataset("dataset-id").Table("table-id"),
 			want: func() *bq.Job {
 				j := defaultExtractJob()
 				j.Configuration.Extract.Compression = "GZIP"
@@ -81,17 +86,15 @@ func TestExtract(t *testing.T) {
 		},
 	}
 
-	for _, tc := range testCases {
-		s := &testService{}
-		c := &Client{
-			service: s,
-		}
-		if _, err := c.Copy(context.Background(), tc.dst, tc.src, tc.options...); err != nil {
-			t.Errorf("err calling extract: %v", err)
+	for i, tc := range testCases {
+		ext := tc.src.ExtractorTo(tc.dst)
+		tc.config.Src = ext.Src
+		tc.config.Dst = ext.Dst
+		ext.ExtractConfig = tc.config
+		if _, err := ext.Run(context.Background()); err != nil {
+			t.Errorf("#%d: err calling extract: %v", i, err)
 			continue
 		}
-		if !reflect.DeepEqual(s.Job, tc.want) {
-			t.Errorf("extracting: got:\n%v\nwant:\n%v", s.Job, tc.want)
-		}
+		checkJob(t, i, s.Job, tc.want)
 	}
 }

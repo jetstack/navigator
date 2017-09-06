@@ -11,7 +11,7 @@ spec:
 
   pilot:
     repository: jetstackexperimental/pilot-elasticsearch
-    tag: latest
+    tag: init
     pullPolicy: Always
 
   image:
