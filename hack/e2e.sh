@@ -70,22 +70,43 @@ retry TIMEOUT=30 apiversion_ready
 
 kubectl api-versions
 
-echo "Testing ElasticsearchCluster shortname (esc)"
-if ! kubectl get esc; then
-    echo "Failed to use shortname to get ElasticsearchClusters"
+function fail_test() {
+    echo "$1"
+    kubectl logs -c apiserver -l app=navigator,component=apiserver
+    kubectl logs -c controller -l app=navigator,component=controller
     exit 1
-fi
+}
 
-echo "Testing creating ElasticsearchCluster"
-# Create and delete an ElasticSearchCluster
-kubectl create namespace "${USER_NAMESPACE}"
-kubectl create \
-        --namespace "${USER_NAMESPACE}" \
-        --filename "${ROOT_DIR}/docs/quick-start/es-cluster-demo.yaml"
-kubectl get \
-        --namespace "${USER_NAMESPACE}" \
-        ElasticSearchClusters
-kubectl delete \
-        --namespace "${USER_NAMESPACE}" \
-        ElasticSearchClusters \
-        --all
+function test_elasticsearchcluster_shortname() {
+    echo "Testing ElasticsearchCluster shortname (esc)"
+    if ! kubectl get esc; then
+        fail_test "Failed to use shortname to get ElasticsearchClusters"
+    fi
+}
+
+function test_elasticsearchcluster_create() {
+    echo "Testing creating ElasticsearchCluster"
+    # Create and delete an ElasticSearchCluster
+    if ! kubectl create namespace "${USER_NAMESPACE}"; then
+        fail_test "Failed to create namespace '${USER_NAMESPACE}'"
+    fi
+    if ! kubectl create \
+            --namespace "${USER_NAMESPACE}" \
+            --filename "${ROOT_DIR}/docs/quick-start/es-cluster-demo.yaml"; then
+        fail_test "Failed to create elasticsearchcluster"
+    fi
+    if ! kubectl get \
+            --namespace "${USER_NAMESPACE}" \
+            ElasticSearchClusters; then
+        fail_test "Failed to get elasticsearchclusters"
+    fi
+    if ! kubectl delete \
+            --namespace "${USER_NAMESPACE}" \
+            ElasticSearchClusters \
+            --all; then
+        fail_test "Failed to delete elasticsearchcluster"
+    fi
+}
+
+test_elasticsearchcluster_shortname
+test_elasticsearchcluster_create
