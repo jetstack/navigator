@@ -3,6 +3,7 @@ set -eux
 
 NAVIGATOR_NAMESPACE="navigator"
 USER_NAMESPACE="navigator-e2e-database1"
+RELEASE_NAME="nav-e2e"
 
 ROOT_DIR="$(git rev-parse --show-toplevel)"
 SCRIPT_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)"
@@ -25,20 +26,20 @@ echo "Waiting for tiller to be ready..."
 retry TIMEOUT=60 helm version
 
 echo "Installing navigator..."
-helm install --name nav-e2e contrib/charts/navigator \
+helm install --name "${RELEASE_NAME}" contrib/charts/navigator \
         --set apiserver.image.pullPolicy=Never \
         --set controller.image.pullPolicy=Never
 
 # Wait for navigator pods to be running
 function navigator_ready() {
     local replica_count_controller=$(
-        kubectl get deployment navigator-controller \
+        kubectl get deployment ${RELEASE_NAME}-navigator-controller \
                 --output 'jsonpath={.status.readyReplicas}' || true)
     if [[ "${replica_count}" -eq 0 ]]; then
         return 1
     fi
     local replica_count_apiserver=$(
-        kubectl get deployment navigator-apiserver \
+        kubectl get deployment ${RELEASE_NAME}-navigator-apiserver \
                 --output 'jsonpath={.status.readyReplicas}' || true)
     if [[ "${replica_count}" -eq 0 ]]; then
         return 1
@@ -50,7 +51,7 @@ if ! retry navigator_ready; then
         return 1
 fi
 
-Create and delete an ElasticSearchCluster
+# Create and delete an ElasticSearchCluster
 kubectl create namespace "${USER_NAMESPACE}"
 kubectl create \
         --namespace "${USER_NAMESPACE}" \
