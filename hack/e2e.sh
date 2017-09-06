@@ -72,6 +72,10 @@ kubectl api-versions
 
 function fail_test() {
     echo "$1"
+    kubectl get po -o yaml
+    kubectl describe po
+    kubectl get apiservice -o yaml
+    kubectl describe apiservice
     kubectl logs -c apiserver -l app=navigator,component=apiserver
     kubectl logs -c controller -l app=navigator,component=controller
     exit 1
