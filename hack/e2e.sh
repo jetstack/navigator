@@ -7,14 +7,17 @@ RELEASE_NAME="nav-e2e"
 
 ROOT_DIR="$(git rev-parse --show-toplevel)"
 SCRIPT_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)"
-CONFIG_DIR=$(mktemp --directory --tmpdir navigator-e2e.XXXXXXXXX)
-mkdir --parents $CONFIG_DIR
+CONFIG_DIR=$(mktemp -d -t navigator-e2e.XXXXXXXXX)
+mkdir -p $CONFIG_DIR
 CERT_DIR="$CONFIG_DIR/certs"
-mkdir --parents $CERT_DIR
+mkdir -p $CERT_DIR
 TEST_DIR="$CONFIG_DIR/tmp"
-mkdir --parents $TEST_DIR
+mkdir -p $TEST_DIR
 
 source "${SCRIPT_DIR}/libe2e.sh"
+
+helm delete --purge "${RELEASE_NAME}" || true
+kube_delete_namespace_and_wait "${USER_NAMESPACE}"
 
 echo "Waiting up to 5 minutes for Kubernetes to be ready..."
 retry TIMEOUT=600 kubectl get nodes
@@ -54,6 +57,20 @@ if ! retry navigator_ready; then
         exit 1
 fi
 
+function apiversion_ready() {
+    local apiversion_navigator_length=$(
+        kubectl api-versions | grep 'navigator.jetstack.io' | wc -l
+    )
+    if [[ "${apiversion_navigator_length}" -lt 1 ]]; then
+        return 1
+    fi
+    return 0
+}
+
+echo "Waiting for navigator API version to be registered"
+retry TIMEOUT=30 apiversion_ready
+
+kubectl api-versions
 # Create and delete an ElasticSearchCluster
 kubectl create namespace "${USER_NAMESPACE}"
 kubectl create \

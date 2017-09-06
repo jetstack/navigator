@@ -28,8 +28,3 @@ spec:
           imagePullPolicy: {{ .Values.controller.image.pullPolicy }}
           resources:
 {{ toYaml .Values.resources | indent 12 }}
-        - name: etcd
-          image: quay.io/coreos/etcd:v3.2.7
-          imagePullPolicy: {{ .Values.controller.image.pullPolicy }}
-          resources:
-{{ toYaml .Values.resources | indent 12 }}
