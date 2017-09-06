@@ -24,8 +24,10 @@ spec:
     spec:
 {{- if .Values.apiserver.serviceAccount }}
       serviceAccountName: {{ .Values.apiserver.serviceAccount }}
+      serviceAccount: {{ .Values.apiserver.serviceAccount }}
 {{- else }}
       serviceAccountName: {{ template "fullname" . }}-apiserver
+      serviceAccount: {{ template "fullname" . }}-apiserver
 {{- end }}
       containers:
         - name: apiserver
