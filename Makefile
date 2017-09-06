@@ -55,14 +55,14 @@ verify: .hack_verify go_verify
 # Docker targets
 ################
 DOCKER_BUILD_TARGETS = $(addprefix docker_build_, $(CMDS))
-DOCKER_BUILD_CMD = $(subst docker_build_,,$@)
 $(DOCKER_BUILD_TARGETS):
+	$(eval DOCKER_BUILD_CMD := $(subst docker_build_,,$@))
 	docker build -t $(REGISTRY)/$(IMAGE_NAME)-$(DOCKER_BUILD_CMD):$(BUILD_TAG) -f Dockerfile.$(DOCKER_BUILD_CMD) .
 docker_build: $(DOCKER_BUILD_TARGETS)
 
 DOCKER_PUSH_TARGETS = $(addprefix docker_push_, $(CMDS))
-DOCKER_PUSH_CMD := $(subst docker_push_,,$@)
 $(DOCKER_PUSH_TARGETS):
+	$(eval DOCKER_PUSH_CMD := $(subst docker_push_,,$@))
 	set -e; \
 		for tag in $(IMAGE_TAGS); do \
 		docker tag $(REGISTRY)/$(IMAGE_NAME)-$(DOCKER_PUSH_CMD):$(BUILD_TAG) $(REGISTRY)/$(IMAGE_NAME)-$(DOCKER_PUSH_CMD):$${tag} ; \
