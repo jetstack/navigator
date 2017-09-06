@@ -48,6 +48,9 @@ function navigator_ready() {
 }
 
 if ! retry navigator_ready; then
+        kubectl get pods --all-namespaces
+        kubectl describe deploy ${RELEASE_NAME}-navigator-controller
+        kubectl describe deploy ${RELEASE_NAME}-navigator-apiserver
         return 1
 fi
 
