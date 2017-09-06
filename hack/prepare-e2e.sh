@@ -28,6 +28,20 @@ apiVersion: v1
 kind: List
 items:
 
+### Fix kube-dns ###
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRoleBinding
+  metadata:
+    name: system:kube-dns
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: system:kube-dns
+  subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: kube-system
+
 ### Tiller ###
 # Create a ServiceAccount for tiller to use
 - apiVersion: v1

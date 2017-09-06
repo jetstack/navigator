@@ -74,6 +74,8 @@ function fail_test() {
     echo "$1"
     kubectl get po -o yaml
     kubectl describe po
+    kubectl get svc -o yaml
+    kubectl describe svc
     kubectl get apiservice -o yaml
     kubectl describe apiservice
     kubectl logs -c apiserver -l app=navigator,component=apiserver
