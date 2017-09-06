@@ -18,41 +18,47 @@ source "${SCRIPT_DIR}/libe2e.sh"
 echo "Waiting up to 5 minutes for Kubernetes to be ready..."
 retry TIMEOUT=600 kubectl get nodes
 
-kube_delete_namespace_and_wait "${NAVIGATOR_NAMESPACE}"
-kube_delete_namespace_and_wait "${USER_NAMESPACE}"
-kubectl delete ThirdPartyResources --all
+echo "Installing helm..."
+helm init
 
-# Install navigator
-kubectl create \
-        --filename "${ROOT_DIR}/docs/quick-start/deployment-navigator.yaml"
+echo "Waiting for tiller to be ready..."
+retry TIMEOUT=60 helm version
+
+echo "Installing navigator..."
+helm install --name nav-e2e contrib/charts/navigator \
+        --set apiserver.image.tag=build \
+        --set controller.image.tag=build
 
 # Wait for navigator pods to be running
 function navigator_ready() {
-    local replica_count=$(
-        kubectl get deployment navigator \
-                --namespace navigator \
+    local replica_count_controller=$(
+        kubectl get deployment navigator-controller \
                 --output 'jsonpath={.status.readyReplicas}' || true)
-    if [[ "${replica_count}" -eq 1 ]]; then
-        return 0
+    if [[ "${replica_count}" -eq 0 ]]; then
+        return 1
     fi
-    return 1
+    local replica_count_apiserver=$(
+        kubectl get deployment navigator-apiserver \
+                --output 'jsonpath={.status.readyReplicas}' || true)
+    if [[ "${replica_count}" -eq 0 ]]; then
+        return 1
+    fi
+    return 0
 }
 
 if ! retry navigator_ready; then
-        kubectl get pods --namespace navigator
-        kubectl logs --namespace navigator -l app=navigator
         return 1
 fi
 
-# Create and delete an ElasticSearchCluster
-# --- Disabled for now whilst we move to using a custom apiserver
-# kubectl create \
-#         --namespace "${USER_NAMESPACE}" \
-#         --filename "${ROOT_DIR}/docs/quick-start/es-cluster-demo.yaml"
-# kubectl get \
-#         --namespace "${USER_NAMESPACE}" \
-#         ElasticSearchClusters
-# kubectl delete \
-#         --namespace "${USER_NAMESPACE}" \
-#         ElasticSearchClusters \
-#         --all
+Create and delete an ElasticSearchCluster
+kubectl create namespace "${USER_NAMESPACE}"
+kubectl create \
+        --namespace "${USER_NAMESPACE}" \
+        --filename "${ROOT_DIR}/docs/quick-start/es-cluster-demo.yaml"
+kubectl get \
+        --namespace "${USER_NAMESPACE}" \
+        ElasticSearchClusters
+kubectl delete \
+        --namespace "${USER_NAMESPACE}" \
+        ElasticSearchClusters \
+        --all
