@@ -1,0 +1,38 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: {{ template "fullname" . }}-apiserver
+  labels:
+    app: {{ template "name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+    component: apiserver
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ template "name" . }}
+      release: {{ .Release.Name }}
+      component: apiserver
+  template:
+    metadata:
+      labels:
+        app: {{ template "name" . }}
+        release: {{ .Release.Name }}
+        component: apiserver
+    spec:
+      containers:
+        - name: apiserver
+          image: "{{ .Values.apiserver.image.repository }}:{{ .Values.apiserver.image.tag }}"
+          imagePullPolicy: {{ .Values.apiserver.image.pullPolicy }}
+          args:
+          - "navigator-apiserver"
+          - "--etcd-servers=http://localhost:2379"
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+        - name: etcd
+          image: quay.io/coreos/etcd:v3.2.7
+          imagePullPolicy: {{ .Values.apiserver.image.pullPolicy }}
+          resources:
+{{ toYaml .Values.resources | indent 12 }}

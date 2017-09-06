@@ -1,9 +1,16 @@
 # Default values for navigator.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
-replicaCount: 1
-image:
-  repository: jetstackexperimental/navigator
-  tag: latest
-  pullPolicy: IfNotPresent
+apiserver:
+  image:
+    repository: jetstackexperimental/navigator-apiserver
+    tag: canary
+    pullPolicy: IfNotPresent
+
+controller:
+  image:
+    repository: jetstackexperimental/navigator-controller
+    tag: latest
+    pullPolicy: IfNotPresent
+
 resources: {}
