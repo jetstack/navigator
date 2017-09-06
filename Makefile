@@ -113,6 +113,7 @@ $(BINDIR)/%:
 		--go-header-file "$(HACK_DIR)/boilerplate.go.txt" \
 		--input-dirs "$(NAVIGATOR_PKG)/pkg/apis/navigator" \
 		--input-dirs "$(NAVIGATOR_PKG)/pkg/apis/navigator/v1alpha1" \
+		--input-dirs "$(NAVIGATOR_PKG)/pkg/apis/navigator/v1alpha2" \
 		--extra-peer-dirs "$(NAVIGATOR_PKG)/pkg/apis/navigator" \
 		--extra-peer-dirs "$(NAVIGATOR_PKG)/pkg/apis/navigator/v1alpha1" \
 		--output-file-base "zz_generated.defaults"
@@ -122,6 +123,7 @@ $(BINDIR)/%:
 		--go-header-file "$(HACK_DIR)/boilerplate.go.txt" \
 		--input-dirs "$(NAVIGATOR_PKG)/pkg/apis/navigator" \
 		--input-dirs "$(NAVIGATOR_PKG)/pkg/apis/navigator/v1alpha1" \
+		--input-dirs "$(NAVIGATOR_PKG)/pkg/apis/navigator/v1alpha2" \
 		--bounding-dirs "github.com/openshift/open-service-broker-sdk" \
 		--output-file-base zz_generated.deepcopy
 	# Generate conversions
@@ -130,6 +132,7 @@ $(BINDIR)/%:
 		--go-header-file "$(HACK_DIR)/boilerplate.go.txt" \
 		--input-dirs "$(NAVIGATOR_PKG)/pkg/apis/navigator" \
 		--input-dirs "$(NAVIGATOR_PKG)/pkg/apis/navigator/v1alpha1" \
+		--input-dirs "$(NAVIGATOR_PKG)/pkg/apis/navigator/v1alpha2" \
 		--output-file-base zz_generated.conversion
 	# generate all pkg/client contents
 	$(HACK_DIR)/update-client-gen.sh
