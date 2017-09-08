@@ -59,11 +59,11 @@ type ElasticsearchController struct {
 // It accepts a list of informers that are then used to monitor the state of the
 // target cluster.
 func NewElasticsearch(
-	es informerv1alpha1.ElasticsearchClusterInformer,
-	statefulsets appsinformers.StatefulSetInformer,
-	serviceaccounts coreinformers.ServiceAccountInformer,
-	services coreinformers.ServiceInformer,
-	configmaps coreinformers.ConfigMapInformer,
+	es cache.SharedIndexInformer,
+	statefulsets cache.SharedIndexInformer,
+	serviceaccounts cache.SharedIndexInformer,
+	services cache.SharedIndexInformer,
+	configmaps cache.SharedIndexInformer,
 	cl kubernetes.Interface,
 ) *ElasticsearchController {
 	// create an event broadcaster that can be used to send events to an event sink (eg. k8s)
@@ -82,29 +82,29 @@ func NewElasticsearch(
 	}
 
 	// add an event handler to the ElasticsearchCluster informer
-	es.Informer().AddEventHandler(&controllers.QueuingEventHandler{Queue: queue})
-	elasticsearchController.esLister = es.Lister()
-	elasticsearchController.esListerSynced = es.Informer().HasSynced
+	es.AddEventHandler(&controllers.QueuingEventHandler{Queue: queue})
+	elasticsearchController.esLister = listersv1alpha1.NewElasticsearchClusterLister(es.GetIndexer())
+	elasticsearchController.esListerSynced = es.HasSynced
 
 	// add an event handler to the StatefulSet informer
-	statefulsets.Informer().AddEventHandler(&controllers.BlockingEventHandler{WorkFunc: elasticsearchController.handleObject})
-	elasticsearchController.statefulSetLister = statefulsets.Lister()
-	elasticsearchController.statefulSetListerSynced = statefulsets.Informer().HasSynced
+	statefulsets.AddEventHandler(&controllers.BlockingEventHandler{WorkFunc: elasticsearchController.handleObject})
+	elasticsearchController.statefulSetLister = appslisters.NewStatefulSetLister(statefulsets.GetIndexer())
+	elasticsearchController.statefulSetListerSynced = statefulsets.HasSynced
 
 	// add an event handler to the ServiceAccount informer
-	serviceaccounts.Informer().AddEventHandler(&controllers.BlockingEventHandler{WorkFunc: elasticsearchController.handleObject})
-	elasticsearchController.serviceAccountLister = serviceaccounts.Lister()
-	elasticsearchController.serviceAccountListerSynced = serviceaccounts.Informer().HasSynced
+	serviceaccounts.AddEventHandler(&controllers.BlockingEventHandler{WorkFunc: elasticsearchController.handleObject})
+	elasticsearchController.serviceAccountLister = corelisters.NewServiceAccountLister(serviceaccounts.GetIndexer())
+	elasticsearchController.serviceAccountListerSynced = serviceaccounts.HasSynced
 
 	// add an event handler to the Service informer
-	services.Informer().AddEventHandler(&controllers.BlockingEventHandler{WorkFunc: elasticsearchController.handleObject})
-	elasticsearchController.serviceLister = services.Lister()
-	elasticsearchController.serviceListerSynced = services.Informer().HasSynced
+	services.AddEventHandler(&controllers.BlockingEventHandler{WorkFunc: elasticsearchController.handleObject})
+	elasticsearchController.serviceLister = corelisters.NewServiceLister(services.GetIndexer())
+	elasticsearchController.serviceListerSynced = services.HasSynced
 
 	// add an event handler to the Service informer
-	configmaps.Informer().AddEventHandler(&controllers.BlockingEventHandler{WorkFunc: elasticsearchController.handleObject})
-	elasticsearchController.configMapLister = configmaps.Lister()
-	elasticsearchController.configMapListerSynced = configmaps.Informer().HasSynced
+	configmaps.AddEventHandler(&controllers.BlockingEventHandler{WorkFunc: elasticsearchController.handleObject})
+	elasticsearchController.configMapLister = corelisters.NewConfigMapLister(configmaps.GetIndexer())
+	elasticsearchController.configMapListerSynced = configmaps.HasSynced
 
 	// create the actual ElasticsearchCluster controller
 	elasticsearchController.elasticsearchClusterControl = NewController(
@@ -238,15 +238,15 @@ func (e *ElasticsearchController) handleObject(obj interface{}) {
 }
 
 func init() {
-	controllers.Register("ElasticSearch", func(ctx *controllers.Context) (bool, error) {
+	controllers.Register("ElasticSearch", func(ctx *controllers.Context, stopCh <-chan struct{}) (bool, error) {
 		go NewElasticsearch(
-			ctx.NavigatorInformerFactory.Navigator().V1alpha1().ElasticsearchClusters(),
-			ctx.InformerFactory.Apps().V1beta1().StatefulSets(),
-			ctx.InformerFactory.Core().V1().ServiceAccounts(),
-			ctx.InformerFactory.Core().V1().Services(),
-			ctx.InformerFactory.Core().V1().ConfigMaps(),
+			ctx.SharedInformerFactory.InformerFor(ctx.Namespace, informerv1alpha1.NewElasticsearchClusterInformer(ctx.NavigatorClient, ctx.Namespace, time.Second*30, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})),
+			ctx.SharedInformerFactory.InformerFor(ctx.Namespace, appsinformers.NewStatefulSetInformer(ctx.Client, ctx.Namespace, time.Second*30, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})),
+			ctx.SharedInformerFactory.InformerFor(ctx.Namespace, coreinformers.NewServiceAccountInformer(ctx.Client, ctx.Namespace, time.Second*30, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})),
+			ctx.SharedInformerFactory.InformerFor(ctx.Namespace, coreinformers.NewServiceInformer(ctx.Client, ctx.Namespace, time.Second*30, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})),
+			ctx.SharedInformerFactory.InformerFor(ctx.Namespace, coreinformers.NewConfigMapInformer(ctx.Client, ctx.Namespace, time.Second*30, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})),
 			ctx.Client,
-		).Run(2, ctx.Stop)
+		).Run(2, stopCh)
 
 		return true, nil
 	})

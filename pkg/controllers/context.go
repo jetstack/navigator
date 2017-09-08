@@ -4,37 +4,35 @@ import (
 	"fmt"
 
 	"github.com/Sirupsen/logrus"
-	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 
-	intinformers "github.com/jetstack-experimental/navigator/pkg/client/informers_generated/externalversions"
+	"github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset"
+	"github.com/jetstack-experimental/navigator/pkg/kube"
 )
 
 type Context struct {
-	Client *kubernetes.Clientset
+	Client          kubernetes.Interface
+	NavigatorClient clientset.Interface
 
-	InformerFactory          informers.SharedInformerFactory
-	NavigatorInformerFactory intinformers.SharedInformerFactory
+	SharedInformerFactory kube.SharedInformerFactory
 
 	Namespace string
-	Stop      <-chan struct{}
 }
 
-type InitFn func(*Context) (bool, error)
+type InitFn func(ctx *Context, stopCh <-chan struct{}) (bool, error)
 
-func Start(ctx *Context, fns map[string]InitFn, stop <-chan struct{}) error {
+func Start(ctx *Context, fns map[string]InitFn, stopCh <-chan struct{}) error {
 	for n, fn := range fns {
 		logrus.Debugf("starting %s controller", n)
 
-		_, err := fn(ctx)
+		_, err := fn(ctx, stopCh)
 
 		if err != nil {
 			return fmt.Errorf("error starting '%s' controller: %s", n, err.Error())
 		}
 	}
 
-	ctx.InformerFactory.Start(stop)
-	ctx.NavigatorInformerFactory.Start(stop)
+	ctx.SharedInformerFactory.Start(stopCh)
 
 	select {}
 }
