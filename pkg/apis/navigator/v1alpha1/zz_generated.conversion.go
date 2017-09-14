@@ -117,6 +117,7 @@ func autoConvert_v1alpha1_ElasticsearchClusterNodePool_To_navigator_Elasticsearc
 	out.Name = in.Name
 	out.Replicas = in.Replicas
 	out.Roles = *(*[]string)(unsafe.Pointer(&in.Roles))
+	out.NodeSelector = *(*map[string]string)(unsafe.Pointer(&in.NodeSelector))
 	out.Resources = (*v1.ResourceRequirements)(unsafe.Pointer(in.Resources))
 	if err := Convert_v1alpha1_ElasticsearchClusterPersistenceConfig_To_navigator_ElasticsearchClusterPersistenceConfig(&in.Persistence, &out.Persistence, s); err != nil {
 		return err
@@ -133,6 +134,7 @@ func autoConvert_navigator_ElasticsearchClusterNodePool_To_v1alpha1_Elasticsearc
 	out.Name = in.Name
 	out.Replicas = in.Replicas
 	out.Roles = *(*[]string)(unsafe.Pointer(&in.Roles))
+	out.NodeSelector = *(*map[string]string)(unsafe.Pointer(&in.NodeSelector))
 	out.Resources = (*v1.ResourceRequirements)(unsafe.Pointer(in.Resources))
 	if err := Convert_navigator_ElasticsearchClusterPersistenceConfig_To_v1alpha1_ElasticsearchClusterPersistenceConfig(&in.Persistence, &out.Persistence, s); err != nil {
 		return err
