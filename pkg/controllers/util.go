@@ -12,6 +12,8 @@ var (
 	KeyFunc = cache.DeletionHandlingMetaNamespaceKeyFunc
 )
 
+// QueuingEventHandler is an implementation of cache.ResourceEventHandler that
+// simply queues objects that are added/updated/deleted.
 type QueuingEventHandler struct {
 	Queue workqueue.RateLimitingInterface
 }
@@ -37,9 +39,16 @@ func (q *QueuingEventHandler) OnUpdate(old, new interface{}) {
 }
 
 func (q *QueuingEventHandler) OnDelete(obj interface{}) {
+	tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
+	if ok {
+		obj = tombstone.Obj
+	}
 	q.Enqueue(obj)
 }
 
+// BlockingEventHandler is an implementation of cache.ResourceEventHandler that
+// simply synchronously calls it's WorkFunc upon calls to OnAdd, OnUpdate or
+// OnDelete.
 type BlockingEventHandler struct {
 	WorkFunc func(obj interface{})
 }
@@ -60,5 +69,9 @@ func (b *BlockingEventHandler) OnUpdate(old, new interface{}) {
 }
 
 func (b *BlockingEventHandler) OnDelete(obj interface{}) {
+	tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
+	if ok {
+		obj = tombstone.Obj
+	}
 	b.WorkFunc(obj)
 }

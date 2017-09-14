@@ -17,51 +17,50 @@ limitations under the License.
 package kube
 
 import (
-	reflect "reflect"
 	sync "sync"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	cache "k8s.io/client-go/tools/cache"
 )
 
 type SharedInformerFactory interface {
-	InformerFor(namespace string, informer cache.SharedIndexInformer) cache.SharedIndexInformer
-	Start(stopCh <-chan struct{})
+	InformerFor(string, metav1.GroupVersionKind, cache.SharedIndexInformer) cache.SharedIndexInformer
+	Start(<-chan struct{})
 }
 
 var DefaultSharedInformerFactory = NewSharedInformerFactory()
 
 type sharedInformerFactory struct {
 	lock             sync.Mutex
-	informers        map[string]map[reflect.Type]cache.SharedIndexInformer
-	startedInformers map[string]map[reflect.Type]bool
+	informers        map[string]map[metav1.GroupVersionKind]cache.SharedIndexInformer
+	startedInformers map[string]map[metav1.GroupVersionKind]bool
 }
 
 var _ SharedInformerFactory = &sharedInformerFactory{}
 
 func NewSharedInformerFactory() SharedInformerFactory {
 	return &sharedInformerFactory{
-		informers:        make(map[string]map[reflect.Type]cache.SharedIndexInformer),
-		startedInformers: make(map[string]map[reflect.Type]bool),
+		informers:        make(map[string]map[metav1.GroupVersionKind]cache.SharedIndexInformer),
+		startedInformers: make(map[string]map[metav1.GroupVersionKind]bool),
 	}
 }
 
-func (s *sharedInformerFactory) InformerFor(namespace string, i cache.SharedIndexInformer) cache.SharedIndexInformer {
+func (s *sharedInformerFactory) InformerFor(namespace string, gvk metav1.GroupVersionKind, i cache.SharedIndexInformer) cache.SharedIndexInformer {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	if s.informers == nil {
-		s.informers = make(map[string]map[reflect.Type]cache.SharedIndexInformer)
+		s.informers = make(map[string]map[metav1.GroupVersionKind]cache.SharedIndexInformer)
 	}
-	informerType := reflect.TypeOf(i)
 	informerMap, nsExists := s.informers[namespace]
 	if !nsExists {
-		s.informers[namespace] = map[reflect.Type]cache.SharedIndexInformer{
-			informerType: i,
+		s.informers[namespace] = map[metav1.GroupVersionKind]cache.SharedIndexInformer{
+			gvk: i,
 		}
 		return i
 	}
-	informer, exists := informerMap[informerType]
+	informer, exists := informerMap[gvk]
 	if !exists {
-		informerMap[informerType] = i
+		informerMap[gvk] = i
 		return i
 	}
 	return informer
@@ -75,7 +74,7 @@ func (f *sharedInformerFactory) Start(stopCh <-chan struct{}) {
 	for namespace, informerMap := range f.informers {
 		startedMap, exists := f.startedInformers[namespace]
 		if !exists {
-			startedMap = make(map[reflect.Type]bool)
+			startedMap = make(map[metav1.GroupVersionKind]bool)
 			f.startedInformers[namespace] = startedMap
 		}
 		for informerType, informer := range informerMap {
