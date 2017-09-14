@@ -133,8 +133,6 @@ func NewElasticsearch(
 
 // Run is the main event loop
 func (e *ElasticsearchController) Run(workers int, stopCh <-chan struct{}) error {
-	defer e.queue.ShutDown()
-
 	glog.Infof("Starting Elasticsearch controller")
 
 	if !cache.WaitForCacheSync(stopCh, e.esListerSynced, e.statefulSetListerSynced, e.serviceAccountListerSynced, e.serviceListerSynced) {
