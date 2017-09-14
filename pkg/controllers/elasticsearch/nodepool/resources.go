@@ -153,6 +153,7 @@ func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.Elasticsear
 			TerminationGracePeriodSeconds: util.Int64Ptr(1800),
 			// TODO
 			ServiceAccountName: "",
+			NodeSelector:       np.NodeSelector,
 			SecurityContext: &apiv1.PodSecurityContext{
 				FSGroup: util.Int64Ptr(c.Spec.Image.FsGroup),
 			},

@@ -50,11 +50,12 @@ type ElasticsearchClusterPlugin struct {
 }
 
 type ElasticsearchClusterNodePool struct {
-	Name        string
-	Replicas    int32
-	Roles       []string
-	Resources   *v1.ResourceRequirements
-	Persistence ElasticsearchClusterPersistenceConfig
+	Name         string
+	Replicas     int32
+	Roles        []string
+	NodeSelector map[string]string
+	Resources    *v1.ResourceRequirements
+	Persistence  ElasticsearchClusterPersistenceConfig
 }
 
 type ElasticsearchClusterPersistenceConfig struct {

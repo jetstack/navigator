@@ -151,6 +151,13 @@ func (in *ElasticsearchClusterNodePool) DeepCopyInto(out *ElasticsearchClusterNo
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.NodeSelector != nil {
+		in, out := &in.NodeSelector, &out.NodeSelector
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	if in.Resources != nil {
 		in, out := &in.Resources, &out.Resources
 		if *in == nil {
