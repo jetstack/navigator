@@ -16,3 +16,5 @@ limitations under the License.
 package internalversion
 
 type ElasticsearchClusterExpansion interface{}
+
+type PilotExpansion interface{}

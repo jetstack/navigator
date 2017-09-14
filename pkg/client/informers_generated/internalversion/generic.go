@@ -54,6 +54,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 	// Group=Navigator, Version=InternalVersion
 	case navigator.SchemeGroupVersion.WithResource("elasticsearchclusters"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Navigator().InternalVersion().ElasticsearchClusters().Informer()}, nil
+	case navigator.SchemeGroupVersion.WithResource("pilots"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Navigator().InternalVersion().Pilots().Informer()}, nil
 
 	}
 
