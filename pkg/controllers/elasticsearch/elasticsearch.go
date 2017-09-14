@@ -2,9 +2,11 @@ package elasticsearch
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/golang/glog"
 	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,6 +23,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 
+	"github.com/jetstack-experimental/navigator/pkg/apis/navigator"
 	informerv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/informers_generated/externalversions/navigator/v1alpha1"
 	listersv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/listers_generated/navigator/v1alpha1"
 	"github.com/jetstack-experimental/navigator/pkg/controllers"
@@ -138,21 +141,30 @@ func NewElasticsearch(
 }
 
 // Run is the main event loop
-func (e *ElasticsearchController) Run(workers int, stopCh <-chan struct{}) {
+func (e *ElasticsearchController) Run(workers int, stopCh <-chan struct{}) error {
 	defer e.queue.ShutDown()
 
 	logrus.Infof("Starting Elasticsearch controller")
 
 	if !cache.WaitForCacheSync(stopCh, e.esListerSynced, e.statefulSetListerSynced, e.serviceAccountListerSynced, e.serviceListerSynced) {
-		utilruntime.HandleError(fmt.Errorf("timed out waiting for caches to sync"))
+		return fmt.Errorf("timed out waiting for caches to sync")
 	}
 
+	var wg sync.WaitGroup
 	for i := 0; i < workers; i++ {
-		go wait.Until(e.worker, time.Second, stopCh)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			wait.Until(e.worker, time.Second, stopCh)
+		}()
 	}
 
 	<-stopCh
-	logrus.Infof("Shutting down Elasticsearch controller")
+	e.queue.ShutDown()
+	glog.V(4).Infof("Shutting down Elasticsearch controller workers...")
+	wg.Wait()
+	glog.V(4).Infof("Elasticsearch controller workers stopped.")
+	return nil
 }
 
 func (e *ElasticsearchController) worker() {
@@ -238,16 +250,36 @@ func (e *ElasticsearchController) handleObject(obj interface{}) {
 }
 
 func init() {
-	controllers.Register("ElasticSearch", func(ctx *controllers.Context, stopCh <-chan struct{}) (bool, error) {
-		go NewElasticsearch(
-			ctx.SharedInformerFactory.InformerFor(ctx.Namespace, informerv1alpha1.NewElasticsearchClusterInformer(ctx.NavigatorClient, ctx.Namespace, time.Second*30, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})),
-			ctx.SharedInformerFactory.InformerFor(ctx.Namespace, appsinformers.NewStatefulSetInformer(ctx.Client, ctx.Namespace, time.Second*30, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})),
-			ctx.SharedInformerFactory.InformerFor(ctx.Namespace, coreinformers.NewServiceAccountInformer(ctx.Client, ctx.Namespace, time.Second*30, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})),
-			ctx.SharedInformerFactory.InformerFor(ctx.Namespace, coreinformers.NewServiceInformer(ctx.Client, ctx.Namespace, time.Second*30, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})),
-			ctx.SharedInformerFactory.InformerFor(ctx.Namespace, coreinformers.NewConfigMapInformer(ctx.Client, ctx.Namespace, time.Second*30, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})),
+	controllers.Register("ElasticSearch", func(ctx *controllers.Context) controllers.Interface {
+		e := NewElasticsearch(
+			ctx.SharedInformerFactory.InformerFor(
+				ctx.Namespace,
+				metav1.GroupVersionKind{Group: navigator.GroupName, Version: "v1alpha1", Kind: "ElasticsearchCluster"},
+				informerv1alpha1.NewElasticsearchClusterInformer(ctx.NavigatorClient, ctx.Namespace, time.Second*30, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
+			),
+			ctx.SharedInformerFactory.InformerFor(
+				ctx.Namespace,
+				metav1.GroupVersionKind{Group: "apps", Version: "v1beta1", Kind: "StatefulSet"},
+				appsinformers.NewStatefulSetInformer(ctx.Client, ctx.Namespace, time.Second*30, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
+			),
+			ctx.SharedInformerFactory.InformerFor(
+				ctx.Namespace,
+				metav1.GroupVersionKind{Version: "v1", Kind: "ServiceAccount"},
+				coreinformers.NewServiceAccountInformer(ctx.Client, ctx.Namespace, time.Second*30, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
+			),
+			ctx.SharedInformerFactory.InformerFor(
+				ctx.Namespace,
+				metav1.GroupVersionKind{Version: "v1", Kind: "Service"},
+				coreinformers.NewServiceInformer(ctx.Client, ctx.Namespace, time.Second*30, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
+			),
+			ctx.SharedInformerFactory.InformerFor(
+				ctx.Namespace,
+				metav1.GroupVersionKind{Version: "v1", Kind: "ConfigMap"},
+				coreinformers.NewConfigMapInformer(ctx.Client, ctx.Namespace, time.Second*30, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
+			),
 			ctx.Client,
-		).Run(2, stopCh)
+		)
 
-		return true, nil
+		return e.Run
 	})
 }
