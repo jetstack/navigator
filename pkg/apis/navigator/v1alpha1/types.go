@@ -56,11 +56,12 @@ type ElasticsearchClusterPlugin struct {
 // ElasticsearchClusterNodePool describes a node pool within an ElasticsearchCluster.
 // The nodes in this pool will be configured to be of the specified roles
 type ElasticsearchClusterNodePool struct {
-	Name        string                                `json:"name"`
-	Replicas    int32                                 `json:"replicas"`
-	Roles       []string                              `json:"roles"`
-	Resources   *v1.ResourceRequirements              `json:"resources,omitempty"`
-	Persistence ElasticsearchClusterPersistenceConfig `json:"persistence,omitempty"`
+	Name         string                                `json:"name"`
+	Replicas     int32                                 `json:"replicas"`
+	Roles        []string                              `json:"roles"`
+	NodeSelector map[string]string                     `json:"nodeSelector"`
+	Resources    *v1.ResourceRequirements              `json:"resources,omitempty"`
+	Persistence  ElasticsearchClusterPersistenceConfig `json:"persistence,omitempty"`
 }
 
 type ElasticsearchClusterPersistenceConfig struct {
