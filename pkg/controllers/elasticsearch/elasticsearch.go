@@ -5,9 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/golang/glog"
-	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -15,8 +13,6 @@ import (
 	appsinformers "k8s.io/client-go/informers/apps/v1beta1"
 	coreinformers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
-	api "k8s.io/client-go/kubernetes/scheme"
-	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	appslisters "k8s.io/client-go/listers/apps/v1beta1"
 	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
@@ -53,6 +49,7 @@ type ElasticsearchController struct {
 
 	queue                       workqueue.RateLimitingInterface
 	elasticsearchClusterControl ControlInterface
+	recorder                    record.EventRecorder
 }
 
 // NewElasticsearch returns a new ElasticsearchController that can be used
@@ -68,20 +65,14 @@ func NewElasticsearch(
 	services cache.SharedIndexInformer,
 	configmaps cache.SharedIndexInformer,
 	cl kubernetes.Interface,
+	recorder record.EventRecorder,
 ) *ElasticsearchController {
-	// create an event broadcaster that can be used to send events to an event sink (eg. k8s)
-	eventBroadcaster := record.NewBroadcaster()
-	// log events to our logger
-	eventBroadcaster.StartLogging(logrus.Infof)
-	// log events to k8s
-	eventBroadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: cl.Core().Events("")})
-	recorder := eventBroadcaster.NewRecorder(api.Scheme, apiv1.EventSource{Component: "elasticsearchCluster"})
-
 	queue := workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "elasticsearchCluster")
 	// create a new ElasticsearchController to manage ElasticsearchCluster resources
 	elasticsearchController := &ElasticsearchController{
 		kubeClient: cl,
 		queue:      queue,
+		recorder:   recorder,
 	}
 
 	// add an event handler to the ElasticsearchCluster informer
@@ -144,7 +135,7 @@ func NewElasticsearch(
 func (e *ElasticsearchController) Run(workers int, stopCh <-chan struct{}) error {
 	defer e.queue.ShutDown()
 
-	logrus.Infof("Starting Elasticsearch controller")
+	glog.Infof("Starting Elasticsearch controller")
 
 	if !cache.WaitForCacheSync(stopCh, e.esListerSynced, e.statefulSetListerSynced, e.serviceAccountListerSynced, e.serviceListerSynced) {
 		return fmt.Errorf("timed out waiting for caches to sync")
@@ -168,11 +159,11 @@ func (e *ElasticsearchController) Run(workers int, stopCh <-chan struct{}) error
 }
 
 func (e *ElasticsearchController) worker() {
-	logrus.Infof("start worker loop")
+	glog.V(4).Infof("start worker loop")
 	for e.processNextWorkItem() {
-		logrus.Infof("processed work item")
+		glog.V(4).Infof("processed work item")
 	}
-	logrus.Infof("exiting worker loop")
+	glog.V(4).Infof("exiting worker loop")
 }
 
 func (e *ElasticsearchController) processNextWorkItem() bool {
@@ -184,7 +175,7 @@ func (e *ElasticsearchController) processNextWorkItem() bool {
 
 	if k, ok := key.(string); ok {
 		if err := e.sync(k); err != nil {
-			logrus.Infof("Error syncing ElasticsearchCluster %v, requeuing: %v", key.(string), err)
+			glog.Infof("Error syncing ElasticsearchCluster %v, requeuing: %v", key.(string), err)
 			e.queue.AddRateLimited(key)
 		} else {
 			e.queue.Forget(key)
@@ -197,7 +188,7 @@ func (e *ElasticsearchController) processNextWorkItem() bool {
 func (e *ElasticsearchController) sync(key string) error {
 	startTime := time.Now()
 	defer func() {
-		logrus.Infof("Finished syncing elasticsearchcluster %q (%v)", key, time.Now().Sub(startTime))
+		glog.Infof("Finished syncing elasticsearchcluster %q (%v)", key, time.Now().Sub(startTime))
 	}()
 
 	namespace, name, err := cache.SplitMetaNamespaceKey(key)
@@ -206,7 +197,7 @@ func (e *ElasticsearchController) sync(key string) error {
 	}
 	es, err := e.esLister.ElasticsearchClusters(namespace).Get(name)
 	if errors.IsNotFound(err) {
-		logrus.Infof("ElasticsearchCluster has been deleted %v", key)
+		glog.Infof("ElasticsearchCluster has been deleted %v", key)
 		return nil
 	}
 	if err != nil {
@@ -220,11 +211,10 @@ func (e *ElasticsearchController) sync(key string) error {
 func (e *ElasticsearchController) enqueueElasticsearchCluster(obj interface{}) {
 	key, err := controllers.KeyFunc(obj)
 	if err != nil {
-		// TODO: log error
-		logrus.Infof("Cound't get key for object %+v: %v", obj, err)
+		glog.Errorf("Couldn't get key for object %+v: %v", obj, err)
 		return
 	}
-	logrus.Infof("Adding ES Cluster '%s' to queue", key)
+	glog.V(4).Infof("Adding ES Cluster '%s' to queue", key)
 	e.queue.Add(key)
 }
 
@@ -232,15 +222,15 @@ func (e *ElasticsearchController) handleObject(obj interface{}) {
 	var object metav1.Object
 	var ok bool
 	if object, ok = obj.(metav1.Object); !ok {
-		logrus.Errorf("error decoding object, invalid type")
+		glog.Errorf("error decoding object, invalid type")
 		return
 	}
-	logrus.Infof("Processing object: %s", object.GetName())
+	glog.V(4).Infof("Processing object: %s", object.GetName())
 	if ownerRef := metav1.GetControllerOf(object); ownerRef != nil {
 		cluster, err := e.esLister.ElasticsearchClusters(object.GetNamespace()).Get(ownerRef.Name)
 
 		if err != nil {
-			logrus.Infof("ignoring orphaned object '%s' of elasticsearchcluster '%s'", object.GetSelfLink(), ownerRef.Name)
+			glog.V(4).Infof("ignoring orphaned object '%s' of elasticsearchcluster '%s'", object.GetSelfLink(), ownerRef.Name)
 			return
 		}
 
@@ -278,6 +268,7 @@ func init() {
 				coreinformers.NewConfigMapInformer(ctx.Client, ctx.Namespace, time.Second*30, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
 			),
 			ctx.Client,
+			ctx.Recorder,
 		)
 
 		return e.Run
