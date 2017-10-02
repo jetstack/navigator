@@ -23,10 +23,10 @@ import (
 )
 
 // NewREST returns a RESTStorage object that will work against API services.
-func NewREST(scheme *runtime.Scheme, optsGetter generic.RESTOptionsGetter) (*registry.REST, error) {
+func NewREST(scheme *runtime.Scheme, optsGetter generic.RESTOptionsGetter) (*registry.REST, *registry.REST, error) {
 	strategy := NewStrategy(scheme)
 
-	store := &genericregistry.Store{
+	store := genericregistry.Store{
 		Copier:                   scheme,
 		NewFunc:                  func() runtime.Object { return &navigator.Pilot{} },
 		NewListFunc:              func() runtime.Object { return &navigator.PilotList{} },
@@ -39,9 +39,10 @@ func NewREST(scheme *runtime.Scheme, optsGetter generic.RESTOptionsGetter) (*reg
 	}
 	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: GetAttrs}
 	if err := store.CompleteWithOptions(options); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return &registry.REST{
-		Store: store,
-	}, nil
+	statusStore := store
+	statusStore.UpdateStrategy = pilotStatusStrategy{strategy}
+
+	return &registry.REST{Store: &store}, &registry.REST{Store: &statusStore}, nil
 }

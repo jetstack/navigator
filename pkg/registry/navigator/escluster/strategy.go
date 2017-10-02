@@ -16,6 +16,7 @@ package escluster
 import (
 	"fmt"
 
+	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -87,4 +88,27 @@ func (esClusterStrategy) Canonicalize(obj runtime.Object) {
 
 func (esClusterStrategy) ValidateUpdate(ctx genericapirequest.Context, obj, old runtime.Object) field.ErrorList {
 	return field.ErrorList{}
+}
+
+// implements interface RESTUpdateStrategy. This implementation validates updates to
+// instance.Status updates only and disallows any modifications to the instance.Spec.
+type esClusterStatusStrategy struct {
+	esClusterStrategy
+}
+
+func (esClusterStatusStrategy) PrepareForUpdate(ctx genericapirequest.Context, new, old runtime.Object) {
+	newESCluster, ok := new.(*navigator.ElasticsearchCluster)
+	if !ok {
+		glog.Fatal("received a non-elasticsearchcluster object to update to")
+	}
+	oldESCluster, ok := old.(*navigator.ElasticsearchCluster)
+	if !ok {
+		glog.Fatal("received a non-elasticsearchcluster object to update from")
+	}
+	// Status changes are not allowed to update spec
+	newESCluster.Spec = oldESCluster.Spec
+}
+
+func (esClusterStatusStrategy) ValidateUpdate(ctx genericapirequest.Context, new, old runtime.Object) field.ErrorList {
+	return nil
 }

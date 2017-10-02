@@ -16,6 +16,7 @@ package pilot
 import (
 	"fmt"
 
+	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -87,4 +88,27 @@ func (pilotStrategy) Canonicalize(obj runtime.Object) {
 
 func (pilotStrategy) ValidateUpdate(ctx genericapirequest.Context, obj, old runtime.Object) field.ErrorList {
 	return field.ErrorList{}
+}
+
+// implements interface RESTUpdateStrategy. This implementation validates updates to
+// instance.Status updates only and disallows any modifications to the instance.Spec.
+type pilotStatusStrategy struct {
+	pilotStrategy
+}
+
+func (pilotStatusStrategy) PrepareForUpdate(ctx genericapirequest.Context, new, old runtime.Object) {
+	newPilot, ok := new.(*navigator.Pilot)
+	if !ok {
+		glog.Fatal("received a non-pilot object to update to")
+	}
+	oldPilot, ok := old.(*navigator.Pilot)
+	if !ok {
+		glog.Fatal("received a non-pilot object to update from")
+	}
+	// Status changes are not allowed to update spec
+	newPilot.Spec = oldPilot.Spec
+}
+
+func (pilotStatusStrategy) ValidateUpdate(ctx genericapirequest.Context, new, old runtime.Object) field.ErrorList {
+	return nil
 }
