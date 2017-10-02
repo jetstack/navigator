@@ -8,6 +8,7 @@ import (
 	"k8s.io/client-go/tools/record"
 
 	v1alpha1 "github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
+	"github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset"
 	"github.com/jetstack-experimental/navigator/pkg/controllers/elasticsearch/configmap"
 	"github.com/jetstack-experimental/navigator/pkg/controllers/elasticsearch/nodepool"
 	"github.com/jetstack-experimental/navigator/pkg/controllers/elasticsearch/service"
@@ -27,13 +28,14 @@ const (
 )
 
 type ControlInterface interface {
-	Sync(*v1alpha1.ElasticsearchCluster) error
+	Sync(*v1alpha1.ElasticsearchCluster) (v1alpha1.ElasticsearchClusterStatus, error)
 }
 
 var _ ControlInterface = &defaultElasticsearchClusterControl{}
 
 type defaultElasticsearchClusterControl struct {
-	kubeClient *kubernetes.Clientset
+	kubeClient      kubernetes.Interface
+	navigatorClient clientset.Interface
 
 	statefulSetLister    appslisters.StatefulSetLister
 	serviceAccountLister corelisters.ServiceAccountLister
@@ -50,6 +52,8 @@ type defaultElasticsearchClusterControl struct {
 var _ ControlInterface = &defaultElasticsearchClusterControl{}
 
 func NewController(
+	kubeClient kubernetes.Interface,
+	navigatorClient clientset.Interface,
 	statefulSetLister appslisters.StatefulSetLister,
 	serviceAccountLister corelisters.ServiceAccountLister,
 	serviceLister corelisters.ServiceLister,
@@ -60,6 +64,8 @@ func NewController(
 	recorder record.EventRecorder,
 ) ControlInterface {
 	return &defaultElasticsearchClusterControl{
+		kubeClient:            kubeClient,
+		navigatorClient:       navigatorClient,
 		statefulSetLister:     statefulSetLister,
 		serviceAccountLister:  serviceAccountLister,
 		serviceLister:         serviceLister,
@@ -71,34 +77,32 @@ func NewController(
 	}
 }
 
-func (e *defaultElasticsearchClusterControl) Sync(c *v1alpha1.ElasticsearchCluster) error {
+func (e *defaultElasticsearchClusterControl) Sync(c *v1alpha1.ElasticsearchCluster) (v1alpha1.ElasticsearchClusterStatus, error) {
+	c = c.DeepCopy()
 	var err error
 
-	// TODO: handle status
 	if _, err = e.serviceAccountControl.Sync(c); err != nil {
 		e.recorder.Eventf(c, apiv1.EventTypeWarning, errorSync, messageErrorSyncServiceAccount, err.Error())
-		return err
+		return c.Status, err
 	}
 
 	// TODO: handle status
-	if _, err = e.configMapControl.Sync(c); err != nil {
+	if c.Status, err = e.configMapControl.Sync(c); err != nil {
 		e.recorder.Eventf(c, apiv1.EventTypeWarning, errorSync, messageErrorSyncConfigMap, err.Error())
-		return err
+		return c.Status, err
 	}
 
 	// TODO: handle status
 	if _, err = e.serviceControl.Sync(c); err != nil {
 		e.recorder.Eventf(c, apiv1.EventTypeWarning, errorSync, messageErrorSyncService, err.Error())
-		return err
+		return c.Status, err
 	}
 
 	// TODO: handle status
-	if _, err = e.nodePoolControl.Sync(c); err != nil {
+	if err = e.nodePoolControl.Sync(c); err != nil {
 		e.recorder.Eventf(c, apiv1.EventTypeWarning, errorSync, messageErrorSyncNodePools, err.Error())
-		return err
+		return c.Status, err
 	}
 
-	e.recorder.Event(c, apiv1.EventTypeNormal, successSync, messageSuccessSync)
-
-	return nil
+	return c.Status, nil
 }
