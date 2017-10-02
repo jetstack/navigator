@@ -46,14 +46,30 @@ application instance. This helps bridge the gap between modern orchestration
 systems requirements of health endpoints and the underlying application health
 check facilities.
 
+* **(Optional) Leader election** - if an application requires some or all
+changes to cluster-wide state to be coordinator, they can use the navigator
+API to perform leader election between Pilot resources. This is implemented in
+a similar fashion to the leader election found in navigator-controller.
+
 ## Expected behaviour
 
-The general operation of a pilot can be split into 4 phases:
+The general operation of a pilot can be split into 5 phases:
 
-* **preStart**
+### initializing
 
-* **postStart**
+Initially, all instances of pilot are in this phase. In this phase, the pilot
+is waiting for the initial Pilot resource for the pilot to exist in the
+apiserver. Once the config has become available and is validated successfully,
+it pilot will transition into the next phase.
 
-* **preStop**
+### preStart
 
-* **postStop**
+The preStart phase is before the application process has started, but after the
+initial configuration has been validated. Hooks here will be executed according
+to the rules they specify.
+
+### postStart
+
+### preStop
+
+### postStop

@@ -37,14 +37,27 @@ metadata:
   name: es-demo-data-0
   namespace: logging
 spec:
-  inService: true
+  decommission: true
+  elasticsearch:
+    nodePool: mixed
+    plugins:
+    - name: io.fabric8:elasticsearch-cloud-kubernetes:5.2.2
 status:
+  elasticsearch:
+    plugins:
+    - name: io.fabric8:elasticsearch-cloud-kubernetes:5.2.2
+      status: Unknown
   conditions:
   - type: Ready
     status: True
     lastTransitionTime: 2017-10-01T19:00:00+00
     reason: "ElasticsearchStarted"
     message: "Elasticsearch process has started"
+  - type: Decommissioned
+    status: False
+    lastTransitionTime: 2017-10-01T19:00:00+00
+    reason: "NodeDecommissioning"
+    message: ""
 ```
 
 ## Scope of work
@@ -85,15 +98,22 @@ boolean `inService` field is used initially for it's simplicity.
 
 A new Pilot control loop will be introduced in order to:
 
-* **Reconcile the status of Pilots** - by requiring the Pilots set a `Ready`
-condition periodically, the pilot controller will mark Pilots as non-ready
-after an elapsed period since the last heartbeat has passed.
+##### Pilot garbage collection
 
-* **Pilot garbage collection** - when a pod gets deleted due to a scale down event,
-the corresponding Pilot resource should be deleted in order to prevent an old
-configuration being used upon next startup if a later scale up event is
-performed. When a Pilot has no corresponding Pod resource, and has not been
-modified for a configured duration, the Pilot resource will be deleted.
+The pilot garbage collector should run periodically for each Pilot resource to
+see the last time it was started, and if there is a corresponding pod with the
+same name. If there is not for a configured duration, it is assumed the Pilot
+has been removed due to a scale down event and the Pilot should be deleted.
+
+If this is not the case, this should trigger the application controller to
+create a new Pilot resource with the configuration required at the time of pod
+creation.
+
+##### Pilot status reconciliation
+
+If a Pilot has not update it's Ready or Status field within a configured
+duration, the status of the resource should be updated to set the fields to
+a not ready state.
 
 ### pilots
 
@@ -101,11 +121,20 @@ Each pilot implementation will also need modifying quite extensively to support
 the new type. The pilot is where the majority of the work will be required for
 this feature.
 
-* On startup, pilots should wait until a Pilot resource with it's own name
+#### Startup
+
+On startup, pilots should wait until a Pilot resource with it's own name
 exists before starting, as the Pilot resource can provide additional
 configuration for the application.
 
-* Pilots should watch for changes to themselves, and perform appropriate action
+#### Resource control loop
+
+A pilot is similar to a kubelet, in that each one is coupled to a Pilot (or
+Node in the kubelet's case) and must act in order to converge the state
+specified in the resources `spec` field with the actual state of the node, and
+report its status in the `status` field.
+
+Pilots should watch for changes to themselves, and perform appropriate action
 on their underlying applications in order to sync the 'actual' state of the
 application & pilot with the desired state specified on the Pilot resource.
 As some of these actions may actual need performing cluster wide (e.g.
