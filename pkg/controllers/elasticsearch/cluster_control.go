@@ -1,9 +1,6 @@
 package elasticsearch
 
 import (
-	"fmt"
-	"strings"
-
 	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	appslisters "k8s.io/client-go/listers/apps/v1beta1"
