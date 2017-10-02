@@ -23,6 +23,11 @@ type ElasticsearchCluster struct {
 }
 
 type ElasticsearchClusterStatus struct {
+	NodePools map[string]ElasticsearchClusterNodePoolStatus `json:"nodePools"`
+}
+
+type ElasticsearchClusterNodePoolStatus struct {
+	ReadyReplicas int64 `json:"readyReplicas"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
