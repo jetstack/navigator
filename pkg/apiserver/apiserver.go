@@ -33,6 +33,7 @@ import (
 	informers "github.com/jetstack-experimental/navigator/pkg/client/informers_generated/internalversion"
 	navigatorregistry "github.com/jetstack-experimental/navigator/pkg/registry"
 	esclusterstorage "github.com/jetstack-experimental/navigator/pkg/registry/navigator/escluster"
+	pilotstorage "github.com/jetstack-experimental/navigator/pkg/registry/navigator/pilot"
 )
 
 var (
@@ -107,6 +108,7 @@ func (c completedConfig) New() (*NavigatorServer, error) {
 	apiGroupInfo.GroupMeta.GroupVersion = v1alpha1.SchemeGroupVersion
 	v1alpha1storage := map[string]rest.Storage{}
 	v1alpha1storage["elasticsearchclusters"] = navigatorregistry.RESTInPeace(esclusterstorage.NewREST(Scheme, c.GenericConfig.RESTOptionsGetter))
+	v1alpha1storage["pilots"] = navigatorregistry.RESTInPeace(pilotstorage.NewREST(Scheme, c.GenericConfig.RESTOptionsGetter))
 	apiGroupInfo.VersionedResourcesStorageMap["v1alpha1"] = v1alpha1storage
 
 	if err := s.GenericAPIServer.InstallAPIGroup(&apiGroupInfo); err != nil {
