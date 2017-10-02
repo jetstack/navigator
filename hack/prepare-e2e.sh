@@ -73,7 +73,7 @@ items:
   # namespace-lifecycle admission-controller
   rules:
   - apiGroups: ["navigator.jetstack.io"]
-    resources: ["elasticsearchclusters"]
+    resources: ["elasticsearchclusters", "pilots"]
     verbs:     ["get", "list", "watch", "create", "update", "delete"]
 - apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding

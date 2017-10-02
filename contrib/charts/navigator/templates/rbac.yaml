@@ -87,7 +87,7 @@ items:
     name: "{{ template "fullname" . }}:controller-elasticsearch"
   rules:
   - apiGroups: ["navigator.jetstack.io"]
-    resources: ["elasticsearchclusters"]
+    resources: ["elasticsearchclusters", "pilots"]
     verbs:     ["get", "list", "watch", "update"]
   - apiGroups: [""]
     resources: ["services","configmaps","serviceaccounts"]
