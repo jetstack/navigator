@@ -2,9 +2,7 @@ package serviceaccount
 
 import (
 	"fmt"
-	"strings"
 
-	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	listersv1 "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/record"
@@ -61,20 +59,4 @@ func (e *defaultElasticsearchClusterServiceAccountControl) Sync(c *v1alpha1.Elas
 		return c.Status, err
 	}
 	return c.Status, nil
-}
-
-// recordNodePoolEvent records an event for verb applied to a NodePool in an ElasticsearchCluster. If err is nil the generated event will
-// have a reason of v1.EventTypeNormal. If err is not nil the generated event will have a reason of v1.EventTypeWarning.
-func (e *defaultElasticsearchClusterServiceAccountControl) recordEvent(verb string, cluster v1alpha1.ElasticsearchCluster, svcAcct *apiv1.ServiceAccount, err error) {
-	if err == nil {
-		reason := fmt.Sprintf("Successful%s", strings.Title(verb))
-		message := fmt.Sprintf("%s ServiceAccount %s in ElasticsearchCluster %s successful",
-			strings.ToLower(verb), svcAcct.Name, cluster.Name)
-		e.recorder.Event(&cluster, apiv1.EventTypeNormal, reason, message)
-	} else {
-		reason := fmt.Sprintf("Failed%s", strings.Title(verb))
-		message := fmt.Sprintf("%s ServiceAccount %s in ElasticsearchCluster %s failed error: %s",
-			strings.ToLower(verb), svcAcct.Name, cluster.Name, err)
-		e.recorder.Event(&cluster, apiv1.EventTypeWarning, reason, message)
-	}
 }

@@ -2,9 +2,7 @@ package nodepool
 
 import (
 	"fmt"
-	"strings"
 
-	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	appslisters "k8s.io/client-go/listers/apps/v1beta1"
 	"k8s.io/client-go/tools/record"
@@ -168,20 +166,4 @@ func (e *statefulElasticsearchClusterNodePoolControl) reconcileNodePools(c *v1al
 		}
 	}
 	return nil
-}
-
-// recordNodePoolEvent records an event for verb applied to a NodePool in an ElasticsearchCluster. If err is nil the generated event will
-// have a reason of v1.EventTypeNormal. If err is not nil the generated event will have a reason of v1.EventTypeWarning.
-func (e *statefulElasticsearchClusterNodePoolControl) recordNodePoolEvent(verb string, cluster v1alpha1.ElasticsearchCluster, pool v1alpha1.ElasticsearchClusterNodePool, err error) {
-	if err == nil {
-		reason := fmt.Sprintf("Successful%s", strings.Title(verb))
-		message := fmt.Sprintf("%s StatefulNodePool %s in ElasticsearchCluster %s successful",
-			strings.ToLower(verb), pool.Name, cluster.Name)
-		e.recorder.Event(&cluster, apiv1.EventTypeNormal, reason, message)
-	} else {
-		reason := fmt.Sprintf("Failed%s", strings.Title(verb))
-		message := fmt.Sprintf("%s StatefulNodePool %s in ElasticsearchCluster %s failed error: %s",
-			strings.ToLower(verb), pool.Name, cluster.Name, err)
-		e.recorder.Event(&cluster, apiv1.EventTypeWarning, reason, message)
-	}
 }

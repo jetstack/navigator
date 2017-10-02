@@ -2,7 +2,6 @@ package configmap
 
 import (
 	"fmt"
-	"strings"
 
 	apiv1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -52,20 +51,4 @@ func (e *defaultElasticsearchClusterConfigMapControl) ensureConfigMap(configMap 
 		return err
 	}
 	return err
-}
-
-// recordNodePoolEvent records an event for verb applied to a NodePool in an ElasticsearchCluster. If err is nil the generated event will
-// have a reason of v1.EventTypeNormal. If err is not nil the generated event will have a reason of v1.EventTypeWarning.
-func (e *defaultElasticsearchClusterConfigMapControl) recordEvent(verb string, cluster v1alpha1.ElasticsearchCluster, cm *apiv1.ConfigMap, err error) {
-	if err == nil {
-		reason := fmt.Sprintf("Successful%s", strings.Title(verb))
-		message := fmt.Sprintf("%s ConfigMap %s in ElasticsearchCluster %s successful",
-			strings.ToLower(verb), cm.Name, cluster.Name)
-		e.recorder.Event(&cluster, apiv1.EventTypeNormal, reason, message)
-	} else {
-		reason := fmt.Sprintf("Failed%s", strings.Title(verb))
-		message := fmt.Sprintf("%s ConfigMap %s in ElasticsearchCluster %s failed error: %s",
-			strings.ToLower(verb), cm.Name, cluster.Name, err)
-		e.recorder.Event(&cluster, apiv1.EventTypeWarning, reason, message)
-	}
 }
