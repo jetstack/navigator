@@ -1,7 +1,7 @@
 # Pilot resource type
 
 Navigator calls the manager of each instance in an application a Pilot. As
-described in the [Pilot doc page](/docs/proposals/pilots.md), a Pilot is the
+described in the [Pilot doc page](pilots.md), a Pilot is the
 'glue' between Navigator and the applications it manages.
 
 In order to store information about the state of each node in a Navigator
