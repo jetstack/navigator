@@ -57,7 +57,7 @@ type ElasticsearchClusterPlugin struct {
 // The nodes in this pool will be configured to be of the specified roles
 type ElasticsearchClusterNodePool struct {
 	Name         string                                `json:"name"`
-	Replicas     int32                                 `json:"replicas"`
+	Replicas     int64                                 `json:"replicas"`
 	Roles        []string                              `json:"roles"`
 	NodeSelector map[string]string                     `json:"nodeSelector"`
 	Resources    *v1.ResourceRequirements              `json:"resources,omitempty"`
@@ -106,7 +106,7 @@ type PilotList struct {
 }
 
 type PilotSpec struct {
-	Decommissioned bool `json:"decommissioned"`
+	InService bool `json:"inService"`
 }
 
 type PilotStatus struct {

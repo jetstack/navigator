@@ -51,7 +51,7 @@ type ElasticsearchClusterPlugin struct {
 
 type ElasticsearchClusterNodePool struct {
 	Name         string
-	Replicas     int32
+	Replicas     int64
 	Roles        []string
 	NodeSelector map[string]string
 	Resources    *v1.ResourceRequirements
@@ -100,7 +100,7 @@ type PilotList struct {
 }
 
 type PilotSpec struct {
-	Decommissioned bool
+	InService bool
 }
 
 type PilotStatus struct {

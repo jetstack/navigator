@@ -412,7 +412,7 @@ func Convert_navigator_PilotList_To_v1alpha1_PilotList(in *navigator.PilotList, 
 }
 
 func autoConvert_v1alpha1_PilotSpec_To_navigator_PilotSpec(in *PilotSpec, out *navigator.PilotSpec, s conversion.Scope) error {
-	out.Decommissioned = in.Decommissioned
+	out.InService = in.InService
 	return nil
 }
 
@@ -422,7 +422,7 @@ func Convert_v1alpha1_PilotSpec_To_navigator_PilotSpec(in *PilotSpec, out *navig
 }
 
 func autoConvert_navigator_PilotSpec_To_v1alpha1_PilotSpec(in *navigator.PilotSpec, out *PilotSpec, s conversion.Scope) error {
-	out.Decommissioned = in.Decommissioned
+	out.InService = in.InService
 	return nil
 }
 
