@@ -70,12 +70,12 @@ the new `Pilot` resource type in order to utilise it. Right now, we only have
 support for `ElasticsearchCluster` resources, so this should be relatively
 painless.
 
-* Creating `Pilot` resources - an application controller should create `Pilot`
+* **Creating `Pilot` resources** - an application controller should create `Pilot`
 resources for each Pilot instance in applications it is managing. It is not
 that these exist before the pilot is started, as the pilot should wait for its
 corresponding resource to exist before starting.
 
-* Setting the `inService` field on a Pilot - when a scale down of an
+* **Setting the `inService` field on a Pilot** - when a scale down of an
 application or cluster occurs, a field should be set on the Pilots spec so
 appropriate action can be taken by the pilot instances to decommission the node.
 The exact specification for this feature is not set-in-stone, and the use of a
@@ -85,11 +85,11 @@ boolean `inService` field is used initially for it's simplicity.
 
 A new Pilot control loop will be introduced in order to:
 
-* Reconcille the status of Pilots - by requiring the Pilots set a `Ready`
+* **Reconcile the status of Pilots** - by requiring the Pilots set a `Ready`
 condition periodically, the pilot controller will mark Pilots as non-ready
 after an elapsed period since the last heartbeat has passed.
 
-* Pilot garbage collection - when a pod gets deleted due to a scale down event,
+* **Pilot garbage collection** - when a pod gets deleted due to a scale down event,
 the corresponding Pilot resource should be deleted in order to prevent an old
 configuration being used upon next startup if a later scale up event is
 performed. When a Pilot has no corresponding Pod resource, and has not been
