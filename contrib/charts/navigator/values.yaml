@@ -7,6 +7,10 @@ rbac:
   enabled: true
 
 apiserver:
+  ## Set to true to skip deploying the apiserver components RBAC policies,
+  ## which require cluster admin access to deploy.
+  rbacDisabled: false
+
   ## Optional: if not set, a service account will be automatically created
   # serviceAccount: "apiserver-svc-acct"
   image:
@@ -15,6 +19,9 @@ apiserver:
     pullPolicy: Always
 
 controller:
+  ## Optional: namespace to watch for resources in. This can be used when RBAC
+  # restricts you to a single namespace.
+  namespace: default
   ## Optional: if not set, a service account will be automatically created
   # serviceAccount: "controller-svc-acct"
   image:

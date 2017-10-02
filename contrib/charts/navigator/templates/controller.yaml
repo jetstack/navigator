@@ -32,6 +32,10 @@ spec:
       containers:
         - name: controller
           image: "{{ .Values.controller.image.repository }}:{{ .Values.controller.image.tag }}"
+          args:
+          - navigator-controller
+          - --namespace={{ .Values.controller.namespace | quote }}
+          - --v=100
           imagePullPolicy: {{ .Values.controller.image.pullPolicy }}
           resources:
 {{ toYaml .Values.resources | indent 12 }}
