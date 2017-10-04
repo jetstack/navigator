@@ -19,7 +19,7 @@ end note
 
 por-->kub: Informer
 
-kub->pod: Start pod
+kub->*pod: Start pod
 note over pod
     Pilot entrypoint running
 end note
