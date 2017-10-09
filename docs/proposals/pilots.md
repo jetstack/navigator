@@ -73,3 +73,32 @@ to the rules they specify.
 ### preStop
 
 ### postStop
+
+## Building Pilots
+
+In order to make building Pilots easier, we should create a generic
+implementation the standardises common functionality between Pilots.
+
+This new library will provide a number of services:
+
+* **Machinery to set up a Sync based control loop** - all pilots are required
+to watch for changes to their own Pilot resources, so the Pilot library should
+make this easy. The will be configured through a developer-provided Sync
+function that is specific to each Pilot. In future, adding a generic
+implementation for this (similar to CRI) could be explored, that attempts to
+more tightly define the interface for a Pilot reacting to changes to its own
+resource).
+
+* **Common utilities/functions to aid consistency between Pilots** - a core aim
+of Navigator is to provide a reasonable level of consistency between the
+behaviour of pilots. Functionality that is common between implementations
+should be generalised and vendored into the genericpilot package for reuse.
+
+* **Leader election** - if a Pilot requires some part of it to perform in a
+leader elected fashion, the genericpilot package should provide a means for
+an implementation to do this in a consistent way. By doing this, we can easily
+present this information to an end-user in a consistent fashion for all Pilots.
+It should be noted that this leader election may or may not be related to the
+Pilots underlying application's leader election. Whether this is a reasonable
+idea should be a decision left to the developer implementing the Pilot, taking
+into account the Navigator API server's availability guarantees.
