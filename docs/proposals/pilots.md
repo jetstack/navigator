@@ -51,29 +51,6 @@ changes to cluster-wide state to be coordinator, they can use the navigator
 API to perform leader election between Pilot resources. This is implemented in
 a similar fashion to the leader election found in navigator-controller.
 
-## Expected behaviour
-
-The general operation of a pilot can be split into 5 phases:
-
-### initializing
-
-Initially, all instances of pilot are in this phase. In this phase, the pilot
-is waiting for the initial Pilot resource for the pilot to exist in the
-apiserver. Once the config has become available and is validated successfully,
-it pilot will transition into the next phase.
-
-### preStart
-
-The preStart phase is before the application process has started, but after the
-initial configuration has been validated. Hooks here will be executed according
-to the rules they specify.
-
-### postStart
-
-### preStop
-
-### postStop
-
 ## Building Pilots
 
 In order to make building Pilots easier, we should create a generic
@@ -102,3 +79,27 @@ It should be noted that this leader election may or may not be related to the
 Pilots underlying application's leader election. Whether this is a reasonable
 idea should be a decision left to the developer implementing the Pilot, taking
 into account the Navigator API server's availability guarantees.
+
+### Expected behaviour
+
+The general operation of a pilots lifecycle can be split into 5 phases. These
+phases are unrelated to the phases described by the Pilot resource (e.g.
+'Running', 'Decommissioned'), and are used internally only. Phases as described
+in the Pilot resource are described at a higher level of abstraction, and the
+determination of the current Pilot resource phase is left up to the actual
+Pilot implementation.
+
+* **initializing** - initially, all instances of pilot are in this phase. In
+this phase, the pilot is waiting for the initial Pilot resource for the pilot
+to exist in the apiserver. Once the config has become available and is
+validated successfully, the pilot will transition into the next phase.
+
+* **preStart** - the preStart phase is before the application process has
+started, but after the initial configuration has been validated. Hooks here
+will be executed according to the rules they specify.
+
+* **postStart**
+
+* **preStop**
+
+* **postStop**
