@@ -37,7 +37,7 @@ metadata:
   name: es-demo-data-0
   namespace: logging
 spec:
-  decommission: true
+  phase: Decomissioned
   elasticsearch:
     nodePool: mixed
     plugins:
@@ -57,8 +57,39 @@ status:
     status: False
     lastTransitionTime: 2017-10-01T19:00:00+00
     reason: "NodeDecommissioning"
-    message: ""
+    message: "Elasticsearch cluster is draining shards from node (1463 documents remaining)"
 ```
+
+## Resource design
+
+The Pilot resource contains a sub-field under both `spec` and `status` for each
+pilot supported.
+
+This field should be a structure defined within the `navigator` repository,
+which consequently means that changes to Pilots that require additional
+configuration parameters will also require changes to the Navigator API types.
+
+An alternative option is to make each pilots structure a free-form YAML
+segment, or a `map[string]string` field. Whilst this does present some
+advantages in terms of testing release candidates, it also means deprecating or
+moving fields is more difficult. Instead, annotations on the Pilot can be used
+for fields that have not yet graduated into the resource spec (similar to how
+annotations are used throughout the main Kubernetes codebase).
+
+### Common fields
+
+Some fields exist outside of the pilots sub-field, and the behaviour of these
+fields should be reasonably consistent between implementations of a pilot.
+
+Initially, this proposal includes a `phase` field on the `pilot.spec` object.
+This field should be used to indicate the desired phase of the resource, which
+initially can be one of `Running` or `Decommissioned`.
+
+Corresponding `status.conditions` entries should be inserted for each Phase. We
+use the `status.conditions` stanza to represent changes to the state of
+resources so that we can record a history of changes to the Pilots phase, as
+opposed to a simple `status.phase` field that would only allow us to see the
+current state of the field, with no context as to when this was last updated.
 
 ## Scope of work
 
