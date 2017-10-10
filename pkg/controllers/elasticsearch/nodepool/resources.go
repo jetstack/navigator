@@ -153,7 +153,8 @@ func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.Elasticsear
 						fmt.Sprintf(`#!/bin/sh
 exec %s/pilot \
   --pilot-name=$(POD_NAME) \
-  --elasticsearch-master-url=$(CLUSTER_URL)
+  --elasticsearch-master-url=$(CLUSTER_URL) \
+  --v=10
 `, sharedVolumeMountPath),
 					},
 					Env: []apiv1.EnvVar{
