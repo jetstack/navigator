@@ -45,6 +45,7 @@ type esEnv struct {
 
 func (e *esEnv) Strings() []string {
 	var env []string
+	env = append(env, os.Environ()...)
 	env = append(env, fmt.Sprintf("NODE_DATA=%v", e.nodeData))
 	env = append(env, fmt.Sprintf("NODE_INGEST=%v", e.nodeIngest))
 	env = append(env, fmt.Sprintf("NODE_MASTER=%v", e.nodeMaster))
