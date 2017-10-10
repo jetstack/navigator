@@ -1,39 +1,54 @@
 package v5
 
 import (
-	"github.com/jetstack-experimental/navigator/pkg/pilot/genericpilot/action"
+	"fmt"
+
+	"k8s.io/client-go/tools/cache"
+
+	"github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset"
+	listersv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/listers_generated/navigator/v1alpha1"
 	"github.com/jetstack-experimental/navigator/pkg/pilot/genericpilot/hook"
-	"github.com/jetstack-experimental/navigator/pkg/pilot/genericpilot/periodic"
 )
 
 type Pilot struct {
-	Options Options
+	Options *PilotOptions
+
+	navigatorClient     clientset.Interface
+	pilotLister         listersv1alpha1.PilotLister
+	pilotInformerSynced cache.InformerSynced
+
+	esClusterLister         listersv1alpha1.ElasticsearchClusterLister
+	esClusterInformerSynced cache.InformerSynced
 }
 
-func ConfigureGenericPilot(opts *Options) {
-	p := &Pilot{Options: *opts}
-	opts.GenericPilotOptions.CmdFunc = p.CmdFunc
-	opts.GenericPilotOptions.SyncFunc = p.syncFunc
-	opts.GenericPilotOptions.Periodics = p.Periodics()
-	opts.GenericPilotOptions.Hooks = p.Hooks()
+func NewPilot(opts *PilotOptions) (*Pilot, error) {
+	pilotInformer := opts.sharedInformerFactory.Navigator().V1alpha1().Pilots()
+	esClusterInformer := opts.sharedInformerFactory.Navigator().V1alpha1().ElasticsearchClusters()
+
+	p := &Pilot{
+		Options:                 opts,
+		navigatorClient:         opts.navigatorClientset,
+		pilotLister:             pilotInformer.Lister(),
+		pilotInformerSynced:     pilotInformer.Informer().HasSynced,
+		esClusterLister:         esClusterInformer.Lister(),
+		esClusterInformerSynced: esClusterInformer.Informer().HasSynced,
+	}
+
+	return p, nil
+}
+
+func (p *Pilot) WaitForCacheSync(stopCh <-chan struct{}) error {
+	if !cache.WaitForCacheSync(stopCh, p.pilotInformerSynced, p.esClusterInformerSynced) {
+		return fmt.Errorf("timed out waiting for caches to sync")
+	}
+	return nil
 }
 
 func (p *Pilot) Hooks() *hook.Hooks {
 	return &hook.Hooks{
 		PreStart: []hook.Interface{
+			hook.New("WriteConfig", p.WriteConfig),
 			hook.New("InstallPlugins", p.InstallPlugins),
 		},
-	}
-}
-
-func (p *Pilot) Actions() map[string]action.Interface {
-	return map[string]action.Interface{
-		action.Decommission: action.New(action.Decommission, p.actionDecommission),
-	}
-}
-
-func (p *Pilot) Periodics() map[string]periodic.Interface {
-	return map[string]periodic.Interface{
-		periodic.Decommission: periodic.New(periodic.Decommission, p.periodicDecommission),
 	}
 }

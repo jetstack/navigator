@@ -120,9 +120,8 @@ type PilotSpec struct {
 type PilotPhase string
 
 const (
-	PilotPhaseInitializing   PilotPhase = "Initializing"
-	PilotPhaseStarted        PilotPhase = "Started"
-	PilotPhaseDecommissioned PilotPhase = "Decommissioned"
+	PilotPhaseStarted PilotPhase = "Started"
+	PilotPhaseStopped PilotPhase = "Stopped"
 )
 
 type PilotElasticsearchSpec struct {
@@ -165,9 +164,9 @@ const (
 	// PilotConditionStarted represents the fact that a given Pilot condition
 	// is in started state.
 	PilotConditionStarted PilotConditionType = "Started"
-	// PilotConditionDecommissioned represents the fact that a given Pilot
-	// condition is in a decommissioned state.
-	PilotConditionDecommissioned PilotConditionType = "Decommissioned"
+	// PilotConditionStopped represents the fact that a given Pilot
+	// condition is in a stopped state.
+	PilotConditionStopped PilotConditionType = "Stopped"
 )
 
 // ConditionStatus represents a condition's status.

@@ -6,7 +6,6 @@ import (
 	"os/exec"
 	"reflect"
 	"syscall"
-	"time"
 
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
@@ -14,9 +13,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	kubescheme "k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 
@@ -24,30 +21,27 @@ import (
 	"github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset"
 	"github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset/scheme"
 	informers "github.com/jetstack-experimental/navigator/pkg/client/informers_generated/externalversions"
-	"github.com/jetstack-experimental/navigator/pkg/pilot/genericpilot/action"
 	"github.com/jetstack-experimental/navigator/pkg/pilot/genericpilot/hook"
-	"github.com/jetstack-experimental/navigator/pkg/pilot/genericpilot/periodic"
 	"github.com/jetstack-experimental/navigator/pkg/pilot/genericpilot/process"
 )
 
 const (
 	controllerAgentName = "generic-pilot"
-	defaultResyncPeriod = time.Second * 30
 )
 
 type Options struct {
-	// KubernetesConfig is the config for a Kubernetes API client
-	KubernetesConfig *rest.Config
-	// NavigatorConfig is the config for a Navigator API client
-	NavigatorConfig *rest.Config
+	// KubernetesClient is the kubernetes clientset used to talk to the
+	// apiserver
+	KubernetesClient kubernetes.Interface
+	// NavigatorClient is the clientset used to talk to the navigator apiserver
+	NavigatorClient clientset.Interface
+	// SharedInformerFactory provides a shared cache of informers
+	SharedInformerFactory informers.SharedInformerFactory
+
 	// PilotName is the name of this Pilot
 	PilotName string
-	// ResyncPeriod for controllers
-	ResyncPeriod time.Duration
-	// MasterURL for the API server
-	MasterURL string
-	// KubeConfig
-	KubeConfig string
+	// PilotNamespace is the namespace the corresponding Pilot exists within
+	PilotNamespace string
 
 	// CmdFunc returns an *exec.Cmd for a given Pilot resource for the pilot
 	CmdFunc func(*v1alpha1.Pilot) (*exec.Cmd, error)
@@ -64,14 +58,10 @@ type Options struct {
 	Hooks *hook.Hooks
 
 	SyncFunc func(*v1alpha1.Pilot) error
-	// Periodics is a list of Periodic functions to execute on their defined
-	// schedule
-	Periodics map[string]periodic.Interface
 }
 
 func NewDefaultOptions() *Options {
 	return &Options{
-		ResyncPeriod: defaultResyncPeriod,
 		Signals: process.Signals{
 			Stop:      syscall.SIGTERM,
 			Terminate: syscall.SIGKILL,
@@ -83,28 +73,12 @@ func NewDefaultOptions() *Options {
 }
 
 func (o *Options) Complete() error {
-	var cfg *rest.Config
 	var err error
-	if o.KubernetesConfig == nil || o.NavigatorConfig == nil {
-		cfg, err = clientcmd.BuildConfigFromFlags(o.MasterURL, o.KubeConfig)
-		if err != nil {
-			return fmt.Errorf("error building api client config: %s", err.Error())
-		}
-	}
-	if o.KubernetesConfig == nil {
-		o.KubernetesConfig = cfg
-	}
-	if o.NavigatorConfig == nil {
-		o.NavigatorConfig = cfg
-	}
 	if o.PilotName == "" {
 		o.PilotName, err = os.Hostname()
 		if err != nil {
 			return fmt.Errorf("error obtaining pilot hostname: %s", err.Error())
 		}
-	}
-	if o.ResyncPeriod == 0 {
-		o.ResyncPeriod = defaultResyncPeriod
 	}
 	if o.StopCh == nil {
 		o.StopCh = SetupSignalHandler()
@@ -132,11 +106,14 @@ func (o *Options) Complete() error {
 
 func (o *Options) Validate() []error {
 	var errs []error
-	if o.KubernetesConfig == nil {
-		errs = append(errs, fmt.Errorf("kubernetes client config must be specified"))
+	if o.KubernetesClient == nil {
+		errs = append(errs, fmt.Errorf("kubernetes client must be specified"))
 	}
-	if o.NavigatorConfig == nil {
-		errs = append(errs, fmt.Errorf("navigator client config must be specified"))
+	if o.NavigatorClient == nil {
+		errs = append(errs, fmt.Errorf("navigator client must be specified"))
+	}
+	if o.SharedInformerFactory == nil {
+		errs = append(errs, fmt.Errorf("shared informer factory must be specified"))
 	}
 	if o.CmdFunc == nil {
 		errs = append(errs, fmt.Errorf("cmd func must be specified"))
@@ -156,20 +133,13 @@ func (o *Options) Validate() []error {
 	if o.Hooks == nil {
 		errs = append(errs, fmt.Errorf("hooks must not be nil"))
 	}
+	if o.PilotNamespace == "" {
+		errs = append(errs, fmt.Errorf("pilot namespace must be specified"))
+	}
 	return errs
 }
 
 func (o *Options) Pilot() (*GenericPilot, error) {
-	kubeClient, err := kubernetes.NewForConfig(o.KubernetesConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	navigatorClient, err := clientset.NewForConfig(o.NavigatorConfig)
-	if err != nil {
-		return nil, err
-	}
-
 	// Create event broadcaster
 	// Add navigator types to the default Kubernetes Scheme so Events can be
 	// logged for navigator types.
@@ -177,17 +147,16 @@ func (o *Options) Pilot() (*GenericPilot, error) {
 	glog.V(4).Info("Creating event broadcaster")
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(glog.Infof)
-	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")})
+	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: o.KubernetesClient.CoreV1().Events("")})
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: controllerAgentName})
 
-	factory := informers.NewSharedInformerFactory(navigatorClient, o.ResyncPeriod)
-	pilotInformer := factory.Navigator().V1alpha1().Pilots()
+	// TODO: use a filtered informer that only watches pilot-namespace
+	pilotInformer := o.SharedInformerFactory.Navigator().V1alpha1().Pilots()
 	pilotInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{})
-	go factory.Start(o.StopCh)
 
 	genericPilot := &GenericPilot{
 		Options:             *o,
-		client:              navigatorClient,
+		client:              o.NavigatorClient,
 		pilotLister:         pilotInformer.Lister(),
 		pilotInformerSynced: pilotInformer.Informer().HasSynced,
 		queue:               workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "Pilots"),
@@ -209,7 +178,5 @@ func (o *Options) Pilot() (*GenericPilot, error) {
 
 func (o *Options) AddFlags(flags *pflag.FlagSet) {
 	flags.StringVar(&o.PilotName, "pilot-name", "", "The name of this Pilot. If not specified, an auto-detected name will be used.")
-	flags.DurationVar(&o.ResyncPeriod, "resync-period", time.Second*30, "Re-sync period for control loops operated by the pilot")
-	flags.StringVar(&o.KubeConfig, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
-	flags.StringVar(&o.MasterURL, "master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
+	flags.StringVar(&o.PilotNamespace, "pilot-namespace", "", "The namespace the corresponding Pilot resource for this Pilot exists within.")
 }

@@ -39,7 +39,7 @@ func (p *Pilot) InstallPlugins(pilot *v1alpha1.Pilot) error {
 // installPlugin will attempt to install a single plugin on this Elasticsearch
 // node.
 func (p *Pilot) installPlugin(pilot *v1alpha1.Pilot, plugin string) error {
-	cmd := exec.Command(p.Options.PluginBinary, "install", plugin)
+	cmd := exec.Command(p.Options.ElasticsearchOptions.PluginBinary, "install", plugin)
 	cmd.Env = envVars(pilot)
 	cmd.Stdout = p.Options.StdOut
 	cmd.Stderr = p.Options.StdErr
@@ -58,7 +58,7 @@ func (p *Pilot) installPlugin(pilot *v1alpha1.Pilot, plugin string) error {
 // the value for more efficient indexing.
 func (p *Pilot) getInstalledPlugins(pilot *v1alpha1.Pilot) (map[string]struct{}, error) {
 	stdout := new(bytes.Buffer)
-	cmd := exec.Command(p.Options.PluginBinary, "list")
+	cmd := exec.Command(p.Options.ElasticsearchOptions.PluginBinary, "list")
 	cmd.Env = envVars(pilot)
 	cmd.Stdout = stdout
 

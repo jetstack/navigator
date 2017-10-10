@@ -1,7 +1,7 @@
 .vscode
 .idea
 /navigator
-/navigator_*_*
+/navigator-*_*
 .DS_Store
 .generate_exes
 .get_deps

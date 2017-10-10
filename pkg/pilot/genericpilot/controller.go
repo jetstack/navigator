@@ -11,7 +11,6 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
-	"github.com/jetstack-experimental/navigator/pkg/pilot/genericpilot/action"
 	"github.com/jetstack-experimental/navigator/pkg/pilot/genericpilot/hook"
 	"github.com/jetstack-experimental/navigator/pkg/pilot/genericpilot/process"
 )
@@ -89,17 +88,11 @@ func (g *GenericPilot) sync(key string) (err error) {
 
 func (g *GenericPilot) syncPilot(pilot *v1alpha1.Pilot) (v1alpha1.PilotStatus, error) {
 	pilotCopy := pilot.DeepCopy()
-	if pilot.Spec.Phase == v1alpha1.PilotPhaseStarted {
+	switch pilotCopy.Spec.Phase {
+	case v1alpha1.PilotPhaseStarted:
 		err := g.ensureProcessStarted(pilotCopy)
 		if err != nil {
 			// TODO: log Event & update status
-			return pilotCopy.Status, err
-		}
-	}
-	if pilot.Spec.Phase == v1alpha1.PilotPhaseDecommissioned {
-		err := g.fireAction(action.Decommission, pilotCopy)
-		if err != nil {
-			// TODO: log event & update status
 			return pilotCopy.Status, err
 		}
 	}

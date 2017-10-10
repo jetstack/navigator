@@ -47,21 +47,22 @@ func (g *GenericPilot) enqueuePilot(obj interface{}) {
 	g.queue.AddRateLimited(key)
 }
 
+func (g *GenericPilot) WaitForCacheSync(stopCh <-chan struct{}) error {
+	if !cache.WaitForCacheSync(stopCh, g.pilotInformerSynced) {
+		return fmt.Errorf("timed out waiting for caches to sync")
+	}
+	return nil
+}
+
 func (g *GenericPilot) Run() error {
 	glog.Infof("Starting generic pilot controller")
 
-	if !cache.WaitForCacheSync(g.Options.StopCh, g.pilotInformerSynced) {
-		return fmt.Errorf("timed out waiting for caches to sync")
-	}
-
 	var wg sync.WaitGroup
-	for i := 0; i < workers; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			wait.Until(g.worker, time.Second, g.Options.StopCh)
-		}()
-	}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		wait.Until(g.worker, time.Second, g.Options.StopCh)
+	}()
 
 	<-g.Options.StopCh
 	g.queue.ShutDown()
