@@ -111,6 +111,8 @@ func (o *PilotOptions) Complete() error {
 	o.GenericPilotOptions.CmdFunc = o.pilot.CmdFunc
 	o.GenericPilotOptions.SyncFunc = o.pilot.syncFunc
 	o.GenericPilotOptions.Hooks = o.pilot.Hooks()
+	o.GenericPilotOptions.ReadinessProbe = o.pilot.ReadinessCheck()
+	o.GenericPilotOptions.LivenessProbe = o.pilot.LivenessCheck()
 
 	if err := o.GenericPilotOptions.Complete(); err != nil {
 		return err

@@ -57,6 +57,9 @@ func (g *GenericPilot) WaitForCacheSync(stopCh <-chan struct{}) error {
 func (g *GenericPilot) Run() error {
 	glog.Infof("Starting generic pilot controller")
 
+	// setup healthz handlers
+	g.serveHealthz()
+
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {

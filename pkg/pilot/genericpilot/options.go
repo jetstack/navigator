@@ -22,6 +22,7 @@ import (
 	"github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset/scheme"
 	informers "github.com/jetstack-experimental/navigator/pkg/client/informers_generated/externalversions"
 	"github.com/jetstack-experimental/navigator/pkg/pilot/genericpilot/hook"
+	"github.com/jetstack-experimental/navigator/pkg/pilot/genericpilot/probe"
 	"github.com/jetstack-experimental/navigator/pkg/pilot/genericpilot/process"
 )
 
@@ -55,7 +56,9 @@ type Options struct {
 	StopCh <-chan struct{}
 
 	// Hooks to be run during the lifecycle of the application
-	Hooks *hook.Hooks
+	Hooks          *hook.Hooks
+	ReadinessProbe probe.Check
+	LivenessProbe  probe.Check
 
 	SyncFunc func(*v1alpha1.Pilot) error
 }
