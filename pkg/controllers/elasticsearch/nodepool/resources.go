@@ -130,21 +130,6 @@ func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.Elasticsear
 		})
 	}
 
-	rolesBytes, err := json.Marshal(np.Roles)
-
-	if err != nil {
-		return nil, fmt.Errorf("error marshaling roles: %s", err.Error())
-	}
-
-	pluginsBytes := []byte("[]")
-	if len(c.Spec.Plugins) > 0 {
-		pluginsBytes, err = json.Marshal(c.Spec.Plugins)
-
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling plugins: %s", err.Error())
-		}
-	}
-
 	return &apiv1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: util.NodePoolLabels(c, np.Name, np.Roles...),
@@ -169,14 +154,9 @@ func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.Elasticsear
 						"-c",
 						fmt.Sprintf(`#!/bin/sh
 exec %s/pilot \
-  start \
-  --podName=$(POD_NAME) \
-  --clusterURL=$(CLUSTER_URL) \
-  --namespace=$(NAMESPACE) \
-  --controllerKind=StatefulSet \
-  --plugins='%s' \
-  --roles='%s' \
-  --controllerName='%s'`, sharedVolumeMountPath, string(pluginsBytes), string(rolesBytes), controllerName),
+  --pilot-name=$(POD_NAME) \
+  --elasticsearch-master-url=$(CLUSTER_URL)
+`, sharedVolumeMountPath),
 					},
 					Env: []apiv1.EnvVar{
 						// TODO: Tidy up generation of discovery & client URLs
