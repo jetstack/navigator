@@ -257,7 +257,7 @@ func (e *ElasticsearchController) enqueueElasticsearchCluster(obj interface{}) {
 		return
 	}
 	glog.V(4).Infof("Adding ES Cluster '%s' to queue", key)
-	e.queue.Add(key)
+	e.queue.AddRateLimited(key)
 }
 
 func (e *ElasticsearchController) handleObject(obj interface{}) {

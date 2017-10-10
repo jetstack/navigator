@@ -35,9 +35,12 @@ func nodePoolStatefulSet(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.Elastics
 		return nil, fmt.Errorf("error building elasticsearch container: %s", err.Error())
 	}
 
-	nodePoolHash, err := nodePoolHash(np)
-	if err != nil {
-		return nil, fmt.Errorf("error hashing node pool object: %s", err.Error())
+	selector := make(map[string]string)
+	for k, v := range elasticsearchPodTemplate.Labels {
+		if k == util.NodePoolHashAnnotationKey {
+			continue
+		}
+		selector[k] = v
 	}
 
 	ss := &apps.StatefulSet{
@@ -45,16 +48,13 @@ func nodePoolStatefulSet(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.Elastics
 			Name:            statefulSetName,
 			Namespace:       c.Namespace,
 			OwnerReferences: []metav1.OwnerReference{util.NewControllerRef(c)},
-			Annotations: map[string]string{
-				util.NodePoolHashAnnotationKey: nodePoolHash,
-			},
-			Labels: util.NodePoolLabels(c, np.Name, np.Roles...),
+			Labels:          elasticsearchPodTemplate.Labels,
 		},
 		Spec: apps.StatefulSetSpec{
 			Replicas:    util.Int32Ptr(int32(np.Replicas)),
 			ServiceName: statefulSetName,
 			Selector: &metav1.LabelSelector{
-				MatchLabels: util.NodePoolLabels(c, np.Name, np.Roles...),
+				MatchLabels: selector,
 			},
 			Template: *elasticsearchPodTemplate,
 		},
@@ -128,9 +128,17 @@ func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.Elasticsear
 		})
 	}
 
+	nodePoolHash, err := nodePoolHash(c, np)
+	if err != nil {
+		return nil, fmt.Errorf("error hashing node pool object: %s", err.Error())
+	}
+
+	nodePoolLabels := util.NodePoolLabels(c, np.Name, np.Roles...)
+	nodePoolLabels[util.NodePoolHashAnnotationKey] = nodePoolHash
+
 	return &apiv1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
-			Labels: util.NodePoolLabels(c, np.Name, np.Roles...),
+			Labels: nodePoolLabels,
 		},
 		Spec: apiv1.PodSpec{
 			TerminationGracePeriodSeconds: util.Int64Ptr(1800),
@@ -199,9 +207,9 @@ exec %s/pilot \
 								Path: "/",
 							},
 						},
-						InitialDelaySeconds: int32(60),
+						InitialDelaySeconds: int32(30),
 						PeriodSeconds:       int32(10),
-						TimeoutSeconds:      int32(5),
+						TimeoutSeconds:      int32(3),
 					},
 					LivenessProbe: &apiv1.Probe{
 						Handler: apiv1.Handler{
@@ -294,8 +302,13 @@ func buildInitContainers(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.Elastics
 	return containers
 }
 
-func nodePoolHash(np *v1alpha1.ElasticsearchClusterNodePool) (string, error) {
-	d, err := json.Marshal(np)
+func nodePoolHash(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.ElasticsearchClusterNodePool) (string, error) {
+	hashStruct := struct {
+		Roles   []v1alpha1.ElasticsearchClusterRole
+		Plugins []v1alpha1.ElasticsearchClusterPlugin
+		Config  map[string]string
+	}{np.Roles, c.Spec.Plugins, np.Config}
+	d, err := json.Marshal(hashStruct)
 	if err != nil {
 		return "", err
 	}

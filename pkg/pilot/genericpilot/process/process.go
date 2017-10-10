@@ -9,8 +9,8 @@ import (
 )
 
 type Interface interface {
-	// Run should start the process. It should block until the process exits.
-	Run() error
+	// Start starts the underlying process.
+	Start() error
 	// Stop should request the process stop. It should not return until the
 	// the process has exited.
 	Stop() error
@@ -20,8 +20,12 @@ type Interface interface {
 	// Reload should request the process reload it's configuration. This
 	// should not trigger the process itself to exit or interrupt a Run() call.
 	Reload() error
+	// Wait will call Wait on the underlying process
+	Wait() error
 	// State should return the current state of the process.
 	State() *os.ProcessState
+	// String returns a textual represntation of the process
+	String() string
 }
 
 type Adapter struct {
@@ -31,13 +35,16 @@ type Adapter struct {
 
 var _ Interface = &Adapter{}
 
-func (p *Adapter) Run() error {
+func (p *Adapter) Start() error {
 	glog.V(2).Infof("Starting process: %v", p.Cmd.Args)
 
 	if err := p.Cmd.Start(); err != nil {
 		return fmt.Errorf("error starting process: %s", err.Error())
 	}
+	return nil
+}
 
+func (p *Adapter) Wait() error {
 	return p.Cmd.Wait()
 }
 
@@ -70,4 +77,11 @@ func (p *Adapter) State() *os.ProcessState {
 		return nil
 	}
 	return p.Cmd.ProcessState
+}
+
+func (p *Adapter) String() string {
+	if p.Cmd == nil || p.Cmd.Process == nil {
+		return fmt.Sprintf("inactive")
+	}
+	return fmt.Sprintf("%d", p.Cmd.Process.Pid)
 }

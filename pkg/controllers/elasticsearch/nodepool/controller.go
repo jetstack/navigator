@@ -13,22 +13,24 @@ import (
 	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/record"
 
+	"github.com/golang/glog"
 	v1alpha1 "github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset"
 	listersv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/listers_generated/navigator/v1alpha1"
 	"github.com/jetstack-experimental/navigator/pkg/controllers/elasticsearch/util"
+	"reflect"
 )
 
 type Interface interface {
 	Sync(*v1alpha1.ElasticsearchCluster) error
 }
 
-// statefulElasticsearchClusterNodePoolControl manages the lifecycle of a
+// statefulControl manages the lifecycle of a
 // stateful node pool. It can be used to create, update and delete pools.
 //
 // This is an implementation of the ElasticsearchClusterNodePoolControl interface
 // as defined in interfaces.go.
-type statefulElasticsearchClusterNodePoolControl struct {
+type statefulControl struct {
 	kubeClient        kubernetes.Interface
 	navigatorClient   clientset.Interface
 	statefulSetLister appslisters.StatefulSetLister
@@ -38,7 +40,7 @@ type statefulElasticsearchClusterNodePoolControl struct {
 	recorder record.EventRecorder
 }
 
-var _ Interface = &statefulElasticsearchClusterNodePoolControl{}
+var _ Interface = &statefulControl{}
 
 func NewController(
 	kubeClient kubernetes.Interface,
@@ -48,7 +50,7 @@ func NewController(
 	pilotLister listersv1alpha1.PilotLister,
 	recorder record.EventRecorder,
 ) Interface {
-	return &statefulElasticsearchClusterNodePoolControl{
+	return &statefulControl{
 		kubeClient:        kubeClient,
 		navigatorClient:   navigatorClient,
 		statefulSetLister: statefulSetLister,
@@ -58,7 +60,7 @@ func NewController(
 	}
 }
 
-func (e *statefulElasticsearchClusterNodePoolControl) Sync(c *v1alpha1.ElasticsearchCluster) error {
+func (e *statefulControl) Sync(c *v1alpha1.ElasticsearchCluster) error {
 	if c.Status.NodePools == nil {
 		c.Status.NodePools = map[string]v1alpha1.ElasticsearchClusterNodePoolStatus{}
 	}
@@ -79,7 +81,7 @@ func (e *statefulElasticsearchClusterNodePoolControl) Sync(c *v1alpha1.Elasticse
 	return nil
 }
 
-func (e *statefulElasticsearchClusterNodePoolControl) syncNodePool(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.ElasticsearchClusterNodePool) (v1alpha1.ElasticsearchClusterNodePoolStatus, error) {
+func (e *statefulControl) syncNodePool(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.ElasticsearchClusterNodePool) (v1alpha1.ElasticsearchClusterNodePoolStatus, error) {
 	// lookup existing StatefulSet with appropriate labels for np in cluster c
 	// if multiple exist, exit with an error
 	// if one exists:
@@ -111,6 +113,12 @@ func (e *statefulElasticsearchClusterNodePoolControl) syncNodePool(c *v1alpha1.E
 	if err != nil {
 		return statusCopy, fmt.Errorf("error generating StatefulSet: %s", err.Error())
 	}
+	// Create Pilot resources for each member of the set
+	err = e.syncPilotResources(c, np, expected)
+	if err != nil {
+		glog.V(4).Infof("Error syncing Pilot resources for ElasticsearchCluster '%s' StatefulSet '%s': %s", c.Name, expected.Name, err.Error())
+		return statusCopy, err
+	}
 	// TODO: extend this to more complex logic than a simple 'create'
 	// e.g. queue a new node pool introduced event for Pilots to watch for
 	if len(sets) == 0 {
@@ -120,47 +128,47 @@ func (e *statefulElasticsearchClusterNodePoolControl) syncNodePool(c *v1alpha1.E
 	// this is safe as the above code ensures we only have one element in the array
 	actual := sets[0]
 	statusCopy.ReadyReplicas = int64(actual.Status.ReadyReplicas)
-	if actual.Annotations == nil {
-		return statusCopy, fmt.Errorf("StatefulSet '%s' does not contain node pool hash annotation", actual.Name)
+	if actual.Labels == nil {
+		return statusCopy, fmt.Errorf("StatefulSet '%s' does not contain node pool hash label", actual.Name)
 	}
 
 	// compare the hashes of the expected and actual node pool
-	actualNodePoolHash := actual.Annotations[util.NodePoolHashAnnotationKey]
+	actualNodePoolHash := actual.Labels[util.NodePoolHashAnnotationKey]
 	if len(actualNodePoolHash) == 0 {
 		return statusCopy, fmt.Errorf("StatefulSet '%s' contains empty node pool hash annotation", actual.Name)
 	}
-	expectedNodePoolHash := expected.Annotations[util.NodePoolHashAnnotationKey]
 
+	expectedNodePoolHash := expected.Labels[util.NodePoolHashAnnotationKey]
+
+	ssCopy := actual.DeepCopy()
+	ssCopy.Labels = expected.Labels
+	ssCopy.Annotations = expected.Annotations
+	ssCopy.Spec = expected.Spec
 	// if the node pool hashes do not match, we perform an Update operation on the StatefulSet
 	if actualNodePoolHash != expectedNodePoolHash {
-		_, err := e.kubeClient.AppsV1beta1().StatefulSets(c.Namespace).Update(expected)
+		_, err := e.kubeClient.AppsV1beta1().StatefulSets(c.Namespace).Update(ssCopy)
 		return statusCopy, err
 	}
 
 	expectedContainers := expected.Spec.Template.Spec.Containers
 	actualContainers := actual.Spec.Template.Spec.Containers
 	if len(expectedContainers) != len(actualContainers) {
-		_, err = e.kubeClient.AppsV1beta1().StatefulSets(c.Namespace).Update(expected)
+		_, err = e.kubeClient.AppsV1beta1().StatefulSets(c.Namespace).Update(ssCopy)
 		return statusCopy, err
 	}
 	// check the images are up to date
 	for i := 0; i < len(expectedContainers); i++ {
 		if expectedContainers[i].Image != actualContainers[i].Image {
-			_, err := e.kubeClient.AppsV1beta1().StatefulSets(c.Namespace).Update(expected)
+			_, err := e.kubeClient.AppsV1beta1().StatefulSets(c.Namespace).Update(ssCopy)
 			return statusCopy, err
 		}
-	}
-
-	err = e.syncPilotResources(c, np, actual)
-	if err != nil {
-		return statusCopy, err
 	}
 
 	// the hashes match, which means the properties of the node pool have not changed
 	return statusCopy, nil
 }
 
-func (e *statefulElasticsearchClusterNodePoolControl) syncPilotResources(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.ElasticsearchClusterNodePool, ss *appsv1beta1.StatefulSet) error {
+func (e *statefulControl) syncPilotResources(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.ElasticsearchClusterNodePool, ss *appsv1beta1.StatefulSet) error {
 	// TODO: use labels to limit which pods we list to save memory
 	allPods, err := e.podLister.Pods(c.Namespace).List(labels.Everything())
 	if err != nil {
@@ -174,7 +182,16 @@ func (e *statefulElasticsearchClusterNodePoolControl) syncPilotResources(c *v1al
 		}
 
 		if isMember {
-			err = e.ensurePilotResourceExists(c, np, pod)
+			var name string
+			var ok bool
+			if name, ok = pod.Labels[util.NodePoolNameLabelKey]; !ok {
+				return fmt.Errorf("no node pool label set on pod '%s'", pod.Name)
+			}
+			if name != np.Name {
+				continue
+			}
+
+			err := e.ensurePilotResource(c, np, pod)
 			if err != nil {
 				return fmt.Errorf("error ensuring pilot resource exists for pod '%s': %s", pod.Name, err.Error())
 			}
@@ -183,18 +200,30 @@ func (e *statefulElasticsearchClusterNodePoolControl) syncPilotResources(c *v1al
 	return nil
 }
 
-func (e *statefulElasticsearchClusterNodePoolControl) ensurePilotResourceExists(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.ElasticsearchClusterNodePool, pod *apiv1.Pod) error {
-	_, err := e.pilotLister.Pilots(pod.Namespace).Get(pod.Name)
+func (e *statefulControl) ensurePilotResource(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.ElasticsearchClusterNodePool, pod *apiv1.Pod) error {
+	desiredPilot := newPilotResource(c, np, pod)
+	actualPilot, err := e.pilotLister.Pilots(pod.Namespace).Get(pod.Name)
 	if apierrors.IsNotFound(err) {
-		return e.createPilotResource(c, np, pod)
+		_, err := e.navigatorClient.NavigatorV1alpha1().Pilots(pod.Namespace).Create(desiredPilot)
+		return err
 	}
 	if err != nil {
 		return err
 	}
-	return nil
+	if reflect.DeepEqual(desiredPilot.Spec, actualPilot.Spec) {
+		return nil
+	}
+	glog.V(4).Infof("Updating pilot resource '%s'", actualPilot.Name)
+	glog.V(4).Infof("desiredSpec: %#v, actualSpec: %#v", desiredPilot.Spec.Elasticsearch, actualPilot.Spec.Elasticsearch)
+	pilotCopy := actualPilot.DeepCopy()
+	pilotCopy.Spec = desiredPilot.Spec
+	_, err = e.navigatorClient.NavigatorV1alpha1().Pilots(pod.Namespace).Update(pilotCopy)
+	return err
 }
 
-func (e *statefulElasticsearchClusterNodePoolControl) createPilotResource(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.ElasticsearchClusterNodePool, pod *apiv1.Pod) error {
+func newPilotResource(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.ElasticsearchClusterNodePool, pod *apiv1.Pod) *v1alpha1.Pilot {
+	// TODO: break this function out to account for scale down events, and
+	// setting the spec however appropriate
 	pilot := &v1alpha1.Pilot{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            pod.Name,
@@ -210,15 +239,14 @@ func (e *statefulElasticsearchClusterNodePoolControl) createPilotResource(c *v1a
 			},
 		},
 	}
-	_, err := e.navigatorClient.NavigatorV1alpha1().Pilots(pod.Namespace).Create(pilot)
-	return err
+	return pilot
 }
 
 // reconcileNodePools will look up all node pools that are owned by this
 // ElasticsearchCluster resource, and delete any that are no longer referenced.
 // This is used to delete old node pools that no longer exist in the cluster
 // specification.
-func (e *statefulElasticsearchClusterNodePoolControl) reconcileNodePools(c *v1alpha1.ElasticsearchCluster) error {
+func (e *statefulControl) reconcileNodePools(c *v1alpha1.ElasticsearchCluster) error {
 	// list all statefulsets that match the clusters selector
 	// loop through each node pool in c
 	sel, err := util.SelectorForCluster(c)

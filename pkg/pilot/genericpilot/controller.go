@@ -16,9 +16,11 @@ import (
 )
 
 const (
-	ErrExecHook = "ErrExecHook"
+	ErrExecHook          = "ErrExecHook"
+	ReasonProcessStarted = "ProcessStarted"
 
-	MessageErrExecHook = "Error executing hook: %s"
+	MessageErrExecHook    = "Error executing hook: %s"
+	MessageProcessStarted = "Subprocess (%s) started"
 )
 
 func (e *GenericPilot) worker() {
@@ -100,6 +102,15 @@ func (g *GenericPilot) syncPilot(pilot *v1alpha1.Pilot) (v1alpha1.PilotStatus, e
 	return pilotCopy.Status, err
 }
 
+func (g *GenericPilot) updatePilotStatus(pilot *v1alpha1.Pilot) error {
+	if g.process == nil || g.process.State() == nil || g.process.State().Exited() {
+		pilot.UpdateStatusCondition(v1alpha1.PilotConditionStarted, v1alpha1.ConditionFalse, "", "")
+	} else {
+		pilot.UpdateStatusCondition(v1alpha1.PilotConditionStarted, v1alpha1.ConditionTrue, ReasonProcessStarted, MessageProcessStarted, g.process.String())
+	}
+	return nil
+}
+
 func (g *GenericPilot) ensureProcessStarted(pilot *v1alpha1.Pilot) error {
 	if g.process == nil {
 		err := g.constructProcess(pilot)
@@ -121,14 +132,18 @@ func (g *GenericPilot) ensureProcessStarted(pilot *v1alpha1.Pilot) error {
 		return nil
 	}
 
-	// TODO: block here until the process has started and update the pilot.Status block accordingly
-	// TODO: trigger a resync here/notify the pilot consumer that the sub-process has exited.
+	if err := g.process.Start(); err != nil {
+		glog.Fatalf("Error running child-process: %s", err.Error())
+		return err
+	}
+
+	g.recorder.Eventf(pilot, corev1.EventTypeNormal, ReasonProcessStarted, MessageProcessStarted, g.process.String())
+
 	go func() {
-		err := g.process.Run()
-		if err != nil {
-			glog.Fatalf("Error running child-process: %s", err.Error())
+		if err := g.process.Wait(); err != nil {
+			glog.Fatalf("Child-process exited with error: %s", err.Error())
 		}
-		glog.Fatalf("Process exited")
+		glog.Fatalf("Child-process exited")
 	}()
 
 	return nil
