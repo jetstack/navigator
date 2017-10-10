@@ -61,6 +61,7 @@ type ElasticsearchClusterNodePool struct {
 	NodeSelector map[string]string
 	Resources    *v1.ResourceRequirements
 	Persistence  ElasticsearchClusterPersistenceConfig
+	Config       map[string]string
 }
 
 type ElasticsearchClusterRole string
@@ -127,6 +128,10 @@ const (
 type PilotElasticsearchSpec struct {
 	Plugins []ElasticsearchClusterPlugin
 	Roles   []ElasticsearchClusterRole
+	// Config is a map of configuration files to be placed in the elasticsearch
+	// config directory. Environment variables may be used in these files and
+	// they will be automatically expanded by the Elasticsearch process.
+	Config map[string]string
 }
 
 type PilotStatus struct {

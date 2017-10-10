@@ -153,6 +153,7 @@ func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.Elasticsear
 						fmt.Sprintf(`#!/bin/sh
 exec %s/pilot \
   --pilot-name=$(POD_NAME) \
+  --pilot-namespace=$(POD_NAMESPACE) \
   --elasticsearch-master-url=$(CLUSTER_URL) \
   --v=10
 `, sharedVolumeMountPath),
@@ -176,7 +177,7 @@ exec %s/pilot \
 							},
 						},
 						apiv1.EnvVar{
-							Name: "NAMESPACE",
+							Name: "POD_NAMESPACE",
 							ValueFrom: &apiv1.EnvVarSource{
 								FieldRef: &apiv1.ObjectFieldSelector{
 									FieldPath: "metadata.namespace",

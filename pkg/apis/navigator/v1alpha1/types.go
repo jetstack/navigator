@@ -67,6 +67,7 @@ type ElasticsearchClusterNodePool struct {
 	NodeSelector map[string]string                     `json:"nodeSelector"`
 	Resources    *v1.ResourceRequirements              `json:"resources,omitempty"`
 	Persistence  ElasticsearchClusterPersistenceConfig `json:"persistence,omitempty"`
+	Config       map[string]string                     `json:"config"`
 }
 
 type ElasticsearchClusterRole string

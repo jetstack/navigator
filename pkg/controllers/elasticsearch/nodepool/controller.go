@@ -206,6 +206,7 @@ func (e *statefulElasticsearchClusterNodePoolControl) createPilotResource(c *v1a
 			Elasticsearch: &v1alpha1.PilotElasticsearchSpec{
 				Roles:   np.Roles,
 				Plugins: c.Spec.Plugins,
+				Config:  np.Config,
 			},
 		},
 	}
