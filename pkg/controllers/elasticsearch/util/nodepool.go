@@ -25,13 +25,13 @@ func ClusterLabels(c *v1alpha1.ElasticsearchCluster) map[string]string {
 	}
 }
 
-func NodePoolLabels(c *v1alpha1.ElasticsearchCluster, poolName string, roles ...string) map[string]string {
+func NodePoolLabels(c *v1alpha1.ElasticsearchCluster, poolName string, roles ...v1alpha1.ElasticsearchClusterRole) map[string]string {
 	labels := ClusterLabels(c)
 	if poolName != "" {
 		labels[NodePoolNameLabelKey] = poolName
 	}
 	for _, role := range roles {
-		labels[role] = "true"
+		labels[string(role)] = "true"
 	}
 	return labels
 }
