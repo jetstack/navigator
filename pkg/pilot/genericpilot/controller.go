@@ -148,8 +148,6 @@ func (g *GenericPilot) constructProcess(pilot *v1alpha1.Pilot) error {
 	}
 	g.process = &process.Adapter{
 		Signals: g.Options.Signals,
-		Stdout:  g.Options.Stdout,
-		Stderr:  g.Options.Stderr,
 		Cmd:     cmd,
 	}
 	return nil

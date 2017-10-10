@@ -26,8 +26,6 @@ type Interface interface {
 
 type Adapter struct {
 	Signals Signals
-	Stdout  *os.File
-	Stderr  *os.File
 	Cmd     *exec.Cmd
 }
 

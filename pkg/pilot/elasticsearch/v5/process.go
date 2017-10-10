@@ -2,6 +2,7 @@ package v5
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 
 	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
@@ -13,6 +14,8 @@ func (p *Pilot) CmdFunc(pilot *v1alpha1.Pilot) (*exec.Cmd, error) {
 	}
 
 	cmd := exec.Command("elasticsearch")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	cmd.Env = envVars(pilot)
 
 	return cmd, nil
