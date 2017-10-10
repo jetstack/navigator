@@ -46,9 +46,6 @@ func (p *Pilot) installPlugin(pilot *v1alpha1.Pilot, plugin string) error {
 	if err := cmd.Run(); err != nil {
 		return err
 	}
-	if err := cmd.Wait(); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -63,9 +60,6 @@ func (p *Pilot) getInstalledPlugins(pilot *v1alpha1.Pilot) (map[string]struct{},
 	cmd.Stdout = stdout
 
 	if err := cmd.Run(); err != nil {
-		return nil, err
-	}
-	if err := cmd.Wait(); err != nil {
 		return nil, err
 	}
 	strOutput := stdout.String()
