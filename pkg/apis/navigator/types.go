@@ -120,6 +120,7 @@ type PilotSpec struct {
 type PilotPhase string
 
 const (
+	PilotPhaseInitializing   PilotPhase = "Initializing"
 	PilotPhaseStarted        PilotPhase = "Started"
 	PilotPhaseDecommissioned PilotPhase = "Decommissioned"
 )
