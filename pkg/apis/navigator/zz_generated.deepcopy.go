@@ -196,6 +196,13 @@ func (in *ElasticsearchClusterNodePool) DeepCopyInto(out *ElasticsearchClusterNo
 		}
 	}
 	out.Persistence = in.Persistence
+	if in.Config != nil {
+		in, out := &in.Config, &out.Config
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	return
 }
 
@@ -423,6 +430,13 @@ func (in *PilotElasticsearchSpec) DeepCopyInto(out *PilotElasticsearchSpec) {
 		in, out := &in.Roles, &out.Roles
 		*out = make([]ElasticsearchClusterRole, len(*in))
 		copy(*out, *in)
+	}
+	if in.Config != nil {
+		in, out := &in.Config, &out.Config
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
 	}
 	return
 }

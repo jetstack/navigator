@@ -136,6 +136,7 @@ func autoConvert_v1alpha1_ElasticsearchClusterNodePool_To_navigator_Elasticsearc
 	if err := Convert_v1alpha1_ElasticsearchClusterPersistenceConfig_To_navigator_ElasticsearchClusterPersistenceConfig(&in.Persistence, &out.Persistence, s); err != nil {
 		return err
 	}
+	out.Config = *(*map[string]string)(unsafe.Pointer(&in.Config))
 	return nil
 }
 
@@ -153,6 +154,7 @@ func autoConvert_navigator_ElasticsearchClusterNodePool_To_v1alpha1_Elasticsearc
 	if err := Convert_navigator_ElasticsearchClusterPersistenceConfig_To_v1alpha1_ElasticsearchClusterPersistenceConfig(&in.Persistence, &out.Persistence, s); err != nil {
 		return err
 	}
+	out.Config = *(*map[string]string)(unsafe.Pointer(&in.Config))
 	return nil
 }
 
@@ -418,6 +420,7 @@ func Convert_navigator_PilotCondition_To_v1alpha1_PilotCondition(in *navigator.P
 func autoConvert_v1alpha1_PilotElasticsearchSpec_To_navigator_PilotElasticsearchSpec(in *PilotElasticsearchSpec, out *navigator.PilotElasticsearchSpec, s conversion.Scope) error {
 	out.Plugins = *(*[]navigator.ElasticsearchClusterPlugin)(unsafe.Pointer(&in.Plugins))
 	out.Roles = *(*[]navigator.ElasticsearchClusterRole)(unsafe.Pointer(&in.Roles))
+	out.Config = *(*map[string]string)(unsafe.Pointer(&in.Config))
 	return nil
 }
 
@@ -429,6 +432,7 @@ func Convert_v1alpha1_PilotElasticsearchSpec_To_navigator_PilotElasticsearchSpec
 func autoConvert_navigator_PilotElasticsearchSpec_To_v1alpha1_PilotElasticsearchSpec(in *navigator.PilotElasticsearchSpec, out *PilotElasticsearchSpec, s conversion.Scope) error {
 	out.Plugins = *(*[]ElasticsearchClusterPlugin)(unsafe.Pointer(&in.Plugins))
 	out.Roles = *(*[]ElasticsearchClusterRole)(unsafe.Pointer(&in.Roles))
+	out.Config = *(*map[string]string)(unsafe.Pointer(&in.Config))
 	return nil
 }
 
