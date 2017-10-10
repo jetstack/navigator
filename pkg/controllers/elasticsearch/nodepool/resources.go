@@ -31,13 +31,11 @@ func nodePoolStatefulSet(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.Elastics
 	statefulSetName := util.NodePoolResourceName(c, np)
 
 	elasticsearchPodTemplate, err := elasticsearchPodTemplateSpec(statefulSetName, c, np)
-
 	if err != nil {
 		return nil, fmt.Errorf("error building elasticsearch container: %s", err.Error())
 	}
 
 	nodePoolHash, err := nodePoolHash(np)
-
 	if err != nil {
 		return nil, fmt.Errorf("error hashing node pool object: %s", err.Error())
 	}

@@ -11,14 +11,16 @@ import (
 )
 
 const (
-	defaultBinary = "elasticsearch"
+	defaultBinary       = "elasticsearch"
+	defaultPluginBinary = "elasticsearch-plugin"
 )
 
 type Options struct {
 	MasterURL string
 	// Binary is the name of the elasticsearch binary
 	Binary string
-	Pilot  *Pilot
+	// PluginBinary is the name of the binary used to install plugins
+	PluginBinary string
 	// GenericPilotOptions contains options for the genericpilot
 	GenericPilotOptions *genericpilot.Options
 
@@ -39,13 +41,11 @@ func (o *Options) AddFlags(flags *pflag.FlagSet) {
 	o.GenericPilotOptions.AddFlags(flags)
 	flags.StringVar(&o.MasterURL, "elasticsearch-master-url", "", "URL of the Elasticsearch master service")
 	flags.StringVar(&o.Binary, "elasticsearch-binary", defaultBinary, "Path to the elasticsearch binary")
+	flags.StringVar(&o.PluginBinary, "elasticsearch-plugin-binary", defaultPluginBinary, "Path to the elasticsearch-plugin binary")
 }
 
 func (o *Options) Complete() error {
-	o.Pilot = &Pilot{
-		Options: *o,
-	}
-	o.Pilot.ConfigureGenericPilot(o.GenericPilotOptions)
+	ConfigureGenericPilot(o)
 	return o.GenericPilotOptions.Complete()
 }
 
@@ -56,6 +56,9 @@ func (o *Options) Validate() error {
 	}
 	if o.Binary == "" {
 		errs = append(errs, fmt.Errorf("elasticsearch binary must be specified"))
+	}
+	if o.PluginBinary == "" {
+		errs = append(errs, fmt.Errorf("elasticsearch plugin binary must be specified"))
 	}
 	errs = append(errs, o.GenericPilotOptions.Validate()...)
 	return utilerrors.NewAggregate(errs)

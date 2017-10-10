@@ -8,6 +8,7 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
@@ -20,7 +21,10 @@ import (
 type GenericPilot struct {
 	Options Options
 
-	client clientset.Interface
+	// TODO: remove use of the kubernetes clientset. Absorb required
+	// functionality into the navigator api group
+	kubeClientset kubernetes.Interface
+	client        clientset.Interface
 
 	pilotLister         listersv1alpha1.PilotLister
 	pilotInformerSynced cache.InformerSynced

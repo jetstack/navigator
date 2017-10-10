@@ -1,7 +1,6 @@
 package v5
 
 import (
-	"github.com/jetstack-experimental/navigator/pkg/pilot/genericpilot"
 	"github.com/jetstack-experimental/navigator/pkg/pilot/genericpilot/action"
 	"github.com/jetstack-experimental/navigator/pkg/pilot/genericpilot/hook"
 	"github.com/jetstack-experimental/navigator/pkg/pilot/genericpilot/periodic"
@@ -11,12 +10,12 @@ type Pilot struct {
 	Options Options
 }
 
-func (p *Pilot) ConfigureGenericPilot(opts *genericpilot.Options) {
-	opts.CmdFunc = p.CmdFunc
-	opts.SyncFunc = p.syncFunc
-	opts.Actions = p.Actions()
-	opts.Periodics = p.Periodics()
-	opts.Hooks = p.Hooks()
+func ConfigureGenericPilot(opts *Options) {
+	p := &Pilot{Options: *opts}
+	opts.GenericPilotOptions.CmdFunc = p.CmdFunc
+	opts.GenericPilotOptions.SyncFunc = p.syncFunc
+	opts.GenericPilotOptions.Periodics = p.Periodics()
+	opts.GenericPilotOptions.Hooks = p.Hooks()
 }
 
 func (p *Pilot) Hooks() *hook.Hooks {

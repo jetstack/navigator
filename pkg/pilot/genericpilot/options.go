@@ -67,9 +67,6 @@ type Options struct {
 	// Periodics is a list of Periodic functions to execute on their defined
 	// schedule
 	Periodics map[string]periodic.Interface
-	// Actions is a list of registered Actions for this Pilot. Each Action will
-	// usually have a corresponding periodic to update its status.
-	Actions map[string]action.Interface
 }
 
 func NewDefaultOptions() *Options {
