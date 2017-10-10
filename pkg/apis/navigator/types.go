@@ -57,11 +57,19 @@ type ElasticsearchClusterPlugin struct {
 type ElasticsearchClusterNodePool struct {
 	Name         string
 	Replicas     int64
-	Roles        []string
+	Roles        []ElasticsearchClusterRole
 	NodeSelector map[string]string
 	Resources    *v1.ResourceRequirements
 	Persistence  ElasticsearchClusterPersistenceConfig
 }
+
+type ElasticsearchClusterRole string
+
+const (
+	ElasticsearchRoleData   ElasticsearchClusterRole = "data"
+	ElasticsearchRoleMaster ElasticsearchClusterRole = "master"
+	ElasticsearchRoleIngest ElasticsearchClusterRole = "ingest"
+)
 
 type ElasticsearchClusterPersistenceConfig struct {
 	Enabled      bool
@@ -105,7 +113,20 @@ type PilotList struct {
 }
 
 type PilotSpec struct {
-	InService bool
+	Phase         PilotPhase
+	Elasticsearch *PilotElasticsearchSpec
+}
+
+type PilotPhase string
+
+const (
+	PilotPhaseStarted        PilotPhase = "Started"
+	PilotPhaseDecommissioned PilotPhase = "Decommissioned"
+)
+
+type PilotElasticsearchSpec struct {
+	Plugins []ElasticsearchClusterPlugin
+	Roles   []ElasticsearchClusterRole
 }
 
 type PilotStatus struct {

@@ -63,11 +63,19 @@ type ElasticsearchClusterPlugin struct {
 type ElasticsearchClusterNodePool struct {
 	Name         string                                `json:"name"`
 	Replicas     int64                                 `json:"replicas"`
-	Roles        []string                              `json:"roles"`
+	Roles        []ElasticsearchClusterRole            `json:"roles"`
 	NodeSelector map[string]string                     `json:"nodeSelector"`
 	Resources    *v1.ResourceRequirements              `json:"resources,omitempty"`
 	Persistence  ElasticsearchClusterPersistenceConfig `json:"persistence,omitempty"`
 }
+
+type ElasticsearchClusterRole string
+
+const (
+	ElasticsearchRoleData   ElasticsearchClusterRole = "data"
+	ElasticsearchRoleMaster ElasticsearchClusterRole = "master"
+	ElasticsearchRoleIngest ElasticsearchClusterRole = "ingest"
+)
 
 type ElasticsearchClusterPersistenceConfig struct {
 	Enabled      bool   `json:"enabled"`
@@ -111,7 +119,20 @@ type PilotList struct {
 }
 
 type PilotSpec struct {
-	InService bool `json:"inService"`
+	Phase         PilotPhase              `json:"phase"`
+	Elasticsearch *PilotElasticsearchSpec `json:"elasticsearch"`
+}
+
+type PilotPhase string
+
+const (
+	PilotPhaseStarted        PilotPhase = "Started"
+	PilotPhaseDecommissioned PilotPhase = "Decommissioned"
+)
+
+type PilotElasticsearchSpec struct {
+	Plugins []ElasticsearchClusterPlugin `json:"plugins"`
+	Roles   []ElasticsearchClusterRole   `json:"roles"`
 }
 
 type PilotStatus struct {
