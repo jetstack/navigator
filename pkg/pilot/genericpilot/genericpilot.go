@@ -44,7 +44,7 @@ func (g *GenericPilot) enqueuePilot(obj interface{}) {
 }
 
 func (g *GenericPilot) Run() error {
-	glog.Infof("Starting Elasticsearch controller")
+	glog.Infof("Starting generic pilot controller")
 
 	if !cache.WaitForCacheSync(g.Options.StopCh, g.pilotInformerSynced) {
 		return fmt.Errorf("timed out waiting for caches to sync")
@@ -61,8 +61,8 @@ func (g *GenericPilot) Run() error {
 
 	<-g.Options.StopCh
 	g.queue.ShutDown()
-	glog.V(4).Infof("Shutting down Elasticsearch controller workers...")
+	glog.V(4).Infof("Shutting down generic pilot controller workers...")
 	wg.Wait()
-	glog.V(4).Infof("Elasticsearch controller workers stopped.")
+	glog.V(4).Infof("Generic pilot controller workers stopped.")
 	return nil
 }

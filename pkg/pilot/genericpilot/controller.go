@@ -39,7 +39,7 @@ func (e *GenericPilot) processNextWorkItem() bool {
 
 	if k, ok := key.(string); ok {
 		if err := e.sync(k); err != nil {
-			glog.Infof("Error syncing ElasticsearchCluster %v, requeuing: %v", key.(string), err)
+			glog.Infof("Error syncing Pilot %v, requeuing: %v", key.(string), err)
 			e.queue.AddRateLimited(key)
 		} else {
 			e.queue.Forget(key)
@@ -52,7 +52,7 @@ func (e *GenericPilot) processNextWorkItem() bool {
 func (g *GenericPilot) sync(key string) (err error) {
 	startTime := time.Now()
 	defer func() {
-		glog.Infof("Finished syncing elasticsearchcluster %q (%v)", key, time.Now().Sub(startTime))
+		glog.Infof("Finished syncing pilot %q (%v)", key, time.Now().Sub(startTime))
 	}()
 
 	namespace, name, err := cache.SplitMetaNamespaceKey(key)
@@ -61,11 +61,11 @@ func (g *GenericPilot) sync(key string) (err error) {
 	}
 	pilot, err := g.pilotLister.Pilots(namespace).Get(name)
 	if errors.IsNotFound(err) {
-		glog.Infof("ElasticsearchCluster has been deleted %v", key)
+		glog.Infof("Pilot has been deleted %v", key)
 		return nil
 	}
 	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("unable to retrieve ElasticsearchCluster %v from store: %v", key, err))
+		utilruntime.HandleError(fmt.Errorf("unable to retrieve Pilot %v from store: %v", key, err))
 		return err
 	}
 
