@@ -10,7 +10,7 @@ See https://www.postgresql.org/docs/9.1/static/warm-standby.html
 
 ## Add standalone DB
 
-![Add standalone](pilot-create.png)
+![Add standalone](pilot-add.png)
 
 
 ## Reconfigure as Master
