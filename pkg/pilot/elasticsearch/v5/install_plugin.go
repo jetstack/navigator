@@ -41,7 +41,7 @@ func (p *Pilot) InstallPlugins(pilot *v1alpha1.Pilot) error {
 // node.
 func (p *Pilot) installPlugin(pilot *v1alpha1.Pilot, plugin string) error {
 	cmd := exec.Command(p.Options.ElasticsearchOptions.PluginBinary, "install", plugin)
-	cmd.Env = envVars(pilot)
+	cmd.Env = env(pilot).Strings()
 	cmd.Stdout = p.Options.StdOut
 	cmd.Stderr = p.Options.StdErr
 	if err := cmd.Run(); err != nil {
@@ -57,9 +57,9 @@ func (p *Pilot) installPlugin(pilot *v1alpha1.Pilot, plugin string) error {
 func (p *Pilot) getInstalledPlugins(pilot *v1alpha1.Pilot) (map[string]struct{}, error) {
 	stdout := new(bytes.Buffer)
 	cmd := exec.Command(p.Options.ElasticsearchOptions.PluginBinary, "list")
-	cmd.Env = envVars(pilot)
+	cmd.Env = env(pilot).Strings()
 	cmd.Stdout = stdout
-
+	cmd.Stderr = p.Options.StdErr
 	if err := cmd.Run(); err != nil {
 		return nil, err
 	}

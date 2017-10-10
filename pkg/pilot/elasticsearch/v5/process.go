@@ -16,23 +16,37 @@ func (p *Pilot) CmdFunc(pilot *v1alpha1.Pilot) (*exec.Cmd, error) {
 	cmd := exec.Command("elasticsearch")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	cmd.Env = envVars(pilot)
+	cmd.Env = env(pilot).Strings()
 
 	return cmd, nil
 }
 
-func envVars(pilot *v1alpha1.Pilot) []string {
+func env(pilot *v1alpha1.Pilot) *esEnv {
 	// TODO: set resource JVM resource limit env vars too
-	var env []string
+	e := &esEnv{}
 	for _, role := range pilot.Spec.Elasticsearch.Roles {
 		switch role {
 		case v1alpha1.ElasticsearchRoleData:
-			env = append(env, "NODE_DATA=true")
+			e.nodeData = true
 		case v1alpha1.ElasticsearchRoleIngest:
-			env = append(env, "NODE_INGEST=true")
+			e.nodeIngest = true
 		case v1alpha1.ElasticsearchRoleMaster:
-			env = append(env, "NODE_MASTER=true")
+			e.nodeMaster = true
 		}
 	}
+	return e
+}
+
+type esEnv struct {
+	nodeData   bool
+	nodeIngest bool
+	nodeMaster bool
+}
+
+func (e *esEnv) Strings() []string {
+	var env []string
+	env = append(env, fmt.Sprintf("NODE_DATA=%v", e.nodeData))
+	env = append(env, fmt.Sprintf("NODE_INGEST=%v", e.nodeIngest))
+	env = append(env, fmt.Sprintf("NODE_MASTER=%v", e.nodeMaster))
 	return env
 }
