@@ -12,7 +12,7 @@ IMAGE_TAGS := canary
 BUILD_IMAGE_DIR := hack/builder
 BUILD_IMAGE_NAME := navigator/builder
 
-CMDS := controller apiserver
+CMDS := controller apiserver pilot-elasticsearch
 
 GOPATH ?= /tmp/go
 
