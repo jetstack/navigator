@@ -35,14 +35,6 @@ func nodePoolStatefulSet(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.Elastics
 		return nil, fmt.Errorf("error building elasticsearch container: %s", err.Error())
 	}
 
-	selector := make(map[string]string)
-	for k, v := range elasticsearchPodTemplate.Labels {
-		if k == util.NodePoolHashAnnotationKey {
-			continue
-		}
-		selector[k] = v
-	}
-
 	ss := &apps.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            statefulSetName,
@@ -54,7 +46,7 @@ func nodePoolStatefulSet(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.Elastics
 			Replicas:    util.Int32Ptr(int32(np.Replicas)),
 			ServiceName: statefulSetName,
 			Selector: &metav1.LabelSelector{
-				MatchLabels: selector,
+				MatchLabels: util.NodePoolLabels(c, np.Name),
 			},
 			Template: *elasticsearchPodTemplate,
 		},
