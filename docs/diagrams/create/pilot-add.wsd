@@ -1,9 +1,10 @@
-title Create PostgreSQL Cluster 1 (Nothing -> Standalone -> Master)
+title Create PostgreSQL Cluster 1 (Pilot Add)
 
 participant User as user
 participant Navigator API as napi
 participant Navigator Controller as ctrl
-participant K8SAPI as kapi
+participant K8S API as kapi
+participant K8S Controller as k8s
 participant PilotPod as pod
 participant Kubelet as kub
 
@@ -11,45 +12,55 @@ user -> napi: Create resource
 note over napi
     PGSQLCluster
     - replicas_desired: 3
-    - replicas_actual: 0
+    - replicas_current: 0
 end note
 
 napi --> ctrl: Informer
 
-ctrl->napi: Create resource
-note over napi
-  Pilot
-  - role: standalone
-  - phase: pending
-end note
-
-napi --> ctrl: Informer
 ctrl->kapi: Create resource
 note over kapi
-  Pod
-  - phase: pending
+    StatefulSet
+    - replicas: 3
 end note
 
-kapi-->kub: Informer
+kapi--> k8s: Informer
 
-kub->*pod: Start pod
-note over pod
-  Pilot entrypoint running
-end note
+loop create 3 Pods and 3 Pilots:
+    k8s -> kapi: Create resource
+    note over kapi
+        Pod
+        - phase: pending
+    end note
 
-kub->kapi: Update state
-note over kapi
-  Pod
-  - phase: Running
-end note
+    kapi-->kub: Informer
 
-note over pod
-  PGSQL process running
-end note
+    kub->*pod: Start pod
+    note over pod
+        Pilot entrypoint running
+    end note
 
-pod->napi: update state
-note over napi
-  Pilot
-  - role: standalone
-  - phase: Running
-end note
+    kub->kapi: Update state
+    note over kapi
+        Pod
+        - phase: Running
+    end note
+
+    note over pod
+        PGSQL process running
+    end note
+
+    pod->napi: Create resource
+    note over napi
+        Pilot
+        - role: standalone
+        - phase: Running
+    end note
+
+    napi --> ctrl: Informer
+    ctrl -> napi: Update state
+    note over napi
+        PGSQLCluster
+        - replicas_desired: 3
+        - replicas_actual: ++1
+    end note
+end
