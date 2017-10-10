@@ -105,7 +105,7 @@ func (h *Hooks) Transition(p Phase, pilot *v1alpha1.Pilot) error {
 		}
 		glog.V(4).Infof("Executing %s hook '%s'", p, hook.Name())
 		if err := hook.Execute(pilot); err != nil {
-			glog.V(4).Infof("Error executing %s hook '%s': %s", p, hook.Name, err.Error())
+			glog.V(4).Infof("Error executing %s hook '%s': %s", p, hook.Name(), err.Error())
 			return fmt.Errorf("error executing %s hook '%s': %s", p, hook.Name(), err.Error())
 		}
 		glog.V(4).Infof("Executed %s hook '%s'", p, hook.Name())

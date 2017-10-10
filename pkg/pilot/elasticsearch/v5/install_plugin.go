@@ -2,6 +2,7 @@ package v5
 
 import (
 	"bytes"
+	"fmt"
 	"os/exec"
 	"strings"
 
@@ -16,7 +17,7 @@ import (
 func (p *Pilot) InstallPlugins(pilot *v1alpha1.Pilot) error {
 	installed, err := p.getInstalledPlugins(pilot)
 	if err != nil {
-		return err
+		return fmt.Errorf("error listing installed plugins: %s", err.Error())
 	}
 	glog.V(4).Infof("There are %d plugins already installed: %v", len(installed), installed)
 	for _, plugin := range pilot.Spec.Elasticsearch.Plugins {
@@ -66,6 +67,9 @@ func (p *Pilot) getInstalledPlugins(pilot *v1alpha1.Pilot) (map[string]struct{},
 	plugins := strings.Split(strOutput, "\n")
 	pluginsMap := make(map[string]struct{})
 	for _, plugin := range plugins {
+		if len(plugin) == 0 {
+			continue
+		}
 		pluginsMap[plugin] = struct{}{}
 	}
 	return pluginsMap, nil
