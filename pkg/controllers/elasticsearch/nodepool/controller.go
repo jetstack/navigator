@@ -201,6 +201,13 @@ func (e *statefulElasticsearchClusterNodePoolControl) createPilotResource(c *v1a
 			Namespace:       pod.Namespace,
 			OwnerReferences: []metav1.OwnerReference{util.NewControllerRef(c)},
 		},
+		Spec: v1alpha1.PilotSpec{
+			Phase: v1alpha1.PilotPhaseStarted,
+			Elasticsearch: &v1alpha1.PilotElasticsearchSpec{
+				Roles:   np.Roles,
+				Plugins: c.Spec.Plugins,
+			},
+		},
 	}
 	_, err := e.navigatorClient.NavigatorV1alpha1().Pilots(pod.Namespace).Create(pilot)
 	return err
