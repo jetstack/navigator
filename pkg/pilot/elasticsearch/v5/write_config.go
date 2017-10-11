@@ -24,11 +24,16 @@ func (p *Pilot) WriteConfig(pilot *v1alpha1.Pilot) error {
 	}
 	for _, info := range files {
 		path := filepath.Join(esConfigPath, info.Name())
-		path, err := filepath.EvalSymlinks(path)
+		path, err = filepath.EvalSymlinks(path)
 		if err != nil {
-			return fmt.Errorf("error evaluation symlinks in path %q: %s", path, err.Error())
+			return fmt.Errorf("error evaluating symlinks in path %q: %s", path, err.Error())
 		}
 		glog.V(2).Infof("Considering file %q (path: %q) when writing elasticsearch config", info.Name(), path)
+		// re-check info after evaluating symlinks
+		info, err = os.Stat(path)
+		if err != nil {
+			return fmt.Errorf("error getting info for path %q: %s", path, err.Error())
+		}
 		if info.IsDir() {
 			continue
 		}
