@@ -25,7 +25,7 @@ func (p *Pilot) env() *esEnv {
 	// TODO: set resource JVM resource limit env vars too
 	e := &esEnv{}
 	for _, role := range p.Options.ElasticsearchOptions.Roles {
-		switch role {
+		switch v1alpha1.ElasticsearchClusterRole(role) {
 		case v1alpha1.ElasticsearchRoleData:
 			e.nodeData = true
 		case v1alpha1.ElasticsearchRoleIngest:
