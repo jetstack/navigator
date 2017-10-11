@@ -37,28 +37,8 @@ func (p *Pilot) WriteConfig(pilot *v1alpha1.Pilot) error {
 		if info.IsDir() {
 			continue
 		}
-		relPath, err := filepath.Rel(esConfigPath, path)
-		if err != nil {
-			return err
-		}
-		dstPath := fmt.Sprintf("%s/%s", p.Options.ElasticsearchOptions.ConfigDir, relPath)
-		glog.V(2).Infof("Relative destination path %q, destination path %q")
-		relDir := filepath.Dir(relPath)
-		glog.V(2).Infof("Ensuring directory %q exists")
-		stat, err := os.Stat(relDir)
-		if os.IsNotExist(err) {
-			err = os.MkdirAll(relDir, 0644)
-			if err != nil {
-				return err
-			}
-			stat, err = os.Stat(relDir)
-		}
-		if err != nil {
-			return err
-		}
-		if !stat.IsDir() {
-			return fmt.Errorf("path '%s' exists and is not a directory", relDir)
-		}
+		dstPath := fmt.Sprintf("%s/%s", p.Options.ElasticsearchOptions.ConfigDir, info.Name())
+		glog.V(2).Infof("Copying config file from %q to %q", path, dstPath)
 		if err = copyFileContents(path, dstPath); err != nil {
 			return err
 		}
