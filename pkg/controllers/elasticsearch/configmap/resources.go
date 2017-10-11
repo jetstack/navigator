@@ -27,8 +27,8 @@ network.host: 0.0.0.0
 
 discovery:
   zen:
-    ping.unicast.hosts: ${DISCOVERY_SERVICE}
-    minimum_master_nodes: 1
+    ping.unicast.hosts: ${DISCOVERY_URL}
+    minimum_master_nodes: 2
 
 xpack.security.enabled: false
 `,
