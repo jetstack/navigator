@@ -3,6 +3,7 @@ package v5
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,13 +19,19 @@ const (
 
 func (p *Pilot) WriteConfig(pilot *v1alpha1.Pilot) error {
 	esConfigPath := fmt.Sprintf("%s/%s", p.Options.ConfigDir, elasticsearchConfigSubDir)
-	err := filepath.Walk(esConfigPath, func(path string, info os.FileInfo, err error) error {
+	files, err := ioutil.ReadDir(esConfigPath)
+	if err != nil {
+		return fmt.Errorf("error listing provided config files: %s", err.Error())
+	}
+	for _, info := range files {
+		path := filepath.Join(esConfigPath, info.Name())
+		path, err := filepath.EvalSymlinks(path)
 		if err != nil {
-			return err
+			return fmt.Errorf("error evaluation symlinks in path %q: %s", path, err.Error())
 		}
-		glog.V(4).Infof("Considering file %q when writing elasticsearch config", path)
+		glog.V(2).Infof("Considering file %q (path: %q) when writing elasticsearch config", info.Name(), path)
 		if info.IsDir() {
-			glog.V(4).Infof("%q is a directory", path)
+			glog.V(2).Infof("%q is a directory", path)
 			if strings.HasPrefix(info.Name(), "..") {
 				return filepath.SkipDir
 			}
@@ -35,9 +42,9 @@ func (p *Pilot) WriteConfig(pilot *v1alpha1.Pilot) error {
 			return err
 		}
 		dstPath := fmt.Sprintf("%s/%s", p.Options.ElasticsearchOptions.ConfigDir, relPath)
-		glog.V(4).Infof("Relative destination path %q, destination path %q")
+		glog.V(2).Infof("Relative destination path %q, destination path %q")
 		relDir := filepath.Dir(relPath)
-		glog.V(4).Infof("Ensuring directory %q exists")
+		glog.V(2).Infof("Ensuring directory %q exists")
 		stat, err := os.Stat(relDir)
 		if os.IsNotExist(err) {
 			err = os.MkdirAll(relDir, 0644)
@@ -56,7 +63,7 @@ func (p *Pilot) WriteConfig(pilot *v1alpha1.Pilot) error {
 			return err
 		}
 		return nil
-	})
+	}
 	if err != nil {
 		return fmt.Errorf("error writing config file: %s", err.Error())
 	}
