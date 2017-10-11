@@ -1,10 +1,8 @@
 package nodepool
 
 import (
-	"crypto/md5"
-	"encoding/hex"
-	"encoding/json"
 	"fmt"
+	"strings"
 
 	apps "k8s.io/api/apps/v1beta1"
 	apiv1 "k8s.io/api/core/v1"
@@ -123,13 +121,13 @@ func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.Elasticsear
 		})
 	}
 
-	nodePoolHash, err := nodePoolHash(c, np)
-	if err != nil {
-		return nil, fmt.Errorf("error hashing node pool object: %s", err.Error())
+	roleStrings := make([]string, len(np.Roles))
+	for i, r := range np.Roles {
+		roleStrings[i] = string(r)
 	}
-
+	roles := strings.Join(roleStrings, ",")
+	plugins := strings.Join(c.Spec.Plugins, ",")
 	nodePoolLabels := util.NodePoolLabels(c, np.Name, np.Roles...)
-	nodePoolLabels[util.NodePoolHashAnnotationKey] = nodePoolHash
 
 	return &apiv1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
@@ -150,22 +148,26 @@ func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.Elasticsear
 					Name:            "elasticsearch",
 					Image:           c.Spec.Image.Repository + ":" + c.Spec.Image.Tag,
 					ImagePullPolicy: apiv1.PullPolicy(c.Spec.Image.PullPolicy),
-					Command: []string{
-						"/bin/sh",
-						"-c",
-						fmt.Sprintf(`#!/bin/sh
-exec %s/pilot \
-  --pilot-name=$(POD_NAME) \
-  --pilot-namespace=$(POD_NAMESPACE) \
-  --elasticsearch-master-url=$(CLUSTER_URL) \
-  --v=10
-`, sharedVolumeMountPath),
+					Command:         []string{fmt.Sprintf("%s/pilot", sharedVolumeMountPath)},
+					Args: []string{
+						"--pilot-name=$(POD_NAME)",
+						"--pilot-namespace=$(POD_NAMESPACE)",
+						"--elasticsearch-master-url=$(CLUSTER_URL)",
+						"--elasticsearch-roles=$(ROLES)",
+						"--elasticsearch-plugins=$(PLUGINS)",
 					},
 					Env: []apiv1.EnvVar{
-						// TODO: Tidy up generation of discovery & client URLs
 						{
-							Name:  "DISCOVERY_SERVICE",
+							Name:  "DISCOVERY_URL",
 							Value: util.DiscoveryServiceName(c),
+						},
+						{
+							Name:  "ROLES",
+							Value: roles,
+						},
+						{
+							Name:  "PLUGINS",
+							Value: plugins,
 						},
 						{
 							Name:  "CLUSTER_URL",
@@ -295,19 +297,4 @@ func buildInitContainers(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.Elastics
 		}
 	}
 	return containers
-}
-
-func nodePoolHash(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.ElasticsearchClusterNodePool) (string, error) {
-	hashStruct := struct {
-		Roles   []v1alpha1.ElasticsearchClusterRole
-		Plugins []v1alpha1.ElasticsearchClusterPlugin
-		Config  map[string]string
-	}{np.Roles, c.Spec.Plugins, np.Config}
-	d, err := json.Marshal(hashStruct)
-	if err != nil {
-		return "", err
-	}
-	hasher := md5.New()
-	hasher.Write(d)
-	return hex.EncodeToString(hasher.Sum(nil)), nil
 }

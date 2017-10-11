@@ -20,19 +20,19 @@ func (p *Pilot) InstallPlugins(pilot *v1alpha1.Pilot) error {
 		return fmt.Errorf("error listing installed plugins: %s", err.Error())
 	}
 	glog.V(4).Infof("There are %d plugins already installed: %v", len(installed), installed)
-	for _, plugin := range pilot.Spec.Elasticsearch.Plugins {
-		if _, ok := installed[plugin.Name]; ok {
-			glog.V(4).Infof("Skipping already installed plugin '%s'", plugin.Name)
+	for _, plugin := range p.Options.ElasticsearchOptions.Plugins {
+		if _, ok := installed[plugin]; ok {
+			glog.V(4).Infof("Skipping already installed plugin '%s'", plugin)
 			continue
 		}
 
-		err := p.installPlugin(pilot, plugin.Name)
+		err := p.installPlugin(pilot, plugin)
 		if err != nil {
-			glog.V(4).Infof("Error installing plugin '%s': %s", plugin.Name, err.Error())
+			glog.V(4).Infof("Error installing plugin '%s': %s", plugin, err.Error())
 			return err
 		}
 
-		glog.V(4).Infof("Successfully installed plugin '%s'", plugin.Name)
+		glog.V(4).Infof("Successfully installed plugin '%s'", plugin)
 	}
 	return nil
 }
@@ -41,7 +41,7 @@ func (p *Pilot) InstallPlugins(pilot *v1alpha1.Pilot) error {
 // node.
 func (p *Pilot) installPlugin(pilot *v1alpha1.Pilot, plugin string) error {
 	cmd := exec.Command(p.Options.ElasticsearchOptions.PluginBinary, "install", plugin)
-	cmd.Env = env(pilot).Strings()
+	cmd.Env = p.env().Strings()
 	cmd.Stdout = p.Options.StdOut
 	cmd.Stderr = p.Options.StdErr
 	if err := cmd.Run(); err != nil {
@@ -57,7 +57,7 @@ func (p *Pilot) installPlugin(pilot *v1alpha1.Pilot, plugin string) error {
 func (p *Pilot) getInstalledPlugins(pilot *v1alpha1.Pilot) (map[string]struct{}, error) {
 	stdout := new(bytes.Buffer)
 	cmd := exec.Command(p.Options.ElasticsearchOptions.PluginBinary, "list")
-	cmd.Env = env(pilot).Strings()
+	cmd.Env = p.env().Strings()
 	cmd.Stdout = stdout
 	cmd.Stderr = p.Options.StdErr
 	if err := cmd.Run(); err != nil {

@@ -18,10 +18,11 @@ import (
 
 const (
 	defaultResyncPeriod = time.Second * 30
+	defaultConfigDir    = "/etc/pilot"
 
-	defaultBinary       = "elasticsearch"
-	defaultPluginBinary = "elasticsearch-plugin"
-	defaultConfigDir    = "/usr/share/elasticsearch/config"
+	defaultElasticsearchBinary       = "elasticsearch"
+	defaultElasticsearchPluginBinary = "elasticsearch-plugin"
+	defaultElasticsearchConfigDir    = "/usr/share/elasticsearch/config"
 )
 
 // PilotOptions are the options required to run this Pilot. This can be used to
@@ -39,6 +40,8 @@ type PilotOptions struct {
 	KubeConfig string
 	// ResyncPeriod is how often the controllers should resync their caches
 	ResyncPeriod time.Duration
+	// ConfigDir is the base directory for additional Pilot configuration
+	ConfigDir string
 
 	// ElasticsearchOptions contains the elasticsearch-specific options
 	ElasticsearchOptions *ElasticsearchOptions
@@ -62,6 +65,10 @@ type ElasticsearchOptions struct {
 	PluginBinary string
 	// ConfigDir is the path to the elasticsearch config directory
 	ConfigDir string
+	// Roles is a list of ElasticsearchCluster roles this Pilot should use
+	Roles []string
+	// Plugins is a list of plugins to install for elasticsearch is started
+	Plugins []string
 }
 
 func NewOptions(out, errOut io.Writer) *PilotOptions {
@@ -81,6 +88,7 @@ func (o *PilotOptions) AddFlags(flags *pflag.FlagSet) {
 	flags.StringVar(&o.KubeConfig, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
 	flags.StringVar(&o.Master, "master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
 	flags.DurationVar(&o.ResyncPeriod, "resync-period", defaultResyncPeriod, "Re-sync period for control loops operated by the pilot")
+	flags.StringVar(&o.ConfigDir, "config-dir", defaultConfigDir, "Base directory for additional Pilot configuration")
 }
 
 func (o *PilotOptions) Complete() error {
@@ -151,9 +159,11 @@ func (o *PilotOptions) Run(stopCh <-chan struct{}) error {
 
 func (e *ElasticsearchOptions) AddFlags(flags *pflag.FlagSet) {
 	flags.StringVar(&e.MasterURL, "elasticsearch-master-url", "", "URL of the Elasticsearch master service")
-	flags.StringVar(&e.Binary, "elasticsearch-binary", defaultBinary, "Path to the elasticsearch binary")
-	flags.StringVar(&e.PluginBinary, "elasticsearch-plugin-binary", defaultPluginBinary, "Path to the elasticsearch-plugin binary")
-	flags.StringVar(&e.ConfigDir, "elasticsearch-config-dir", defaultConfigDir, "Path to the elasticsearch config directory")
+	flags.StringVar(&e.Binary, "elasticsearch-binary", defaultElasticsearchBinary, "Path to the elasticsearch binary")
+	flags.StringVar(&e.PluginBinary, "elasticsearch-plugin-binary", defaultElasticsearchPluginBinary, "Path to the elasticsearch-plugin binary")
+	flags.StringVar(&e.ConfigDir, "elasticsearch-config-dir", defaultElasticsearchConfigDir, "Path to the elasticsearch config directory")
+	flags.StringSliceVar(&e.Roles, "elasticsearch-roles", nil, "List of roles this node should assume within the Elasticsearch cluster")
+	flags.StringSliceVar(&e.Plugins, "elasticsearch-plugins", nil, "List of plugins to install before the elasticsearch process is started")
 }
 
 func (e *ElasticsearchOptions) Complete() error {

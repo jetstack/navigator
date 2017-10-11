@@ -16,15 +16,15 @@ func (p *Pilot) CmdFunc(pilot *v1alpha1.Pilot) (*exec.Cmd, error) {
 	cmd := exec.Command("elasticsearch")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	cmd.Env = env(pilot).Strings()
+	cmd.Env = p.env().Strings()
 
 	return cmd, nil
 }
 
-func env(pilot *v1alpha1.Pilot) *esEnv {
+func (p *Pilot) env() *esEnv {
 	// TODO: set resource JVM resource limit env vars too
 	e := &esEnv{}
-	for _, role := range pilot.Spec.Elasticsearch.Roles {
+	for _, role := range p.Options.ElasticsearchOptions.Roles {
 		switch role {
 		case v1alpha1.ElasticsearchRoleData:
 			e.nodeData = true

@@ -44,18 +44,11 @@ type ElasticsearchClusterList struct {
 
 // ElasticsearchClusterSpec describes a specification for an ElasticsearchCluster
 type ElasticsearchClusterSpec struct {
-	Plugins   []ElasticsearchClusterPlugin   `json:"plugins"`
+	Plugins   []string                       `json:"plugins"`
 	NodePools []ElasticsearchClusterNodePool `json:"nodePools"`
 	Pilot     ElasticsearchPilotImage        `json:"pilot"`
 	Image     ElasticsearchImage             `json:"image"`
 	Sysctl    []string                       `json:"sysctl"`
-}
-
-// ElasticsearchClusterPlugin describes a specification of an ElasticsearchCluster plugin
-// You must ensure the plugin is compatible with the version of Elasticsearch being deployed
-// else the cluster will not deploy successfully
-type ElasticsearchClusterPlugin struct {
-	Name string `json:"name"`
 }
 
 // ElasticsearchClusterNodePool describes a node pool within an ElasticsearchCluster.
@@ -67,7 +60,10 @@ type ElasticsearchClusterNodePool struct {
 	NodeSelector map[string]string                     `json:"nodeSelector"`
 	Resources    *v1.ResourceRequirements              `json:"resources,omitempty"`
 	Persistence  ElasticsearchClusterPersistenceConfig `json:"persistence,omitempty"`
-	Config       map[string]string                     `json:"config"`
+	// Config is a map of configuration files to be placed in the elasticsearch
+	// config directory. Environment variables may be used in these files and
+	// they will be automatically expanded by the Elasticsearch process.
+	Config map[string]string `json:"config"`
 }
 
 type ElasticsearchClusterRole string
@@ -132,13 +128,6 @@ const (
 )
 
 type PilotElasticsearchSpec struct {
-	Plugins []ElasticsearchClusterPlugin `json:"plugins"`
-	Roles   []ElasticsearchClusterRole   `json:"roles"`
-
-	// Config is a map of configuration files to be placed in the elasticsearch
-	// config directory. Environment variables may be used in these files and
-	// they will be automatically expanded by the Elasticsearch process.
-	Config map[string]string `json:"config"'`
 }
 
 type PilotStatus struct {
