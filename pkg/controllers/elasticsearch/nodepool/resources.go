@@ -22,7 +22,7 @@ const (
 	esDataVolumeMountPath = "/usr/share/elasticsearch/data"
 
 	esConfigVolumeName      = "config"
-	esConfigVolumeMountPath = "/config"
+	esConfigVolumeMountPath = "/etc/pilot/elasticsearch/config"
 )
 
 func nodePoolStatefulSet(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.ElasticsearchClusterNodePool) (*apps.StatefulSet, error) {
