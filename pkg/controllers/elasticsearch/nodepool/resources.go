@@ -156,6 +156,8 @@ func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.Elasticsear
 					ImagePullPolicy: apiv1.PullPolicy(c.Spec.Image.PullPolicy),
 					Command:         []string{fmt.Sprintf("%s/pilot", sharedVolumeMountPath)},
 					Args: []string{
+						"--v=4",
+						"--logtostderr",
 						"--pilot-name=$(POD_NAME)",
 						"--pilot-namespace=$(POD_NAMESPACE)",
 						"--elasticsearch-master-url=$(CLUSTER_URL)",
