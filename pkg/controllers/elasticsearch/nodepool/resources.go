@@ -39,6 +39,9 @@ func nodePoolStatefulSet(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.Elastics
 			Namespace:       c.Namespace,
 			OwnerReferences: []metav1.OwnerReference{util.NewControllerRef(c)},
 			Labels:          elasticsearchPodTemplate.Labels,
+			Annotations: map[string]string{
+				util.NodePoolHashAnnotationKey: util.ComputeNodePoolHash(c, np, util.Int32Ptr(0)),
+			},
 		},
 		Spec: apps.StatefulSetSpec{
 			Replicas:    util.Int32Ptr(int32(np.Replicas)),
@@ -132,6 +135,9 @@ func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.Elasticsear
 	return &apiv1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: nodePoolLabels,
+			Annotations: map[string]string{
+				util.NodePoolHashAnnotationKey: util.ComputeNodePoolHash(c, np, util.Int32Ptr(0)),
+			},
 		},
 		Spec: apiv1.PodSpec{
 			TerminationGracePeriodSeconds: util.Int64Ptr(1800),

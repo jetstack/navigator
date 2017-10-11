@@ -2,12 +2,14 @@ package nodepool
 
 import (
 	"fmt"
+	"reflect"
 
 	appsv1beta1 "k8s.io/api/apps/v1beta1"
 	apiv1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
 	appslisters "k8s.io/client-go/listers/apps/v1beta1"
 	corelisters "k8s.io/client-go/listers/core/v1"
@@ -18,7 +20,6 @@ import (
 	"github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset"
 	listersv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/listers_generated/navigator/v1alpha1"
 	"github.com/jetstack-experimental/navigator/pkg/controllers/elasticsearch/util"
-	"reflect"
 )
 
 type Interface interface {
@@ -95,77 +96,80 @@ func (e *statefulControl) syncNodePool(c *v1alpha1.ElasticsearchCluster, np *v1a
 	//		- create the StatefulSet
 	npStatus := c.Status.NodePools[np.Name]
 	statusCopy := *npStatus.DeepCopy()
-	// get the selector for the node pool
-	sel, err := util.SelectorForNodePool(c, np)
-	if err != nil {
-		return statusCopy, fmt.Errorf("error creating label selector for node pool '%s': %s", np.Name, err.Error())
-	}
-	// list statefulsets matching the selector
-	sets, err := e.statefulSetLister.StatefulSets(c.Namespace).List(sel)
-	if err != nil {
-		return statusCopy, err
-	}
-	// if more than one statefulset matches the labels, exit here to be safe
-	if len(sets) > 1 {
-		return statusCopy, fmt.Errorf("multiple StatefulSets match label selector (%s) for node pool '%s'", sel.String(), np.Name)
-	}
-	expected, err := nodePoolStatefulSet(c, np)
+
+	desiredStatefulSet, err := nodePoolStatefulSet(c, np)
 	if err != nil {
 		return statusCopy, fmt.Errorf("error generating StatefulSet: %s", err.Error())
 	}
-	// Create Pilot resources for each member of the set
-	err = e.syncPilotResources(c, np, expected)
-	if err != nil {
-		glog.V(4).Infof("Error syncing Pilot resources for ElasticsearchCluster '%s' StatefulSet '%s': %s", c.Name, expected.Name, err.Error())
-		return statusCopy, err
-	}
-	// TODO: extend this to more complex logic than a simple 'create'
-	// e.g. queue a new node pool introduced event for Pilots to watch for
-	if len(sets) == 0 {
-		_, err := e.kubeClient.AppsV1beta1().StatefulSets(c.Namespace).Create(expected)
-		return statusCopy, err
-	}
-	// this is safe as the above code ensures we only have one element in the array
-	actual := sets[0]
-	statusCopy.ReadyReplicas = int64(actual.Status.ReadyReplicas)
-	if actual.Labels == nil {
-		return statusCopy, fmt.Errorf("StatefulSet '%s' does not contain node pool hash label", actual.Name)
-	}
 
-	// compare the hashes of the expected and actual node pool
-	actualNodePoolHash := actual.Labels[util.NodePoolHashAnnotationKey]
-	if len(actualNodePoolHash) == 0 {
-		return statusCopy, fmt.Errorf("StatefulSet '%s' contains empty node pool hash annotation", actual.Name)
-	}
-
-	expectedNodePoolHash := expected.Labels[util.NodePoolHashAnnotationKey]
-
-	ssCopy := actual.DeepCopy()
-	ssCopy.Labels = expected.Labels
-	ssCopy.Annotations = expected.Annotations
-	ssCopy.Spec = expected.Spec
-	// if the node pool hashes do not match, we perform an Update operation on the StatefulSet
-	if actualNodePoolHash != expectedNodePoolHash {
-		_, err := e.kubeClient.AppsV1beta1().StatefulSets(c.Namespace).Update(ssCopy)
-		return statusCopy, err
-	}
-
-	expectedContainers := expected.Spec.Template.Spec.Containers
-	actualContainers := actual.Spec.Template.Spec.Containers
-	if len(expectedContainers) != len(actualContainers) {
-		_, err = e.kubeClient.AppsV1beta1().StatefulSets(c.Namespace).Update(ssCopy)
-		return statusCopy, err
-	}
-	// check the images are up to date
-	for i := 0; i < len(expectedContainers); i++ {
-		if expectedContainers[i].Image != actualContainers[i].Image {
-			_, err := e.kubeClient.AppsV1beta1().StatefulSets(c.Namespace).Update(ssCopy)
-			return statusCopy, err
+	existingStatefulSet, err := e.existingStatefulSet(c, np)
+	if apierrors.IsNotFound(err) {
+		existingStatefulSet, err = e.kubeClient.AppsV1beta1().StatefulSets(c.Namespace).Create(desiredStatefulSet)
+		if err != nil {
+			return statusCopy, fmt.Errorf("error creating StatefulSet: %s", err.Error())
 		}
+	} else if err != nil {
+		// TODO: log event
+		return statusCopy, err
+	}
+
+	var hash string
+	var ok bool
+	if hash, ok = existingStatefulSet.Annotations[util.NodePoolHashAnnotationKey]; ok {
+		// TODO: set collisionCount properly
+		desiredHash := util.ComputeNodePoolHash(c, np, util.Int32Ptr(0))
+		if desiredHash != hash {
+			existingStatefulSet, err = e.updateStatefulSet(desiredHash, existingStatefulSet, desiredStatefulSet)
+			if err != nil {
+				// TODO: log event to say update of statefulset failed
+				return statusCopy, fmt.Errorf("error updating StatefulSet: %s", err.Error())
+			}
+		}
+	}
+
+	statusCopy.ReadyReplicas = int64(existingStatefulSet.Status.ReadyReplicas)
+	// Create Pilot resources for each member of the set
+	err = e.syncPilotResources(c, np, existingStatefulSet)
+	if err != nil {
+		glog.V(4).Infof("Error syncing Pilot resources for ElasticsearchCluster '%s' StatefulSet '%s': %s", c.Name, desiredStatefulSet.Name, err.Error())
+		return statusCopy, err
 	}
 
 	// the hashes match, which means the properties of the node pool have not changed
 	return statusCopy, nil
+}
+
+func (e *statefulControl) updateStatefulSet(hash string, existing, new *appsv1beta1.StatefulSet) (*appsv1beta1.StatefulSet, error) {
+	copy := existing.DeepCopy()
+	copy.Labels = new.Labels
+	copy.Annotations = new.Annotations
+	copy.Spec.UpdateStrategy = new.Spec.UpdateStrategy
+	copy.Spec.Replicas = new.Spec.Replicas
+	copy.Spec.PodManagementPolicy = new.Spec.PodManagementPolicy
+	copy.Spec.RevisionHistoryLimit = new.Spec.RevisionHistoryLimit
+	copy.Spec.Template = new.Spec.Template
+	return e.kubeClient.AppsV1beta1().StatefulSets(copy.Namespace).Update(copy)
+}
+
+func (e *statefulControl) existingStatefulSet(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.ElasticsearchClusterNodePool) (*appsv1beta1.StatefulSet, error) { // get the selector for the node pool
+	sel, err := util.SelectorForNodePool(c, np)
+	if err != nil {
+		return nil, fmt.Errorf("error creating label selector for node pool '%s': %s", np.Name, err.Error())
+	}
+	// list statefulsets matching the selector
+	sets, err := e.statefulSetLister.StatefulSets(c.Namespace).List(sel)
+	if err != nil {
+		return nil, err
+	}
+	// if more than one statefulset matches the labels, exit here to be safe
+	if len(sets) > 1 {
+		return nil, fmt.Errorf("multiple StatefulSets match label selector (%s) for node pool '%s'", sel.String(), np.Name)
+	}
+	if len(sets) == 0 {
+		return nil, apierrors.NewNotFound(schema.GroupResource{}, fmt.Sprintf("statefulset for node pool %q not found", np.Name))
+	}
+	// this is safe as the above code ensures we only have one element in the array
+	return sets[0], nil
 }
 
 func (e *statefulControl) syncPilotResources(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.ElasticsearchClusterNodePool, ss *appsv1beta1.StatefulSet) error {
