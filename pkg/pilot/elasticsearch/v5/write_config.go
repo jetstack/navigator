@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
 )
@@ -17,6 +18,9 @@ func (p *Pilot) WriteConfig(pilot *v1alpha1.Pilot) error {
 	esConfigPath := fmt.Sprintf("%s/%s", p.Options.ConfigDir, elasticsearchConfigSubDir)
 	err := filepath.Walk(esConfigPath, func(path string, info os.FileInfo, err error) error {
 		if info.IsDir() {
+			if strings.HasPrefix(info.Name(), "..") {
+				return filepath.SkipDir
+			}
 			return nil
 		}
 		if err != nil {
