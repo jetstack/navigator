@@ -108,7 +108,7 @@ func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.Elasticsear
 			VolumeSource: apiv1.VolumeSource{
 				ConfigMap: &apiv1.ConfigMapVolumeSource{
 					LocalObjectReference: apiv1.LocalObjectReference{
-						Name: util.ConfigMapName(c),
+						Name: util.ConfigMapName(c, np),
 					},
 				},
 			},
