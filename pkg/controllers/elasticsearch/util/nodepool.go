@@ -47,7 +47,7 @@ func ComputeNodePoolHash(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.Elastics
 		hasher.Write(collisionCountBytes)
 	}
 
-	return fmt.Sprintf("%s", hasher.Sum32())
+	return fmt.Sprintf("%d", hasher.Sum32())
 }
 
 func ClusterLabels(c *v1alpha1.ElasticsearchCluster) map[string]string {
