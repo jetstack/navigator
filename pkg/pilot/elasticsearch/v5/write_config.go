@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/golang/glog"
 
@@ -31,11 +30,7 @@ func (p *Pilot) WriteConfig(pilot *v1alpha1.Pilot) error {
 		}
 		glog.V(2).Infof("Considering file %q (path: %q) when writing elasticsearch config", info.Name(), path)
 		if info.IsDir() {
-			glog.V(2).Infof("%q is a directory", path)
-			if strings.HasPrefix(info.Name(), "..") {
-				return filepath.SkipDir
-			}
-			return nil
+			continue
 		}
 		relPath, err := filepath.Rel(esConfigPath, path)
 		if err != nil {
@@ -62,7 +57,6 @@ func (p *Pilot) WriteConfig(pilot *v1alpha1.Pilot) error {
 		if err = copyFileContents(path, dstPath); err != nil {
 			return err
 		}
-		return nil
 	}
 	if err != nil {
 		return fmt.Errorf("error writing config file: %s", err.Error())
