@@ -126,7 +126,6 @@ func Convert_navigator_CassandraClusterList_To_v1alpha1_CassandraClusterList(in 
 }
 
 func autoConvert_v1alpha1_CassandraClusterSpec_To_navigator_CassandraClusterSpec(in *CassandraClusterSpec, out *navigator.CassandraClusterSpec, s conversion.Scope) error {
-	out.Plugins = *(*[]string)(unsafe.Pointer(&in.Plugins))
 	out.Sysctl = *(*[]string)(unsafe.Pointer(&in.Sysctl))
 	return nil
 }
@@ -137,7 +136,6 @@ func Convert_v1alpha1_CassandraClusterSpec_To_navigator_CassandraClusterSpec(in 
 }
 
 func autoConvert_navigator_CassandraClusterSpec_To_v1alpha1_CassandraClusterSpec(in *navigator.CassandraClusterSpec, out *CassandraClusterSpec, s conversion.Scope) error {
-	out.Plugins = *(*[]string)(unsafe.Pointer(&in.Plugins))
 	out.Sysctl = *(*[]string)(unsafe.Pointer(&in.Sysctl))
 	return nil
 }
