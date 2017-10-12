@@ -12,6 +12,16 @@ import (
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
+// CassandraCluster describes a specification for an Cassandra cluster
+type CassandraCluster struct {
+	// we embed these types so the CassandraCluster implements runtime.Object
+	metav1.TypeMeta
+	metav1.ObjectMeta
+}
+
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // ElasticsearchCluster describes a specification for an Elasticsearch cluster
 type ElasticsearchCluster struct {
 	// we embed these types so the ElasticsearchCluster implements runtime.Object
