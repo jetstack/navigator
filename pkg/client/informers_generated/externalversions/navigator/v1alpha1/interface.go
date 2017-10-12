@@ -24,6 +24,8 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
+	// CassandraClusters returns a CassandraClusterInformer.
+	CassandraClusters() CassandraClusterInformer
 	// ElasticsearchClusters returns a ElasticsearchClusterInformer.
 	ElasticsearchClusters() ElasticsearchClusterInformer
 	// Pilots returns a PilotInformer.
@@ -37,6 +39,11 @@ type version struct {
 // New returns a new Interface.
 func New(f internalinterfaces.SharedInformerFactory) Interface {
 	return &version{f}
+}
+
+// CassandraClusters returns a CassandraClusterInformer.
+func (v *version) CassandraClusters() CassandraClusterInformer {
+	return &cassandraClusterInformer{factory: v.SharedInformerFactory}
 }
 
 // ElasticsearchClusters returns a ElasticsearchClusterInformer.
