@@ -31,7 +31,8 @@ and we can begin discussion on implementation & planning.
 
 | Name          | Version   | Status      | Notes                                                             |
 | ------------- | --------- | ----------- | ----------------------------------------------------------------- |
-| Elasticsearch | 5.x       | Alpha       | [more info](docs/supported-types/elasticsearch-cluster.md)  |
+| Elasticsearch | 5.x       | Alpha       | [more info](docs/supported-types/elasticsearch-cluster.md)        |
+| Cassandra     | v12       | Alpha       | [more info](docs/supported-types/cassandra-cluster.md)            |
 | Couchbase     |           | Coming soon |                                                                   |
 
 ## Links
@@ -39,6 +40,7 @@ and we can begin discussion on implementation & planning.
 * [Quick-start](docs/quick-start)
 * [Resource types](docs/supported-types/README.md)
   * [ElasticsearchCluster](docs/supported-types/elasticsearch-cluster.md)
+  * [CassandraCluster](docs/supported-types/cassandra-cluster.md)
 
 
 ## E2E Testing

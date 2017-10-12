@@ -45,9 +45,27 @@ function retry() {
     return 1
 }
 
-function kube_delete_namespace_and_wait() {
-    local namespace=$1
+function kube_namespaces_with_prefix() {
+    local namespace_prefix=$1
+    kubectl get namespaces \
+            --output "jsonpath={.items[*].metadata.name}" \
+        | xargs --no-run-if-empty --max-args 1 \
+        | grep "${namespace_prefix}"
+}
+
+function kube_namespaces_exist() {
+    local namespace_prefix=$1
+    local matching_namespaces=$(kube_namespaces_with_prefix "${namespace_prefix}")
+    if test -z "${matching_namespaces}"; then
+        return 1
+    fi
+    return 0
+}
+
+function kube_delete_namespaces_with_prefix() {
+    local namespace_prefix=$1
     # Delete any previous namespace and wait for Kubernetes to finish deleting.
-    kubectl delete namespace "${namespace}" || true
-    retry TIMEOUT=120 not kubectl get namespace ${namespace}
+    kube_namespaces_with_prefix "$namespace_prefix" \
+        | xargs --no-run-if-empty kubectl delete namespace
+    retry not kube_namespaces_exist "${namespace_prefix}"
 }
