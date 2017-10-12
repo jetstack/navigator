@@ -18,6 +18,14 @@ limitations under the License.
 
 package internalversion
 
+// CassandraClusterListerExpansion allows custom methods to be added to
+// CassandraClusterLister.
+type CassandraClusterListerExpansion interface{}
+
+// CassandraClusterNamespaceListerExpansion allows custom methods to be added to
+// CassandraClusterNamespaceLister.
+type CassandraClusterNamespaceListerExpansion interface{}
+
 // ElasticsearchClusterListerExpansion allows custom methods to be added to
 // ElasticsearchClusterLister.
 type ElasticsearchClusterListerExpansion interface{}

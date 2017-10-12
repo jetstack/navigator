@@ -15,6 +15,8 @@ limitations under the License.
 */
 package internalversion
 
+type CassandraClusterExpansion interface{}
+
 type ElasticsearchClusterExpansion interface{}
 
 type PilotExpansion interface{}
