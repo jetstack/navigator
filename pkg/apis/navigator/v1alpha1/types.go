@@ -15,18 +15,14 @@ import (
 // CassandraCluster describes a specification for an Cassandra cluster
 type CassandraCluster struct {
 	// we embed these types so the CassandraCluster implements runtime.Object
-	metav1.TypeMeta
-	metav1.ObjectMeta
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata"`
 
-	Spec CassandraClusterSpec
+	Spec CassandraClusterSpec `json:"spec"`
 }
 
 type CassandraClusterSpec struct {
-	Plugins []string
-	// NodePools []ElasticsearchClusterNodePool
-	// Pilot     ElasticsearchPilotImage
-	// Image     ElasticsearchImage
-	Sysctl []string
+	Sysctl []string `json:"sysctl"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -35,10 +31,10 @@ type CassandraClusterSpec struct {
 // This is needed in order to make List operations work.
 type CassandraClusterList struct {
 	// we embed these types so that CassandraClusterList implements runtime.Object and List interfaces
-	metav1.TypeMeta
-	metav1.ListMeta
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
 
-	Items []CassandraCluster
+	Items []CassandraCluster `json:"items"`
 }
 
 // +genclient
