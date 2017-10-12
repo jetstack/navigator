@@ -22,10 +22,6 @@ type CassandraCluster struct {
 }
 
 type CassandraClusterSpec struct {
-	Plugins []string
-	// NodePools []ElasticsearchClusterNodePool
-	// Pilot     ElasticsearchPilotImage
-	// Image     ElasticsearchImage
 	Sysctl []string
 }
 
