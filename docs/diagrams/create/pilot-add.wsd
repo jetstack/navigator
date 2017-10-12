@@ -63,7 +63,7 @@ loop create 3 Pods and 3 Pilots:
         Pilot entrypoint unblocked
     end note
 
-    alt Leader not found:
+    alt Master:
         note over napi
             PGSQLCluster
             - leader: nil
@@ -83,7 +83,7 @@ loop create 3 Pods and 3 Pilots:
             - replicas_current: 0
         end note
 
-    else Leader found:
+    else Slave:
         note over napi
             PGSQLCluster
             - leader: pgsql-1
