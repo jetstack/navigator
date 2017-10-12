@@ -38,8 +38,10 @@ func NewController(
 }
 
 func (e *defaultElasticsearchClusterConfigMapControl) Sync(c *v1alpha1.ElasticsearchCluster) (v1alpha1.ElasticsearchClusterStatus, error) {
-	if err := e.ensureConfigMap(esConfigConfigMap(c)); err != nil {
-		return c.Status, fmt.Errorf("error ensuring config ConfigMap: %s", err.Error())
+	for _, np := range c.Spec.NodePools {
+		if err := e.ensureConfigMap(esConfigConfigMap(c, &np)); err != nil {
+			return c.Status, fmt.Errorf("error ensuring %q/%q nodepool configmap: %s", c.Name, np.Name, err.Error())
+		}
 	}
 	return c.Status, nil
 }

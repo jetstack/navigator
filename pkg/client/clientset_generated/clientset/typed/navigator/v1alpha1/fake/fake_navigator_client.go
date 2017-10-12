@@ -29,6 +29,10 @@ func (c *FakeNavigatorV1alpha1) ElasticsearchClusters(namespace string) v1alpha1
 	return &FakeElasticsearchClusters{c, namespace}
 }
 
+func (c *FakeNavigatorV1alpha1) Pilots(namespace string) v1alpha1.PilotInterface {
+	return &FakePilots{c, namespace}
+}
+
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeNavigatorV1alpha1) RESTClient() rest.Interface {

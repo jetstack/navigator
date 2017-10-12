@@ -25,6 +25,7 @@ import (
 type NavigatorV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	ElasticsearchClustersGetter
+	PilotsGetter
 }
 
 // NavigatorV1alpha1Client is used to interact with features provided by the navigator.jetstack.io group.
@@ -34,6 +35,10 @@ type NavigatorV1alpha1Client struct {
 
 func (c *NavigatorV1alpha1Client) ElasticsearchClusters(namespace string) ElasticsearchClusterInterface {
 	return newElasticsearchClusters(c, namespace)
+}
+
+func (c *NavigatorV1alpha1Client) Pilots(namespace string) PilotInterface {
+	return newPilots(c, namespace)
 }
 
 // NewForConfig creates a new NavigatorV1alpha1Client for the given config.

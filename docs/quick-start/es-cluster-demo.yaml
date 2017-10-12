@@ -3,20 +3,17 @@ kind: ElasticsearchCluster
 metadata:
   name: demo
 spec:
-  plugins:
-  # - name: "io.fabric8:elasticsearch-cloud-kubernetes:5.2.2"
-
   sysctl:
   - vm.max_map_count=262144
 
   pilot:
-    repository: jetstackexperimental/pilot-elasticsearch
-    tag: init
+    repository: jetstackexperimental/navigator-pilot-elasticsearch
+    tag: latest
     pullPolicy: Always
 
   image:
     repository: docker.elastic.co/elasticsearch/elasticsearch
-    tag: 5.2.2
+    tag: 5.6.2
     pullPolicy: Always
     ## This sets the group of the persistent volume created for
     ## the data nodes. This must be the same as the user that elasticsearch
@@ -24,12 +21,28 @@ spec:
     fsGroup: 1000
 
   nodePools:
-  - name: data
+  - name: master
     replicas: 3
 
     roles:
-    - data
-    
+    - master
+
+    config:
+      elasticsearch.yml: |
+        node.data: ${NODE_DATA}
+        node.master: ${NODE_MASTER}
+        node.ingest: ${NODE_INGEST}
+        node.name: ${POD_NAME}
+
+        network.host: 0.0.0.0
+
+        discovery:
+          zen:
+            ping.unicast.hosts: ${DISCOVERY_URL}
+            minimum_master_nodes: 2
+
+        xpack.security.enabled: false
+
     resources:
       requests:
         cpu: '500m'
@@ -37,38 +50,48 @@ spec:
       limits:
         cpu: '1'
         memory: 3Gi
-    
+
     persistence:
       enabled: true
       # size of the volume
       size: 10Gi
       # storageClass of the volume
-      storageClass: fast
+      storageClass: standard
 
-  - name: client
+  - name: mixed
     replicas: 2
 
     roles:
-    - client
-    
+    - data
+    - ingest
+
+    config:
+      elasticsearch.yml: |
+        node.data: ${NODE_DATA}
+        node.master: ${NODE_MASTER}
+        node.ingest: ${NODE_INGEST}
+        node.name: ${POD_NAME}
+
+        network.host: 0.0.0.0
+
+        discovery:
+          zen:
+            ping.unicast.hosts: ${DISCOVERY_URL}
+            minimum_master_nodes: 2
+
+        xpack.security.enabled: false
+
     resources:
       requests:
-        cpu: '1'
+        cpu: '500m'
         memory: 2Gi
       limits:
-        cpu: '2'
-        memory: 4Gi
-
-  - name: master
-    replicas: 3
-
-    roles:
-    - master
-    
-    resources:
-      requests:
         cpu: '1'
-        memory: 2Gi
-      limits:
-        cpu: '2'
-        memory: 4Gi
+        memory: 3Gi
+
+    persistence:
+      enabled: true
+      # size of the volume
+      size: 10Gi
+      # storageClass of the volume
+      storageClass: standard

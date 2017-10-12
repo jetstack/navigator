@@ -26,6 +26,8 @@ import (
 type Interface interface {
 	// ElasticsearchClusters returns a ElasticsearchClusterInformer.
 	ElasticsearchClusters() ElasticsearchClusterInformer
+	// Pilots returns a PilotInformer.
+	Pilots() PilotInformer
 }
 
 type version struct {
@@ -40,4 +42,9 @@ func New(f internalinterfaces.SharedInformerFactory) Interface {
 // ElasticsearchClusters returns a ElasticsearchClusterInformer.
 func (v *version) ElasticsearchClusters() ElasticsearchClusterInformer {
 	return &elasticsearchClusterInformer{factory: v.SharedInformerFactory}
+}
+
+// Pilots returns a PilotInformer.
+func (v *version) Pilots() PilotInformer {
+	return &pilotInformer{factory: v.SharedInformerFactory}
 }

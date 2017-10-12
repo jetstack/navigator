@@ -1,10 +1,8 @@
 package nodepool
 
 import (
-	"crypto/md5"
-	"encoding/hex"
-	"encoding/json"
 	"fmt"
+	"strings"
 
 	apps "k8s.io/api/apps/v1beta1"
 	apiv1 "k8s.io/api/core/v1"
@@ -24,22 +22,15 @@ const (
 	esDataVolumeMountPath = "/usr/share/elasticsearch/data"
 
 	esConfigVolumeName      = "config"
-	esConfigVolumeMountPath = "/config"
+	esConfigVolumeMountPath = "/etc/pilot/elasticsearch/config"
 )
 
 func nodePoolStatefulSet(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.ElasticsearchClusterNodePool) (*apps.StatefulSet, error) {
 	statefulSetName := util.NodePoolResourceName(c, np)
 
 	elasticsearchPodTemplate, err := elasticsearchPodTemplateSpec(statefulSetName, c, np)
-
 	if err != nil {
 		return nil, fmt.Errorf("error building elasticsearch container: %s", err.Error())
-	}
-
-	nodePoolHash, err := nodePoolHash(np)
-
-	if err != nil {
-		return nil, fmt.Errorf("error hashing node pool object: %s", err.Error())
 	}
 
 	ss := &apps.StatefulSet{
@@ -47,16 +38,19 @@ func nodePoolStatefulSet(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.Elastics
 			Name:            statefulSetName,
 			Namespace:       c.Namespace,
 			OwnerReferences: []metav1.OwnerReference{util.NewControllerRef(c)},
+			Labels:          elasticsearchPodTemplate.Labels,
 			Annotations: map[string]string{
-				util.NodePoolHashAnnotationKey: nodePoolHash,
+				util.NodePoolHashAnnotationKey: util.ComputeNodePoolHash(c, np, util.Int32Ptr(0)),
 			},
-			Labels: util.NodePoolLabels(c, np.Name, np.Roles...),
 		},
 		Spec: apps.StatefulSetSpec{
 			Replicas:    util.Int32Ptr(int32(np.Replicas)),
 			ServiceName: statefulSetName,
 			Selector: &metav1.LabelSelector{
-				MatchLabels: util.NodePoolLabels(c, np.Name, np.Roles...),
+				MatchLabels: util.NodePoolLabels(c, np.Name),
+			},
+			UpdateStrategy: apps.StatefulSetUpdateStrategy{
+				Type: apps.RollingUpdateStatefulSetStrategyType,
 			},
 			Template: *elasticsearchPodTemplate,
 		},
@@ -114,7 +108,7 @@ func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.Elasticsear
 			VolumeSource: apiv1.VolumeSource{
 				ConfigMap: &apiv1.ConfigMapVolumeSource{
 					LocalObjectReference: apiv1.LocalObjectReference{
-						Name: util.ConfigMapName(c),
+						Name: util.ConfigMapName(c, np),
 					},
 				},
 			},
@@ -130,24 +124,20 @@ func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.Elasticsear
 		})
 	}
 
-	rolesBytes, err := json.Marshal(np.Roles)
-
-	if err != nil {
-		return nil, fmt.Errorf("error marshaling roles: %s", err.Error())
+	roleStrings := make([]string, len(np.Roles))
+	for i, r := range np.Roles {
+		roleStrings[i] = string(r)
 	}
-
-	pluginsBytes := []byte("[]")
-	if len(c.Spec.Plugins) > 0 {
-		pluginsBytes, err = json.Marshal(c.Spec.Plugins)
-
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling plugins: %s", err.Error())
-		}
-	}
+	roles := strings.Join(roleStrings, ",")
+	plugins := strings.Join(c.Spec.Plugins, ",")
+	nodePoolLabels := util.NodePoolLabels(c, np.Name, np.Roles...)
 
 	return &apiv1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
-			Labels: util.NodePoolLabels(c, np.Name, np.Roles...),
+			Labels: nodePoolLabels,
+			Annotations: map[string]string{
+				util.NodePoolHashAnnotationKey: util.ComputeNodePoolHash(c, np, util.Int32Ptr(0)),
+			},
 		},
 		Spec: apiv1.PodSpec{
 			TerminationGracePeriodSeconds: util.Int64Ptr(1800),
@@ -164,25 +154,28 @@ func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.Elasticsear
 					Name:            "elasticsearch",
 					Image:           c.Spec.Image.Repository + ":" + c.Spec.Image.Tag,
 					ImagePullPolicy: apiv1.PullPolicy(c.Spec.Image.PullPolicy),
-					Command: []string{
-						"/bin/sh",
-						"-c",
-						fmt.Sprintf(`#!/bin/sh
-exec %s/pilot \
-  start \
-  --podName=$(POD_NAME) \
-  --clusterURL=$(CLUSTER_URL) \
-  --namespace=$(NAMESPACE) \
-  --controllerKind=StatefulSet \
-  --plugins='%s' \
-  --roles='%s' \
-  --controllerName='%s'`, sharedVolumeMountPath, string(pluginsBytes), string(rolesBytes), controllerName),
+					Command:         []string{fmt.Sprintf("%s/pilot", sharedVolumeMountPath)},
+					Args: []string{
+						"--v=4",
+						"--logtostderr",
+						"--pilot-name=$(POD_NAME)",
+						"--pilot-namespace=$(POD_NAMESPACE)",
+						"--elasticsearch-master-url=$(CLUSTER_URL)",
+						"--elasticsearch-roles=$(ROLES)",
+						"--elasticsearch-plugins=$(PLUGINS)",
 					},
 					Env: []apiv1.EnvVar{
-						// TODO: Tidy up generation of discovery & client URLs
 						{
-							Name:  "DISCOVERY_SERVICE",
+							Name:  "DISCOVERY_URL",
 							Value: util.DiscoveryServiceName(c),
+						},
+						{
+							Name:  "ROLES",
+							Value: roles,
+						},
+						{
+							Name:  "PLUGINS",
+							Value: plugins,
 						},
 						{
 							Name:  "CLUSTER_URL",
@@ -197,7 +190,7 @@ exec %s/pilot \
 							},
 						},
 						apiv1.EnvVar{
-							Name: "NAMESPACE",
+							Name: "POD_NAMESPACE",
 							ValueFrom: &apiv1.EnvVarSource{
 								FieldRef: &apiv1.ObjectFieldSelector{
 									FieldPath: "metadata.namespace",
@@ -219,9 +212,9 @@ exec %s/pilot \
 								Path: "/",
 							},
 						},
-						InitialDelaySeconds: int32(60),
+						InitialDelaySeconds: int32(30),
 						PeriodSeconds:       int32(10),
-						TimeoutSeconds:      int32(5),
+						TimeoutSeconds:      int32(3),
 					},
 					LivenessProbe: &apiv1.Probe{
 						Handler: apiv1.Handler{
@@ -312,14 +305,4 @@ func buildInitContainers(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.Elastics
 		}
 	}
 	return containers
-}
-
-func nodePoolHash(np *v1alpha1.ElasticsearchClusterNodePool) (string, error) {
-	d, err := json.Marshal(np)
-	if err != nil {
-		return "", err
-	}
-	hasher := md5.New()
-	hasher.Write(d)
-	return hex.EncodeToString(hasher.Sum(nil)), nil
 }

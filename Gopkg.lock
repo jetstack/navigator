@@ -326,6 +326,12 @@
   version = "v2.1"
 
 [[projects]]
+  name = "gopkg.in/olivere/elastic.v5"
+  packages = [".","config","uritemplates"]
+  revision = "2a08d39723b7f4df92b96e2dff891a60952714d6"
+  version = "v5.0.48"
+
+[[projects]]
   branch = "v2"
   name = "gopkg.in/yaml.v2"
   packages = ["."]
@@ -376,6 +382,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "13b74f4a8d5a6ac04f038a51a50b4551a5705ccd69a50ed325d6e6a22f6edf0d"
+  inputs-digest = "5eced84c0feebb0af70d1addd4115a96204b62e31c6e2f9fe2bdf67548e0f5ba"
   solver-name = "gps-cdcl"
   solver-version = 1

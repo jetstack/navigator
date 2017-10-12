@@ -16,7 +16,7 @@ func discoveryService(c *v1alpha1.ElasticsearchCluster) *apiv1.Service {
 }
 
 func clientService(c *v1alpha1.ElasticsearchCluster) *apiv1.Service {
-	return buildService(c, util.ClientServiceName(c), false, util.NodePoolLabels(c, "", "client"))
+	return buildService(c, util.ClientServiceName(c), true, util.NodePoolLabels(c, "", v1alpha1.ElasticsearchRoleIngest))
 }
 
 func buildService(c *v1alpha1.ElasticsearchCluster, name string, http bool, selector map[string]string) *apiv1.Service {

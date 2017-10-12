@@ -25,3 +25,11 @@ type ElasticsearchClusterListerExpansion interface{}
 // ElasticsearchClusterNamespaceListerExpansion allows custom methods to be added to
 // ElasticsearchClusterNamespaceLister.
 type ElasticsearchClusterNamespaceListerExpansion interface{}
+
+// PilotListerExpansion allows custom methods to be added to
+// PilotLister.
+type PilotListerExpansion interface{}
+
+// PilotNamespaceListerExpansion allows custom methods to be added to
+// PilotNamespaceLister.
+type PilotNamespaceListerExpansion interface{}
