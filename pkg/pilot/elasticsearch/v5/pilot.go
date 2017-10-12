@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/golang/glog"
 	"gopkg.in/olivere/elastic.v5"
 	"k8s.io/client-go/tools/cache"
 
@@ -33,11 +34,6 @@ func NewPilot(opts *PilotOptions) (*Pilot, error) {
 	pilotInformer := opts.sharedInformerFactory.Navigator().V1alpha1().Pilots()
 	esClusterInformer := opts.sharedInformerFactory.Navigator().V1alpha1().ElasticsearchClusters()
 
-	cl, err := elastic.NewClient(elastic.SetHttpClient(http.DefaultClient), elastic.SetURL(localESClientURL))
-	if err != nil {
-		return nil, nil
-	}
-
 	p := &Pilot{
 		Options:                 opts,
 		navigatorClient:         opts.navigatorClientset,
@@ -45,8 +41,20 @@ func NewPilot(opts *PilotOptions) (*Pilot, error) {
 		pilotInformerSynced:     pilotInformer.Informer().HasSynced,
 		esClusterLister:         esClusterInformer.Lister(),
 		esClusterInformerSynced: esClusterInformer.Informer().HasSynced,
-		localESClient:           cl,
+		localESClient:           &elastic.Client{},
 	}
+
+	// Setup a gofunc to keep attempting to create an API client
+	go func() {
+		for {
+			cl, err := elastic.NewClient(elastic.SetHttpClient(http.DefaultClient), elastic.SetURL(localESClientURL))
+			if err == nil {
+				p.localESClient = cl
+				break
+			}
+			glog.Errorf("Error creating elasticsearch api client: %s", err.Error())
+		}
+	}()
 
 	return p, nil
 }
