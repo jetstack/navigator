@@ -61,12 +61,11 @@ function apiversion_ready() {
     if [[ "${apiversion_navigator_length}" -lt 1 ]]; then
         return 1
     fi
-    sleep 15
     return 0
 }
 
 echo "Waiting for navigator API version to be registered"
-retry TIMEOUT=30 apiversion_ready
+retry TIMEOUT=300 apiversion_ready
 
 kubectl api-versions
 
