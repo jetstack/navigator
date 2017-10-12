@@ -52,7 +52,8 @@ func nodePoolStatefulSet(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.Elastics
 			UpdateStrategy: apps.StatefulSetUpdateStrategy{
 				Type: apps.RollingUpdateStatefulSetStrategyType,
 			},
-			Template: *elasticsearchPodTemplate,
+			PodManagementPolicy: apps.ParallelPodManagement,
+			Template:            *elasticsearchPodTemplate,
 		},
 	}
 
