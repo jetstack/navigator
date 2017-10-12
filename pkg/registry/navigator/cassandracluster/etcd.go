@@ -27,11 +27,12 @@ func NewREST(scheme *runtime.Scheme, optsGetter generic.RESTOptionsGetter) (*reg
 	strategy := NewStrategy(scheme)
 
 	store := genericregistry.Store{
-		Copier:                   scheme,
-		NewFunc:                  func() runtime.Object { return &navigator.ElasticsearchCluster{} },
-		NewListFunc:              func() runtime.Object { return &navigator.ElasticsearchClusterList{} },
-		PredicateFunc:            MatchESCluster,
-		DefaultQualifiedResource: navigator.Resource("elasticsearchclusters"),
+		Copier:        scheme,
+		NewFunc:       func() runtime.Object { return &navigator.CassandraCluster{} },
+		NewListFunc:   func() runtime.Object { return &navigator.CassandraClusterList{} },
+		PredicateFunc: MatchCassandraCluster,
+
+		DefaultQualifiedResource: navigator.Resource("cassandraclusters"),
 
 		CreateStrategy:          strategy,
 		UpdateStrategy:          strategy,
@@ -47,6 +48,6 @@ func NewREST(scheme *runtime.Scheme, optsGetter generic.RESTOptionsGetter) (*reg
 
 	return &registry.REST{
 		Store:              &store,
-		ResourceShortNames: []string{"esc"},
+		ResourceShortNames: []string{},
 	}, &registry.REST{Store: &statusStore}, nil
 }

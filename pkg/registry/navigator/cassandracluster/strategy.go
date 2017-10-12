@@ -41,9 +41,9 @@ func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
 	return labels.Set(apiserver.ObjectMeta.Labels), CassandraClusterToSelectableFields(apiserver), apiserver.Initializers != nil, nil
 }
 
-// MatchESCluster is the filter used by the generic etcd backend to watch events
+// MatchCassandraCluster is the filter used by the generic etcd backend to watch events
 // from etcd to clients of the apiserver only interested in specific labels/fields.
-func MatchESCluster(label labels.Selector, field fields.Selector) storage.SelectionPredicate {
+func MatchCassandraCluster(label labels.Selector, field fields.Selector) storage.SelectionPredicate {
 	return storage.SelectionPredicate{
 		Label:    label,
 		Field:    field,
