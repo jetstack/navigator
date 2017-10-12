@@ -4,45 +4,4 @@ metadata:
   name: demo
 spec:
   sysctl:
-  - vm.max_map_count=262144
-
-  pilot:
-    repository: jetstackexperimental/navigator-pilot-cassandra
-    tag: latest
-    pullPolicy: Always
-
-  image:
-    repository: gcr.io/google-samples/cassandra
-    tag: v12
-    pullPolicy: Always
-    ## This sets the group of the persistent volume created for
-    ## the data nodes. This must be the same as the user that cassandra
-    ## runs as within the container.
-    fsGroup: 1000
-
-  nodePools:
-    ## https://docs.datastax.com/en/cassandra/2.1/cassandra/architecture/architectureIntro_c.html
-  - name: ring
-    replicas: 3
-
-    roles:
-    - ring
-
-    config:
-      ## https://docs.datastax.com/en/cassandra/2.1/cassandra/configuration/configCassandra_yaml_r.html
-
-    resources:
-      ## https://robinsystems.com/blog/lessons-learned-cassandra/
-      requests:
-        cpu: '500m'
-        memory: 2Gi
-      limits:
-        cpu: '1'
-        memory: 3Gi
-
-    persistence:
-      enabled: true
-      # size of the volume
-      size: 10Gi
-      # storageClass of the volume
-      storageClass: standard
+  - vm.max_map_count=0
