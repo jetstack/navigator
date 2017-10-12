@@ -24,6 +24,7 @@ import (
 
 type NavigatorV1alpha1Interface interface {
 	RESTClient() rest.Interface
+	CassandraClustersGetter
 	ElasticsearchClustersGetter
 	PilotsGetter
 }
@@ -31,6 +32,10 @@ type NavigatorV1alpha1Interface interface {
 // NavigatorV1alpha1Client is used to interact with features provided by the navigator.jetstack.io group.
 type NavigatorV1alpha1Client struct {
 	restClient rest.Interface
+}
+
+func (c *NavigatorV1alpha1Client) CassandraClusters(namespace string) CassandraClusterInterface {
+	return newCassandraClusters(c, namespace)
 }
 
 func (c *NavigatorV1alpha1Client) ElasticsearchClusters(namespace string) ElasticsearchClusterInterface {
