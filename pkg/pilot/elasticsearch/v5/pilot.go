@@ -2,12 +2,18 @@ package v5
 
 import (
 	"fmt"
+	"net/http"
 
+	"gopkg.in/olivere/elastic.v5"
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset"
 	listersv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/listers_generated/navigator/v1alpha1"
 	"github.com/jetstack-experimental/navigator/pkg/pilot/genericpilot/hook"
+)
+
+const (
+	localESClientURL = "http://127.0.0.1:9200"
 )
 
 type Pilot struct {
@@ -19,11 +25,18 @@ type Pilot struct {
 
 	esClusterLister         listersv1alpha1.ElasticsearchClusterLister
 	esClusterInformerSynced cache.InformerSynced
+
+	localESClient *elastic.Client
 }
 
 func NewPilot(opts *PilotOptions) (*Pilot, error) {
 	pilotInformer := opts.sharedInformerFactory.Navigator().V1alpha1().Pilots()
 	esClusterInformer := opts.sharedInformerFactory.Navigator().V1alpha1().ElasticsearchClusters()
+
+	cl, err := elastic.NewClient(elastic.SetHttpClient(http.DefaultClient), elastic.SetURL(localESClientURL))
+	if err != nil {
+		return nil, nil
+	}
 
 	p := &Pilot{
 		Options:                 opts,
@@ -32,6 +45,7 @@ func NewPilot(opts *PilotOptions) (*Pilot, error) {
 		pilotInformerSynced:     pilotInformer.Informer().HasSynced,
 		esClusterLister:         esClusterInformer.Lister(),
 		esClusterInformerSynced: esClusterInformer.Informer().HasSynced,
+		localESClient:           cl,
 	}
 
 	return p, nil
