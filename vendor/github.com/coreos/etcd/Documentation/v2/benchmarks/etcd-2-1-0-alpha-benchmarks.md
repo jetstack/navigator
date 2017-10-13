@@ -1,8 +1,3 @@
-**This is the documentation for etcd2 releases. Read [etcd3 doc][v3-docs] for etcd3 releases.**
-
-[v3-docs]: ../../docs.md#documentation
-
-
 ## Physical machines
 
 GCE n1-highcpu-2 machine type
@@ -54,4 +49,4 @@ Bootstrap another machine and use the [boom HTTP benchmark tool][boom] to send r
 | 256               | 256               | all servers        | 3061      | 119.3 |
 
 [boom]: https://github.com/rakyll/boom
-[hack-benchmark]: ../../../hack/benchmark/
+[hack-benchmark]: /hack/benchmark/

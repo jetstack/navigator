@@ -49,13 +49,7 @@ func TestDialCancel(t *testing.T) {
 	c.SetEndpoints("http://254.0.0.1:12345")
 
 	// issue Get to force redial attempts
-	getc := make(chan struct{})
-	go func() {
-		defer close(getc)
-		// Get may hang forever on grpc's Stream.Header() if its
-		// context is never canceled.
-		c.Get(c.Ctx(), "abc")
-	}()
+	go c.Get(context.TODO(), "abc")
 
 	// wait a little bit so client close is after dial starts
 	time.Sleep(100 * time.Millisecond)
@@ -71,55 +65,38 @@ func TestDialCancel(t *testing.T) {
 		t.Fatalf("failed to close")
 	case <-donec:
 	}
-	select {
-	case <-time.After(5 * time.Second):
-		t.Fatalf("get failed to exit")
-	case <-getc:
-	}
 }
 
 func TestDialTimeout(t *testing.T) {
 	defer testutil.AfterTest(t)
 
-	testCfgs := []Config{
-		{
-			Endpoints:   []string{"http://254.0.0.1:12345"},
-			DialTimeout: 2 * time.Second,
-		},
-		{
-			Endpoints:   []string{"http://254.0.0.1:12345"},
-			DialTimeout: time.Second,
-			Username:    "abc",
-			Password:    "def",
-		},
+	donec := make(chan error)
+	go func() {
+		// without timeout, grpc keeps redialing if connection refused
+		cfg := Config{
+			Endpoints:   []string{"localhost:12345"},
+			DialTimeout: 2 * time.Second}
+		c, err := New(cfg)
+		if c != nil || err == nil {
+			t.Errorf("new client should fail")
+		}
+		donec <- err
+	}()
+
+	time.Sleep(10 * time.Millisecond)
+
+	select {
+	case err := <-donec:
+		t.Errorf("dial didn't wait (%v)", err)
+	default:
 	}
 
-	for i, cfg := range testCfgs {
-		donec := make(chan error)
-		go func() {
-			// without timeout, dial continues forever on ipv4 blackhole
-			c, err := New(cfg)
-			if c != nil || err == nil {
-				t.Errorf("#%d: new client should fail", i)
-			}
-			donec <- err
-		}()
-
-		time.Sleep(10 * time.Millisecond)
-
-		select {
-		case err := <-donec:
-			t.Errorf("#%d: dial didn't wait (%v)", i, err)
-		default:
-		}
-
-		select {
-		case <-time.After(5 * time.Second):
-			t.Errorf("#%d: failed to timeout dial on time", i)
-		case err := <-donec:
-			if err != grpc.ErrClientConnTimeout {
-				t.Errorf("#%d: unexpected error %v, want %v", i, err, grpc.ErrClientConnTimeout)
-			}
+	select {
+	case <-time.After(5 * time.Second):
+		t.Errorf("failed to timeout dial on time")
+	case err := <-donec:
+		if err != grpc.ErrClientConnTimeout {
+			t.Errorf("unexpected error %v, want %v", err, grpc.ErrClientConnTimeout)
 		}
 	}
 }
