@@ -32,9 +32,14 @@ function navigator_ready() {
     return 1
 }
 
-echo "Waiting up to 10 minutes for Navigator to be ready..."
-if ! retry TIMEOUT=600 navigator_ready; then
-    kubectl api-versions
+echo "Waiting for Navigator to be ready..."
+if ! retry navigator_ready; then
+    (
+        kubectl api-versions
+        kubectl get pods --all-namespaces
+        kubectl describe deploy
+        kubectl describe pod
+    ) > debug.log
     echo "ERROR: Timeout waiting for Navigator API"
     exit 1
 fi
@@ -50,7 +55,7 @@ function fail_test() {
 
 function test_elasticsearchcluster() {
     echo "Testing ElasticsearchCluster"
-    if ! retry kubectl get esc; then
+    if ! kubectl get esc; then
         fail_test "Failed to use shortname to get ElasticsearchClusters"
     fi
     # Create and delete an ElasticSearchCluster
@@ -73,5 +78,18 @@ function test_elasticsearchcluster() {
 }
 
 test_elasticsearchcluster
+
+if [[ "${FAILURE_COUNT}" -gt 0 ]]; then
+    (
+        kubectl get po -o yaml
+        kubectl describe po
+        kubectl get svc -o yaml
+        kubectl describe svc
+        kubectl get apiservice -o yaml
+        kubectl describe apiservice
+        kubectl logs -c apiserver -l app=navigator,component=apiserver
+        kubectl logs -c controller -l app=navigator,component=controller
+    ) > debug.log
+fi
 
 exit $FAILURE_COUNT
