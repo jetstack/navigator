@@ -14,7 +14,13 @@ apiVersion: v1
 kind: List
 items:
 
-### Fix kube-dns ###
+### Fix kube-dns RBAC issues ###
+# Create a ServiceAccount for kube-dns to use
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: kube-dns
+    namespace: kube-system
 - apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
