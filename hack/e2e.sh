@@ -19,7 +19,7 @@ source "${SCRIPT_DIR}/libe2e.sh"
 helm delete --purge "${RELEASE_NAME}" || true
 kube_delete_namespace_and_wait "${USER_NAMESPACE}"
 
-echo "Waiting up to 5 minutes for Kubernetes to be ready..."
+echo "Waiting up to 10 minutes for Kubernetes to be ready..."
 retry TIMEOUT=600 kubectl get nodes
 
 echo "Waiting for tiller to be ready..."
@@ -30,45 +30,20 @@ helm install --wait --name "${RELEASE_NAME}" contrib/charts/navigator \
         --set apiserver.image.pullPolicy=Never \
         --set controller.image.pullPolicy=Never
 
-# Wait for navigator pods to be running
+# Wait for navigator API to be ready
 function navigator_ready() {
-    local replica_count_controller=$(
-        kubectl get deployment ${RELEASE_NAME}-navigator-controller \
-                --output 'jsonpath={.status.readyReplicas}' || true)
-    if [[ "${replica_count_controller}" -eq 0 ]]; then
-        return 1
-    fi
-    local replica_count_apiserver=$(
-        kubectl get deployment ${RELEASE_NAME}-navigator-apiserver \
-                --output 'jsonpath={.status.readyReplicas}' || true)
-    if [[ "${replica_count_apiserver}" -eq 0 ]]; then
-        return 1
+    if kubectl api-versions | grep 'navigator.jetstack.io'; then
+        return 0
     fi
     return 0
 }
 
-if ! retry navigator_ready; then
-        kubectl get pods --all-namespaces
-        kubectl describe deploy
-        kubectl describe pod
-        exit 1
+echo "Waiting up to 10 minutes for Navigator to be ready..."
+if ! retry TIMEOUT=600 navigator_ready; then
+    kubectl api-versions
+    echo "ERROR: Timeout waiting for Navigator API"
+    exit 1
 fi
-
-function apiversion_ready() {
-    local apiversion_navigator_length=$(
-        kubectl api-versions | grep 'navigator.jetstack.io' | wc -l
-    )
-    if [[ "${apiversion_navigator_length}" -lt 1 ]]; then
-        return 1
-    fi
-    sleep 15
-    return 0
-}
-
-echo "Waiting for navigator API version to be registered"
-retry TIMEOUT=600 apiversion_ready
-
-kubectl api-versions
 
 function fail_test() {
     echo "$1"
