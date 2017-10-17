@@ -1,12 +1,18 @@
 package cassandra
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
+	informerv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/informers_generated/externalversions/navigator/v1alpha1"
+
 	"github.com/golang/glog"
+	"github.com/jetstack-experimental/navigator/pkg/apis/navigator"
 	"github.com/jetstack-experimental/navigator/pkg/controllers"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 )
 
@@ -17,16 +23,20 @@ import (
 // It accepts a list of informers that are then used to monitor the state of the
 // target cluster.
 type CassandraController struct {
-	queue workqueue.RateLimitingInterface
+	cassListerSynced cache.InformerSynced
+	queue            workqueue.RateLimitingInterface
 }
 
 // Run is the main event loop
 func (e *CassandraController) Run(workers int, stopCh <-chan struct{}) error {
 	glog.Infof("Starting Cassandra controller")
 
-	// if !cache.WaitForCacheSync(stopCh, e.esListerSynced, e.pilotListerSynced, e.statefulSetListerSynced, e.podListerSynced, e.serviceAccountListerSynced, e.serviceListerSynced) {
-	//	return fmt.Errorf("timed out waiting for caches to sync")
-	// }
+	if !cache.WaitForCacheSync(
+		stopCh,
+		e.cassListerSynced,
+	) {
+		return fmt.Errorf("timed out waiting for caches to sync")
+	}
 
 	var wg sync.WaitGroup
 	for i := 0; i < workers; i++ {
@@ -68,21 +78,43 @@ func (e *CassandraController) processNextWorkItem() bool {
 	return true
 }
 
-func NewCassandra() *CassandraController {
+func NewCassandra(
+	ci cache.SharedIndexInformer,
+) *CassandraController {
 	queue := workqueue.NewNamedRateLimitingQueue(
 		workqueue.DefaultControllerRateLimiter(),
 		"cassandraCluster",
 	)
 
-	c := &CassandraController{
+	cc := &CassandraController{
 		queue: queue,
 	}
-	return c
+	// add an event handler to the ElasticsearchCluster informer
+	ci.AddEventHandler(&controllers.QueuingEventHandler{Queue: queue})
+	cc.cassListerSynced = ci.HasSynced
+	return cc
 }
 
 func init() {
 	controllers.Register("Cassandra", func(ctx *controllers.Context) controllers.Interface {
-		e := NewCassandra()
+		e := NewCassandra(
+			ctx.SharedInformerFactory.InformerFor(
+				ctx.Namespace,
+				metav1.GroupVersionKind{
+					Group:   navigator.GroupName,
+					Version: "v1alpha1",
+					Kind:    "CassandraCluster",
+				},
+				informerv1alpha1.NewCassandraClusterInformer(
+					ctx.NavigatorClient,
+					ctx.Namespace,
+					time.Second*30,
+					cache.Indexers{
+						cache.NamespaceIndex: cache.MetaNamespaceIndexFunc,
+					},
+				),
+			),
+		)
 		return e.Run
 	})
 }
