@@ -29,7 +29,7 @@ function navigator_ready() {
     if kubectl api-versions | grep 'navigator.jetstack.io'; then
         return 0
     fi
-    return 0
+    return 1
 }
 
 echo "Waiting up to 10 minutes for Navigator to be ready..."
@@ -39,30 +39,21 @@ if ! retry TIMEOUT=600 navigator_ready; then
     exit 1
 fi
 
+kubectl create namespace "${USER_NAMESPACE}"
+
+FAILURE_COUNT=0
+
 function fail_test() {
-    echo "$1"
-    kubectl get po -o yaml
-    kubectl describe po
-    kubectl get svc -o yaml
-    kubectl describe svc
-    kubectl get apiservice -o yaml
-    kubectl describe apiservice
-    exit 1
+    FAILURE_COUNT=$(($FAILURE_COUNT+1))
+    echo "TEST FAILURE: $1"
 }
 
-function test_elasticsearchcluster_shortname() {
-    echo "Testing ElasticsearchCluster shortname (esc)"
-    if ! kubectl get esc; then
+function test_elasticsearchcluster() {
+    echo "Testing ElasticsearchCluster"
+    if ! retry kubectl get esc; then
         fail_test "Failed to use shortname to get ElasticsearchClusters"
     fi
-}
-
-function test_elasticsearchcluster_create() {
-    echo "Testing creating ElasticsearchCluster"
     # Create and delete an ElasticSearchCluster
-    if ! kubectl create namespace "${USER_NAMESPACE}"; then
-        fail_test "Failed to create namespace '${USER_NAMESPACE}'"
-    fi
     if ! kubectl create \
             --namespace "${USER_NAMESPACE}" \
             --filename "${ROOT_DIR}/docs/quick-start/es-cluster-demo.yaml"; then
@@ -81,5 +72,6 @@ function test_elasticsearchcluster_create() {
     fi
 }
 
-test_elasticsearchcluster_shortname
-test_elasticsearchcluster_create
+test_elasticsearchcluster
+
+exit $FAILURE_COUNT
