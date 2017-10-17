@@ -16,10 +16,7 @@ mkdir -p $TEST_DIR
 
 source "${SCRIPT_DIR}/libe2e.sh"
 
-helm delete --purge "${RELEASE_NAME}" || true
-kube_delete_namespace_and_wait "${USER_NAMESPACE}"
-
-echo "Waiting up to 5 minutes for Kubernetes to be ready..."
+echo "Waiting up to 10 minutes for Kubernetes to be ready..."
 retry TIMEOUT=600 kubectl get nodes
 
 echo "Installing helm..."
@@ -92,3 +89,6 @@ items:
     apiGroup: rbac.authorization.k8s.io
 EOF
 helm init --service-account=tiller
+
+echo "Waiting for tiller to be ready..."
+retry TIMEOUT=60 helm version

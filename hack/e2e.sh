@@ -19,12 +19,6 @@ source "${SCRIPT_DIR}/libe2e.sh"
 helm delete --purge "${RELEASE_NAME}" || true
 kube_delete_namespace_and_wait "${USER_NAMESPACE}"
 
-echo "Waiting up to 10 minutes for Kubernetes to be ready..."
-retry TIMEOUT=600 kubectl get nodes
-
-echo "Waiting for tiller to be ready..."
-retry TIMEOUT=60 helm version
-
 echo "Installing navigator..."
 helm install --wait --name "${RELEASE_NAME}" contrib/charts/navigator \
         --set apiserver.image.pullPolicy=Never \
