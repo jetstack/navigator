@@ -7,6 +7,7 @@ import (
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
+	navigatorclientset "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset"
 	informerv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/informers_generated/externalversions/navigator/v1alpha1"
 	listersv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/listers_generated/navigator/v1alpha1"
 
@@ -27,6 +28,7 @@ import (
 // It accepts a list of informers that are then used to monitor the state of the
 // target cluster.
 type CassandraController struct {
+	navigatorClient         navigatorclientset.Interface
 	cassandraClusterControl ControlInterface
 	cassLister              listersv1alpha1.CassandraClusterLister
 	cassListerSynced        cache.InformerSynced
@@ -34,7 +36,9 @@ type CassandraController struct {
 }
 
 func NewCassandra(
+	navigatorClient navigatorclientset.Interface,
 	ci cache.SharedIndexInformer,
+
 ) *CassandraController {
 	queue := workqueue.NewNamedRateLimitingQueue(
 		workqueue.DefaultControllerRateLimiter(),
@@ -45,6 +49,7 @@ func NewCassandra(
 	ci.AddEventHandler(&controllers.QueuingEventHandler{Queue: queue})
 
 	return &CassandraController{
+		navigatorClient:         navigatorClient,
 		cassandraClusterControl: NewController(),
 		cassLister: listersv1alpha1.NewCassandraClusterLister(
 			ci.GetIndexer(),
@@ -141,13 +146,23 @@ func (e *CassandraController) sync(key string) (err error) {
 		)
 		return err
 	}
-
-	return e.cassandraClusterControl.Sync(cass)
+	cass = cass.DeepCopy()
+	status, err := e.cassandraClusterControl.Sync(cass)
+	if err != nil {
+		return err
+	}
+	glog.V(4).Infof("got status %#v", status)
+	_, err = e.navigatorClient.
+		NavigatorV1alpha1().
+		CassandraClusters(cass.Namespace).
+		UpdateStatus(cass)
+	return err
 }
 
 func init() {
 	controllers.Register("Cassandra", func(ctx *controllers.Context) controllers.Interface {
 		e := NewCassandra(
+			ctx.NavigatorClient,
 			ctx.SharedInformerFactory.InformerFor(
 				ctx.Namespace,
 				metav1.GroupVersionKind{

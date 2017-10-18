@@ -18,7 +18,7 @@ const (
 )
 
 type ControlInterface interface {
-	Sync(*v1alpha1.CassandraCluster) error
+	Sync(*v1alpha1.CassandraCluster) (v1alpha1.CassandraClusterStatus, error)
 }
 
 var _ ControlInterface = &defaultCassandraClusterControl{}
@@ -28,8 +28,9 @@ type defaultCassandraClusterControl struct{}
 func NewController() ControlInterface {
 	return &defaultCassandraClusterControl{}
 }
-func (e *defaultCassandraClusterControl) Sync(c *v1alpha1.CassandraCluster) error {
+func (e *defaultCassandraClusterControl) Sync(
+	c *v1alpha1.CassandraCluster,
+) (v1alpha1.CassandraClusterStatus, error) {
 	glog.V(4).Infof("defaultCassandraClusterControl.Sync")
-	c = c.DeepCopy()
-	return nil
+	return c.Status, nil
 }
