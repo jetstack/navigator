@@ -10,6 +10,7 @@ import (
 	navigatorclientset "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset"
 	informerv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/informers_generated/externalversions/navigator/v1alpha1"
 	listersv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/listers_generated/navigator/v1alpha1"
+	"github.com/jetstack-experimental/navigator/pkg/controllers/cassandra/service"
 
 	"github.com/golang/glog"
 	"github.com/jetstack-experimental/navigator/pkg/apis/navigator"
@@ -50,9 +51,10 @@ func NewCassandra(
 	ci.AddEventHandler(&controllers.QueuingEventHandler{Queue: queue})
 
 	return &CassandraController{
-		control: NewController(
-			navigatorClient,
-			kubeClient,
+		control: NewControl(
+			service.NewControl(
+				kubeClient,
+			),
 		),
 		cassLister: listersv1alpha1.NewCassandraClusterLister(
 			ci.GetIndexer(),

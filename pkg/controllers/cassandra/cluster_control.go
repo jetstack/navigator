@@ -3,8 +3,7 @@ package cassandra
 import (
 	"github.com/golang/glog"
 	v1alpha1 "github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
-	navigatorclientset "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset"
-	"k8s.io/client-go/kubernetes"
+	"github.com/jetstack-experimental/navigator/pkg/controllers/cassandra/service"
 )
 
 const (
@@ -26,26 +25,23 @@ type ControlInterface interface {
 var _ ControlInterface = &defaultCassandraClusterControl{}
 
 type defaultCassandraClusterControl struct {
-	navigatorClient navigatorclientset.Interface
-	kubeClient      kubernetes.Interface
+	serviceControl service.Interface
 }
 
-func NewController(
-	navigatorClient navigatorclientset.Interface,
-	kubeClient kubernetes.Interface,
+func NewControl(
+	serviceControl service.Interface,
 ) ControlInterface {
 	return &defaultCassandraClusterControl{
-		navigatorClient: navigatorClient,
-		kubeClient:      kubeClient,
+		serviceControl: serviceControl,
 	}
 }
 
 func (e *defaultCassandraClusterControl) Sync(c *v1alpha1.CassandraCluster) error {
 	c = c.DeepCopy()
 	glog.V(4).Infof("defaultCassandraClusterControl.Sync")
-	_, err := e.navigatorClient.
-		NavigatorV1alpha1().
-		CassandraClusters(c.Namespace).
-		UpdateStatus(c)
-	return err
+	if err := e.serviceControl.Sync(c); err != nil {
+		glog.Errorf("error syncing service. %s", err)
+		return err
+	}
+	return nil
 }

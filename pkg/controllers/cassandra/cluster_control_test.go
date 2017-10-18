@@ -10,6 +10,7 @@ import (
 	navigatorclientset "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset"
 	navigatorfake "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset/fake"
 	"github.com/jetstack-experimental/navigator/pkg/controllers/cassandra"
+	"github.com/jetstack-experimental/navigator/pkg/controllers/cassandra/service"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -28,7 +29,9 @@ func setup(t *testing.T) *fixture {
 	cluster.SetNamespace(namespace)
 	kclient := fake.NewSimpleClientset()
 	nclient := navigatorfake.NewSimpleClientset(cluster)
-	control := cassandra.NewController(nclient, kclient)
+	control := cassandra.NewControl(
+		service.NewControl(kclient),
+	)
 	return &fixture{cluster, nclient, kclient, control}
 }
 
