@@ -39,7 +39,7 @@ func TestCassandraController(t *testing.T) {
 		},
 	)
 	go i.Run(stopCh)
-	cc := cassandra.NewCassandra(i)
+	cc := cassandra.NewCassandra(clientset, i)
 	finished := make(chan struct{})
 	go func() {
 		defer close(finished)
