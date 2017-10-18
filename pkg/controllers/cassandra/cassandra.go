@@ -28,7 +28,6 @@ import (
 // It accepts a list of informers that are then used to monitor the state of the
 // target cluster.
 type CassandraController struct {
-	navigatorClient  navigatorclientset.Interface
 	control          ControlInterface
 	cassLister       listersv1alpha1.CassandraClusterLister
 	cassListerSynced cache.InformerSynced
@@ -49,8 +48,7 @@ func NewCassandra(
 	ci.AddEventHandler(&controllers.QueuingEventHandler{Queue: queue})
 
 	return &CassandraController{
-		navigatorClient: navigatorClient,
-		control:         NewController(),
+		control: NewController(navigatorClient),
 		cassLister: listersv1alpha1.NewCassandraClusterLister(
 			ci.GetIndexer(),
 		),
@@ -144,16 +142,7 @@ func (e *CassandraController) sync(key string) (err error) {
 		return err
 	}
 	cass = cass.DeepCopy()
-	status, err := e.control.Sync(cass)
-	if err != nil {
-		return err
-	}
-	glog.V(4).Infof("got status %#v", status)
-	_, err = e.navigatorClient.
-		NavigatorV1alpha1().
-		CassandraClusters(cass.Namespace).
-		UpdateStatus(cass)
-	return err
+	return e.control.Sync(cass)
 }
 
 func init() {
