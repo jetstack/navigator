@@ -47,6 +47,12 @@ func TestCassandraController(t *testing.T) {
 			t.Error(err)
 		}
 	}()
+
+	defer func() {
+		close(stopCh)
+		<-finished
+	}()
+
 	if !cache.WaitForCacheSync(
 		stopCh,
 		i.HasSynced,
@@ -83,6 +89,4 @@ func TestCassandraController(t *testing.T) {
 			<-time.After(time.Second)
 		},
 	)
-	close(stopCh)
-	<-finished
 }
