@@ -28,11 +28,11 @@ import (
 // It accepts a list of informers that are then used to monitor the state of the
 // target cluster.
 type CassandraController struct {
-	navigatorClient         navigatorclientset.Interface
-	cassandraClusterControl ControlInterface
-	cassLister              listersv1alpha1.CassandraClusterLister
-	cassListerSynced        cache.InformerSynced
-	queue                   workqueue.RateLimitingInterface
+	navigatorClient  navigatorclientset.Interface
+	control          ControlInterface
+	cassLister       listersv1alpha1.CassandraClusterLister
+	cassListerSynced cache.InformerSynced
+	queue            workqueue.RateLimitingInterface
 }
 
 func NewCassandra(
@@ -49,8 +49,8 @@ func NewCassandra(
 	ci.AddEventHandler(&controllers.QueuingEventHandler{Queue: queue})
 
 	return &CassandraController{
-		navigatorClient:         navigatorClient,
-		cassandraClusterControl: NewController(),
+		navigatorClient: navigatorClient,
+		control:         NewController(),
 		cassLister: listersv1alpha1.NewCassandraClusterLister(
 			ci.GetIndexer(),
 		),
@@ -102,16 +102,13 @@ func (e *CassandraController) processNextWorkItem() bool {
 	}
 	defer e.queue.Done(key)
 	glog.V(4).Infof("processing %#v", key)
-	if k, ok := key.(string); ok {
-		if err := e.sync(k); err != nil {
-			glog.Infof(
-				"Error syncing CassandraCluster %v, requeuing: %v",
-				key.(string), err,
-			)
-			e.queue.AddRateLimited(key)
-		} else {
-			e.queue.Forget(key)
-		}
+
+	if err := e.sync(key.(string)); err != nil {
+		glog.Infof(
+			"Error syncing CassandraCluster %v, requeuing: %v",
+			key.(string), err,
+		)
+		e.queue.AddRateLimited(key)
 	} else {
 		e.queue.Forget(key)
 	}
@@ -147,7 +144,7 @@ func (e *CassandraController) sync(key string) (err error) {
 		return err
 	}
 	cass = cass.DeepCopy()
-	status, err := e.cassandraClusterControl.Sync(cass)
+	status, err := e.control.Sync(cass)
 	if err != nil {
 		return err
 	}
