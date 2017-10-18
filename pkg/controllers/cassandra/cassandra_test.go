@@ -29,7 +29,6 @@ func TestCassandraController(t *testing.T) {
 		"cassandraclusters",
 		clienttesting.DefaultWatchReactor(fakeWatch, nil),
 	)
-
 	i := informerv1alpha1.NewCassandraClusterInformer(
 		clientset,
 		namespace,
@@ -57,6 +56,7 @@ func TestCassandraController(t *testing.T) {
 	t.Run(
 		"Create a cluster",
 		func(t *testing.T) {
+			clientset.NavigatorV1alpha1().CassandraClusters(c.Namespace).Create(c)
 			fakeWatch.Add(c)
 			<-time.After(time.Second)
 		},
@@ -64,6 +64,7 @@ func TestCassandraController(t *testing.T) {
 	t.Run(
 		"Delete a cluster",
 		func(t *testing.T) {
+			clientset.NavigatorV1alpha1().CassandraClusters(c.Namespace).Delete(c.Name, nil)
 			fakeWatch.Delete(c)
 			<-time.After(time.Second)
 		},
