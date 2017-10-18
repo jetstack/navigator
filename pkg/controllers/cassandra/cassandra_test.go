@@ -67,7 +67,10 @@ func TestCassandraController(t *testing.T) {
 	t.Run(
 		"Delete a cluster",
 		func(t *testing.T) {
-			clientset.NavigatorV1alpha1().CassandraClusters(c.Namespace).Delete(c.Name, nil)
+			err := clientset.NavigatorV1alpha1().CassandraClusters(c.Namespace).Delete(c.Name, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
 			fakeWatch.Delete(c)
 			<-time.After(time.Second)
 		},
