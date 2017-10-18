@@ -6,6 +6,7 @@ import (
 	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset/fake"
 	"github.com/jetstack-experimental/navigator/pkg/controllers/cassandra"
+	"github.com/stretchr/testify/assert"
 )
 
 func cluster(t *testing.T) *v1alpha1.CassandraCluster {
@@ -26,9 +27,7 @@ func TestControl(t *testing.T) {
 		func(t *testing.T) {
 			cluster := cluster(t)
 			err := c.Sync(cluster)
-			if err != nil {
-				t.Fatal(err)
-			}
+			assert.NoError(t, err)
 		},
 	)
 }
