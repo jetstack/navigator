@@ -69,6 +69,14 @@ func TestCassandraController(t *testing.T) {
 			<-time.After(time.Second)
 		},
 	)
+	t.Run(
+		"Simulate a sync error",
+		func(t *testing.T) {
+			// Don't add the cluster to the clientset. The call to UpdateStatus will fail.
+			fakeWatch.Add(c)
+			<-time.After(time.Second)
+		},
+	)
 	close(stopCh)
 	<-finished
 }
