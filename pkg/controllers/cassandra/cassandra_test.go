@@ -56,7 +56,10 @@ func TestCassandraController(t *testing.T) {
 	t.Run(
 		"Create a cluster",
 		func(t *testing.T) {
-			clientset.NavigatorV1alpha1().CassandraClusters(c.Namespace).Create(c)
+			_, err := clientset.NavigatorV1alpha1().CassandraClusters(c.Namespace).Create(c)
+			if err != nil {
+				t.Fatal(err)
+			}
 			fakeWatch.Add(c)
 			<-time.After(time.Second)
 		},
