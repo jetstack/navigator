@@ -119,7 +119,7 @@ func (e *CassandraController) sync(key string) (err error) {
 	defer func() {
 		glog.Infof(
 			"Finished syncing cassandracluster %q (%v)",
-			key, time.Now().Sub(startTime),
+			key, time.Since(startTime),
 		)
 	}()
 
