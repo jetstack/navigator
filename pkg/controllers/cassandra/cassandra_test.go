@@ -7,9 +7,10 @@ import (
 	informerv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/informers_generated/externalversions/navigator/v1alpha1"
 
 	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
-	"github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset/fake"
+	navigatorfake "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset/fake"
 	"github.com/jetstack-experimental/navigator/pkg/controllers/cassandra"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/kubernetes/fake"
 	clienttesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
 )
@@ -22,15 +23,15 @@ func TestCassandraController(t *testing.T) {
 	c.SetNamespace(namespace)
 
 	stopCh := make(chan struct{})
-
-	clientset := fake.NewSimpleClientset()
+	kclient := fake.NewSimpleClientset()
+	nclient := navigatorfake.NewSimpleClientset()
 	fakeWatch := watch.NewFake()
-	clientset.PrependWatchReactor(
+	nclient.PrependWatchReactor(
 		"cassandraclusters",
 		clienttesting.DefaultWatchReactor(fakeWatch, nil),
 	)
 	i := informerv1alpha1.NewCassandraClusterInformer(
-		clientset,
+		nclient,
 		namespace,
 		0,
 		cache.Indexers{
@@ -38,7 +39,7 @@ func TestCassandraController(t *testing.T) {
 		},
 	)
 	go i.Run(stopCh)
-	cc := cassandra.NewCassandra(clientset, i)
+	cc := cassandra.NewCassandra(nclient, kclient, i)
 	finished := make(chan struct{})
 	go func() {
 		defer close(finished)
@@ -62,7 +63,7 @@ func TestCassandraController(t *testing.T) {
 	t.Run(
 		"Create a cluster",
 		func(t *testing.T) {
-			_, err := clientset.NavigatorV1alpha1().CassandraClusters(c.Namespace).Create(c)
+			_, err := nclient.NavigatorV1alpha1().CassandraClusters(c.Namespace).Create(c)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -73,7 +74,7 @@ func TestCassandraController(t *testing.T) {
 	t.Run(
 		"Delete a cluster",
 		func(t *testing.T) {
-			err := clientset.NavigatorV1alpha1().CassandraClusters(c.Namespace).Delete(c.Name, nil)
+			err := nclient.NavigatorV1alpha1().CassandraClusters(c.Namespace).Delete(c.Name, nil)
 			if err != nil {
 				t.Fatal(err)
 			}

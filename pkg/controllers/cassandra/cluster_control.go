@@ -4,6 +4,7 @@ import (
 	"github.com/golang/glog"
 	v1alpha1 "github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
 	navigatorclientset "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset"
+	"k8s.io/client-go/kubernetes"
 )
 
 const (
@@ -26,13 +27,19 @@ var _ ControlInterface = &defaultCassandraClusterControl{}
 
 type defaultCassandraClusterControl struct {
 	navigatorClient navigatorclientset.Interface
+	kubeClient      kubernetes.Interface
 }
 
-func NewController(navigatorClient navigatorclientset.Interface) ControlInterface {
+func NewController(
+	navigatorClient navigatorclientset.Interface,
+	kubeClient kubernetes.Interface,
+) ControlInterface {
 	return &defaultCassandraClusterControl{
 		navigatorClient: navigatorClient,
+		kubeClient:      kubeClient,
 	}
 }
+
 func (e *defaultCassandraClusterControl) Sync(c *v1alpha1.CassandraCluster) error {
 	c = c.DeepCopy()
 	glog.V(4).Infof("defaultCassandraClusterControl.Sync")

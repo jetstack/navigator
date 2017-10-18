@@ -17,6 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 )
@@ -36,6 +37,7 @@ type CassandraController struct {
 
 func NewCassandra(
 	navigatorClient navigatorclientset.Interface,
+	kubeClient kubernetes.Interface,
 	ci cache.SharedIndexInformer,
 
 ) *CassandraController {
@@ -48,7 +50,10 @@ func NewCassandra(
 	ci.AddEventHandler(&controllers.QueuingEventHandler{Queue: queue})
 
 	return &CassandraController{
-		control: NewController(navigatorClient),
+		control: NewController(
+			navigatorClient,
+			kubeClient,
+		),
 		cassLister: listersv1alpha1.NewCassandraClusterLister(
 			ci.GetIndexer(),
 		),
@@ -141,14 +146,14 @@ func (e *CassandraController) sync(key string) (err error) {
 		)
 		return err
 	}
-	cass = cass.DeepCopy()
-	return e.control.Sync(cass)
+	return e.control.Sync(cass.DeepCopy())
 }
 
 func init() {
 	controllers.Register("Cassandra", func(ctx *controllers.Context) controllers.Interface {
 		e := NewCassandra(
 			ctx.NavigatorClient,
+			ctx.Client,
 			ctx.SharedInformerFactory.InformerFor(
 				ctx.Namespace,
 				metav1.GroupVersionKind{
