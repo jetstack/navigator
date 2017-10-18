@@ -34,6 +34,7 @@ func NewController(navigatorClient navigatorclientset.Interface) ControlInterfac
 	}
 }
 func (e *defaultCassandraClusterControl) Sync(c *v1alpha1.CassandraCluster) error {
+	c = c.DeepCopy()
 	glog.V(4).Infof("defaultCassandraClusterControl.Sync")
 	_, err := e.navigatorClient.
 		NavigatorV1alpha1().
