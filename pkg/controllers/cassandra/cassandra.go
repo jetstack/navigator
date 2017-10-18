@@ -5,11 +5,15 @@ import (
 	"sync"
 	"time"
 
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+
 	informerv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/informers_generated/externalversions/navigator/v1alpha1"
+	listersv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/listers_generated/navigator/v1alpha1"
 
 	"github.com/golang/glog"
 	"github.com/jetstack-experimental/navigator/pkg/apis/navigator"
 	"github.com/jetstack-experimental/navigator/pkg/controllers"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
@@ -23,8 +27,31 @@ import (
 // It accepts a list of informers that are then used to monitor the state of the
 // target cluster.
 type CassandraController struct {
-	cassListerSynced cache.InformerSynced
-	queue            workqueue.RateLimitingInterface
+	cassandraClusterControl ControlInterface
+	cassLister              listersv1alpha1.CassandraClusterLister
+	cassListerSynced        cache.InformerSynced
+	queue                   workqueue.RateLimitingInterface
+}
+
+func NewCassandra(
+	ci cache.SharedIndexInformer,
+) *CassandraController {
+	queue := workqueue.NewNamedRateLimitingQueue(
+		workqueue.DefaultControllerRateLimiter(),
+		"cassandraCluster",
+	)
+
+	// add an event handler to the ElasticsearchCluster informer
+	ci.AddEventHandler(&controllers.QueuingEventHandler{Queue: queue})
+
+	return &CassandraController{
+		cassandraClusterControl: NewController(),
+		cassLister: listersv1alpha1.NewCassandraClusterLister(
+			ci.GetIndexer(),
+		),
+		cassListerSynced: ci.HasSynced,
+		queue:            queue,
+	}
 }
 
 // Run is the main event loop
@@ -69,30 +96,53 @@ func (e *CassandraController) processNextWorkItem() bool {
 		return false
 	}
 	defer e.queue.Done(key)
-
+	glog.V(4).Infof("processing %#v", key)
 	if k, ok := key.(string); ok {
-		glog.V(4).Infof("processing %q", k)
+		if err := e.sync(k); err != nil {
+			glog.Infof(
+				"Error syncing CassandraCluster %v, requeuing: %v",
+				key.(string), err,
+			)
+			e.queue.AddRateLimited(key)
+		} else {
+			e.queue.Forget(key)
+		}
+	} else {
 		e.queue.Forget(key)
 	}
 
 	return true
 }
 
-func NewCassandra(
-	ci cache.SharedIndexInformer,
-) *CassandraController {
-	queue := workqueue.NewNamedRateLimitingQueue(
-		workqueue.DefaultControllerRateLimiter(),
-		"cassandraCluster",
-	)
+func (e *CassandraController) sync(key string) (err error) {
+	startTime := time.Now()
+	defer func() {
+		glog.Infof(
+			"Finished syncing cassandracluster %q (%v)",
+			key, time.Now().Sub(startTime),
+		)
+	}()
 
-	cc := &CassandraController{
-		queue: queue,
+	namespace, name, err := cache.SplitMetaNamespaceKey(key)
+	if err != nil {
+		return err
 	}
-	// add an event handler to the ElasticsearchCluster informer
-	ci.AddEventHandler(&controllers.QueuingEventHandler{Queue: queue})
-	cc.cassListerSynced = ci.HasSynced
-	return cc
+	cass, err := e.cassLister.CassandraClusters(namespace).Get(name)
+	if errors.IsNotFound(err) {
+		glog.Infof("CassandraCluster has been deleted %v", key)
+		return nil
+	}
+	if err != nil {
+		utilruntime.HandleError(
+			fmt.Errorf(
+				"unable to retrieve CassandraCluster %v from store: %v",
+				key, err,
+			),
+		)
+		return err
+	}
+
+	return e.cassandraClusterControl.Sync(cass)
 }
 
 func init() {

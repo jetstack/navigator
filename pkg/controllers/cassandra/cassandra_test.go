@@ -23,7 +23,7 @@ func TestCassandraController(t *testing.T) {
 
 	stopCh := make(chan struct{})
 
-	clientset := fake.NewSimpleClientset(c)
+	clientset := fake.NewSimpleClientset()
 	fakeWatch := watch.NewFake()
 	clientset.PrependWatchReactor(
 		"cassandraclusters",
@@ -54,8 +54,20 @@ func TestCassandraController(t *testing.T) {
 	) {
 		t.Errorf("timed out waiting for caches to sync")
 	}
-	t.Log("waiting for cassandracluster to be processed")
-	<-time.After(time.Second)
+	t.Run(
+		"Create a cluster",
+		func(t *testing.T) {
+			fakeWatch.Add(c)
+			<-time.After(time.Second)
+		},
+	)
+	t.Run(
+		"Delete a cluster",
+		func(t *testing.T) {
+			fakeWatch.Delete(c)
+			<-time.After(time.Second)
+		},
+	)
 	close(stopCh)
 	<-finished
 }
