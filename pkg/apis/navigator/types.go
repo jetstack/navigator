@@ -18,11 +18,20 @@ type CassandraCluster struct {
 	metav1.TypeMeta
 	metav1.ObjectMeta
 
-	Spec CassandraClusterSpec
+	Spec   CassandraClusterSpec
+	Status CassandraClusterStatus
 }
 
 type CassandraClusterSpec struct {
 	Sysctl []string
+}
+
+type CassandraClusterStatus struct {
+	NodePools map[string]CassandraClusterNodePoolStatus
+}
+
+type CassandraClusterNodePoolStatus struct {
+	ReadyReplicas int64
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
