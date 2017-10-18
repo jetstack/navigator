@@ -97,6 +97,18 @@ func (c *FakeCassandraClusters) Update(cassandraCluster *v1alpha1.CassandraClust
 	return obj.(*v1alpha1.CassandraCluster), err
 }
 
+// UpdateStatus was generated because the type contains a Status member.
+// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
+func (c *FakeCassandraClusters) UpdateStatus(cassandraCluster *v1alpha1.CassandraCluster) (*v1alpha1.CassandraCluster, error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewUpdateSubresourceAction(cassandraclustersResource, "status", c.ns, cassandraCluster), &v1alpha1.CassandraCluster{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*v1alpha1.CassandraCluster), err
+}
+
 // Delete takes name of the cassandraCluster and deletes it. Returns an error if one occurs.
 func (c *FakeCassandraClusters) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.

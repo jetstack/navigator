@@ -34,6 +34,7 @@ type CassandraClustersGetter interface {
 type CassandraClusterInterface interface {
 	Create(*v1alpha1.CassandraCluster) (*v1alpha1.CassandraCluster, error)
 	Update(*v1alpha1.CassandraCluster) (*v1alpha1.CassandraCluster, error)
+	UpdateStatus(*v1alpha1.CassandraCluster) (*v1alpha1.CassandraCluster, error)
 	Delete(name string, options *v1.DeleteOptions) error
 	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
 	Get(name string, options v1.GetOptions) (*v1alpha1.CassandraCluster, error)
@@ -111,6 +112,22 @@ func (c *cassandraClusters) Update(cassandraCluster *v1alpha1.CassandraCluster) 
 		Namespace(c.ns).
 		Resource("cassandraclusters").
 		Name(cassandraCluster.Name).
+		Body(cassandraCluster).
+		Do().
+		Into(result)
+	return
+}
+
+// UpdateStatus was generated because the type contains a Status member.
+// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
+
+func (c *cassandraClusters) UpdateStatus(cassandraCluster *v1alpha1.CassandraCluster) (result *v1alpha1.CassandraCluster, err error) {
+	result = &v1alpha1.CassandraCluster{}
+	err = c.client.Put().
+		Namespace(c.ns).
+		Resource("cassandraclusters").
+		Name(cassandraCluster.Name).
+		SubResource("status").
 		Body(cassandraCluster).
 		Do().
 		Into(result)
