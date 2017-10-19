@@ -30,7 +30,7 @@ import (
 	"github.com/jetstack-experimental/navigator/pkg/apis/navigator"
 	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/install"
 	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
-	informers "github.com/jetstack-experimental/navigator/pkg/client/informers_generated/internalversion"
+	informers "github.com/jetstack-experimental/navigator/pkg/client/informers/internalversion"
 	esclusterstorage "github.com/jetstack-experimental/navigator/pkg/registry/navigator/escluster"
 	pilotstorage "github.com/jetstack-experimental/navigator/pkg/registry/navigator/pilot"
 )

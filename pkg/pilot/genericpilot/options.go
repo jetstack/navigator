@@ -18,9 +18,9 @@ import (
 	"k8s.io/client-go/util/workqueue"
 
 	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
-	"github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset"
-	"github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset/scheme"
-	informers "github.com/jetstack-experimental/navigator/pkg/client/informers_generated/externalversions"
+	clientset "github.com/jetstack-experimental/navigator/pkg/client/clientset/versioned"
+	"github.com/jetstack-experimental/navigator/pkg/client/clientset/versioned/scheme"
+	informers "github.com/jetstack-experimental/navigator/pkg/client/informers/externalversions"
 	"github.com/jetstack-experimental/navigator/pkg/pilot/genericpilot/hook"
 	"github.com/jetstack-experimental/navigator/pkg/pilot/genericpilot/probe"
 	"github.com/jetstack-experimental/navigator/pkg/pilot/genericpilot/process"

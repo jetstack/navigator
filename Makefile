@@ -44,7 +44,7 @@ generate: .generate_files
 
 verify: .hack_verify go_verify
 
-.hack_verify: .generate_exes
+.hack_verify:
 	@echo Running repo-infra verify scripts
 	@echo Running href checker:
 	@${HACK_DIR}/verify-links.sh
@@ -94,7 +94,7 @@ go_fmt:
 
 # This section contains the code generation stuff
 #################################################
-# Regenerate all files if the gen exes changed or any "types.go" files changed
+# Regenerate all files if any "types.go" files changed
 .generate_files: $(TYPES_FILES)
 	# generate all pkg/client contents
 	$(HACK_DIR)/update-client-gen.sh

@@ -30,8 +30,8 @@ import (
 
 	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack-experimental/navigator/pkg/apiserver"
-	clientset "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/internalclientset"
-	informers "github.com/jetstack-experimental/navigator/pkg/client/informers_generated/internalversion"
+	clientset "github.com/jetstack-experimental/navigator/pkg/client/clientset/internalversion"
+	informers "github.com/jetstack-experimental/navigator/pkg/client/informers/internalversion"
 )
 
 const defaultEtcdPathPrefix = "/registry/navigator.jetstack.io"

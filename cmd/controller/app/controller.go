@@ -18,8 +18,8 @@ import (
 	"k8s.io/client-go/tools/record"
 
 	"github.com/jetstack-experimental/navigator/cmd/controller/app/options"
-	clientset "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset"
-	intscheme "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset/scheme"
+	clientset "github.com/jetstack-experimental/navigator/pkg/client/clientset/versioned"
+	intscheme "github.com/jetstack-experimental/navigator/pkg/client/clientset/versioned/scheme"
 	"github.com/jetstack-experimental/navigator/pkg/controllers"
 	"github.com/jetstack-experimental/navigator/pkg/kube"
 )

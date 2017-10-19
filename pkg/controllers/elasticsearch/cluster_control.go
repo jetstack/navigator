@@ -8,7 +8,7 @@ import (
 	"k8s.io/client-go/tools/record"
 
 	v1alpha1 "github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
-	"github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset"
+	clientset "github.com/jetstack-experimental/navigator/pkg/client/clientset/versioned"
 	"github.com/jetstack-experimental/navigator/pkg/controllers/elasticsearch/configmap"
 	"github.com/jetstack-experimental/navigator/pkg/controllers/elasticsearch/nodepool"
 	"github.com/jetstack-experimental/navigator/pkg/controllers/elasticsearch/service"
