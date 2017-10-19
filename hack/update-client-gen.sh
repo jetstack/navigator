@@ -6,36 +6,15 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-REPO_ROOT=$(dirname "${BASH_SOURCE}")/..
-BINDIR=${REPO_ROOT}/bin
-HACKDIR=${HACKDIR:-hack}
+SCRIPT_ROOT=$(dirname ${BASH_SOURCE})/..
+CODEGEN_PKG=${CODEGEN_PKG:-$(cd ${SCRIPT_ROOT}; ls -d -1 ./vendor/k8s.io/code-generator 2>/dev/null || echo ../code-generator)}
 
-# Generate the internal clientset (pkg/client/clientset_generated/internalclientset)
-${BINDIR}/client-gen "$@" \
-	      --input-base "github.com/jetstack-experimental/navigator/pkg/apis/" \
-	      --input "navigator/" \
-	      --clientset-path "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/" \
-	      --clientset-name internalclientset \
-	      --go-header-file "${HACKDIR}/boilerplate.go.txt"
-# Generate the versioned clientset (pkg/client/clientset_generated/clientset)
-${BINDIR}/client-gen "$@" \
-		  --input-base "github.com/jetstack-experimental/navigator/pkg/apis/" \
-		  --input "navigator/v1alpha1" \
-	      --clientset-path "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/" \
-	      --clientset-name "clientset" \
-	      --go-header-file "${HACKDIR}/boilerplate.go.txt"
-# generate lister
-${BINDIR}/lister-gen "$@" \
-		  --input-dirs="github.com/jetstack-experimental/navigator/pkg/apis/navigator" \
-	      --input-dirs="github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1" \
-	      --output-package "github.com/jetstack-experimental/navigator/pkg/client/listers_generated" \
-	      --go-header-file "${HACKDIR}/boilerplate.go.txt"
-# generate informer
-${BINDIR}/informer-gen "$@" \
-	      --go-header-file "${HACKDIR}/boilerplate.go.txt" \
-	      --input-dirs "github.com/jetstack-experimental/navigator/pkg/apis/navigator" \
-	      --input-dirs "github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1" \
-	      --internal-clientset-package "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/internalclientset" \
-	      --versioned-clientset-package "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset" \
-	      --listers-package "github.com/jetstack-experimental/navigator/pkg/client/listers_generated" \
-	      --output-package "github.com/jetstack-experimental/navigator/pkg/client/informers_generated"
+# generate the code with:
+# --output-base    because this script should also be able to run inside the vendor dir of
+#                  k8s.io/kubernetes. The output-base is needed for the generators to output into the vendor dir
+#                  instead of the $GOPATH directly. For normal projects this can be dropped.
+${CODEGEN_PKG}/generate-internal-groups.sh all \
+  github.com/jetstack-experimental/navigator/pkg/client github.com/jetstack-experimental/navigator/pkg/apis github.com/jetstack-experimental/navigator/pkg/apis \
+  navigator:v1alpha1 \
+  --output-base "${GOPATH}/src/" \
+  --go-header-file ${SCRIPT_ROOT}/hack/boilerplate.go.txt
