@@ -3,6 +3,7 @@ package service_test
 import (
 	"testing"
 
+	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"k8s.io/client-go/informers"
@@ -38,9 +39,9 @@ func (f *fixture) run(cluster *v1alpha1.CassandraCluster) {
 	}
 }
 
-func (f *fixture) expectService(namespace, name string) {
-	_, err := f.kclient.CoreV1().Services(namespace).Get(
-		name,
+func (f *fixture) expectService(service *apiv1.Service) {
+	_, err := f.kclient.CoreV1().Services(service.Namespace).Get(
+		service.Name,
 		metav1.GetOptions{},
 	)
 	if err != nil {
@@ -62,20 +63,22 @@ func TestServiceControl(t *testing.T) {
 		"service created",
 		func(t *testing.T) {
 			cluster := newCassandraCluster()
+			expectedService := service.ServiceForCluster(cluster)
 			f := newFixture(t)
 			f.run(cluster)
-			f.expectService(cluster.Namespace, cluster.Name+"-service")
+			f.expectService(expectedService)
 		},
 	)
 	t.Run(
 		"resync",
 		func(t *testing.T) {
 			cluster := newCassandraCluster()
+			expectedService := service.ServiceForCluster(cluster)
 			f := newFixture(t)
 			f.run(cluster)
-			f.expectService(cluster.Namespace, cluster.Name+"-service")
+			f.expectService(expectedService)
 			f.run(cluster)
-			f.expectService(cluster.Namespace, cluster.Name+"-service")
+			f.expectService(expectedService)
 		},
 	)
 }
