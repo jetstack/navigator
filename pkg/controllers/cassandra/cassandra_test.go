@@ -1,15 +1,14 @@
-package cassandra_test
+package cassandra
 
 import (
 	"testing"
 	"time"
 
-	informerv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/informers_generated/externalversions/navigator/v1alpha1"
-
 	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
 	navigatorfake "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset/fake"
-	"github.com/jetstack-experimental/navigator/pkg/controllers/cassandra"
+	"github.com/jetstack-experimental/navigator/pkg/client/informers_generated/externalversions"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
 	clienttesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
@@ -23,23 +22,26 @@ func TestCassandraController(t *testing.T) {
 	c.SetNamespace(namespace)
 
 	stopCh := make(chan struct{})
-	kclient := fake.NewSimpleClientset()
+
 	nclient := navigatorfake.NewSimpleClientset()
 	fakeWatch := watch.NewFake()
 	nclient.PrependWatchReactor(
 		"cassandraclusters",
 		clienttesting.DefaultWatchReactor(fakeWatch, nil),
 	)
-	i := informerv1alpha1.NewCassandraClusterInformer(
+	naviFactory := externalversions.NewSharedInformerFactory(nclient, 0)
+	go naviFactory.Start(stopCh)
+
+	kclient := fake.NewSimpleClientset()
+	kubeFactory := informers.NewSharedInformerFactory(kclient, 0)
+	go kubeFactory.Start(stopCh)
+
+	cc := NewCassandra(
 		nclient,
-		namespace,
-		0,
-		cache.Indexers{
-			cache.NamespaceIndex: cache.MetaNamespaceIndexFunc,
-		},
+		kclient,
+		naviFactory.Navigator().V1alpha1().CassandraClusters().Informer(),
+		kubeFactory.Core().V1().Services().Informer(),
 	)
-	go i.Run(stopCh)
-	cc := cassandra.NewCassandra(nclient, kclient, i)
 	finished := make(chan struct{})
 	go func() {
 		defer close(finished)
@@ -49,17 +51,18 @@ func TestCassandraController(t *testing.T) {
 		}
 	}()
 
+	if !cache.WaitForCacheSync(
+		stopCh,
+		cc.cassListerSynced, cc.servicesListerSynced,
+	) {
+		t.Errorf("timed out waiting for caches to sync")
+	}
+
 	defer func() {
 		close(stopCh)
 		<-finished
 	}()
 
-	if !cache.WaitForCacheSync(
-		stopCh,
-		i.HasSynced,
-	) {
-		t.Errorf("timed out waiting for caches to sync")
-	}
 	t.Run(
 		"Create a cluster",
 		func(t *testing.T) {

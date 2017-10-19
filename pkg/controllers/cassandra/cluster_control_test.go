@@ -3,12 +3,11 @@ package cassandra_test
 import (
 	"testing"
 
+	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
-	navigatorclientset "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset"
-	navigatorfake "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset/fake"
 	"github.com/jetstack-experimental/navigator/pkg/controllers/cassandra"
 	"github.com/jetstack-experimental/navigator/pkg/controllers/cassandra/service"
 	"github.com/stretchr/testify/assert"
@@ -16,7 +15,6 @@ import (
 
 type fixture struct {
 	cluster *v1alpha1.CassandraCluster
-	nclient navigatorclientset.Interface
 	kclient kubernetes.Interface
 	control cassandra.ControlInterface
 }
@@ -27,12 +25,14 @@ func setup(t *testing.T) *fixture {
 	cluster := &v1alpha1.CassandraCluster{}
 	cluster.SetName(name)
 	cluster.SetNamespace(namespace)
+
 	kclient := fake.NewSimpleClientset()
-	nclient := navigatorfake.NewSimpleClientset(cluster)
+	kubeFactory := informers.NewSharedInformerFactory(kclient, 0)
+	serviceLister := kubeFactory.Core().V1().Services().Lister()
 	control := cassandra.NewControl(
-		service.NewControl(kclient),
+		service.NewControl(kclient, serviceLister),
 	)
-	return &fixture{cluster, nclient, kclient, control}
+	return &fixture{cluster, kclient, control}
 }
 
 func TestControl(t *testing.T) {

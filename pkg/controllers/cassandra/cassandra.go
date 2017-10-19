@@ -6,19 +6,20 @@ import (
 	"time"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-
-	navigatorclientset "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset"
-	informerv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/informers_generated/externalversions/navigator/v1alpha1"
-	listersv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/listers_generated/navigator/v1alpha1"
-	"github.com/jetstack-experimental/navigator/pkg/controllers/cassandra/service"
+	coreinformers "k8s.io/client-go/informers/core/v1"
 
 	"github.com/golang/glog"
 	"github.com/jetstack-experimental/navigator/pkg/apis/navigator"
+	navigatorclientset "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset"
+	informerv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/informers_generated/externalversions/navigator/v1alpha1"
+	listersv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/listers_generated/navigator/v1alpha1"
 	"github.com/jetstack-experimental/navigator/pkg/controllers"
+	"github.com/jetstack-experimental/navigator/pkg/controllers/cassandra/service"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
+	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 )
@@ -30,38 +31,48 @@ import (
 // It accepts a list of informers that are then used to monitor the state of the
 // target cluster.
 type CassandraController struct {
-	control          ControlInterface
-	cassLister       listersv1alpha1.CassandraClusterLister
-	cassListerSynced cache.InformerSynced
-	queue            workqueue.RateLimitingInterface
+	control              ControlInterface
+	cassLister           listersv1alpha1.CassandraClusterLister
+	cassListerSynced     cache.InformerSynced
+	servicesListerSynced cache.InformerSynced
+	queue                workqueue.RateLimitingInterface
 }
 
 func NewCassandra(
-	navigatorClient navigatorclientset.Interface,
+	naviClient navigatorclientset.Interface,
 	kubeClient kubernetes.Interface,
-	ci cache.SharedIndexInformer,
-
+	cassClusters cache.SharedIndexInformer,
+	services cache.SharedIndexInformer,
 ) *CassandraController {
 	queue := workqueue.NewNamedRateLimitingQueue(
 		workqueue.DefaultControllerRateLimiter(),
 		"cassandraCluster",
 	)
 
-	// add an event handler to the ElasticsearchCluster informer
-	ci.AddEventHandler(&controllers.QueuingEventHandler{Queue: queue})
-
-	return &CassandraController{
-		control: NewControl(
-			service.NewControl(
-				kubeClient,
-			),
-		),
-		cassLister: listersv1alpha1.NewCassandraClusterLister(
-			ci.GetIndexer(),
-		),
-		cassListerSynced: ci.HasSynced,
-		queue:            queue,
+	cc := &CassandraController{
+		queue: queue,
 	}
+	cassClusters.AddEventHandler(&controllers.QueuingEventHandler{Queue: queue})
+	cc.cassLister = listersv1alpha1.NewCassandraClusterLister(
+		cassClusters.GetIndexer(),
+	)
+	cc.cassListerSynced = cassClusters.HasSynced
+
+	services.AddEventHandler(
+		&controllers.BlockingEventHandler{
+			WorkFunc: cc.handleObject,
+		},
+	)
+	cc.servicesListerSynced = services.HasSynced
+
+	control := NewControl(
+		service.NewControl(
+			kubeClient,
+			corelisters.NewServiceLister(services.GetIndexer()),
+		),
+	)
+	cc.control = control
+	return cc
 }
 
 // Run is the main event loop
@@ -70,7 +81,7 @@ func (e *CassandraController) Run(workers int, stopCh <-chan struct{}) error {
 
 	if !cache.WaitForCacheSync(
 		stopCh,
-		e.cassListerSynced,
+		e.cassListerSynced, e.servicesListerSynced,
 	) {
 		return fmt.Errorf("timed out waiting for caches to sync")
 	}
@@ -151,6 +162,10 @@ func (e *CassandraController) sync(key string) (err error) {
 	return e.control.Sync(cass.DeepCopy())
 }
 
+func (e *CassandraController) handleObject(obj interface{}) {
+
+}
+
 func init() {
 	controllers.Register("Cassandra", func(ctx *controllers.Context) controllers.Interface {
 		e := NewCassandra(
@@ -165,6 +180,18 @@ func init() {
 				},
 				informerv1alpha1.NewCassandraClusterInformer(
 					ctx.NavigatorClient,
+					ctx.Namespace,
+					time.Second*30,
+					cache.Indexers{
+						cache.NamespaceIndex: cache.MetaNamespaceIndexFunc,
+					},
+				),
+			),
+			ctx.SharedInformerFactory.InformerFor(
+				ctx.Namespace,
+				metav1.GroupVersionKind{Version: "v1", Kind: "Service"},
+				coreinformers.NewServiceInformer(
+					ctx.Client,
 					ctx.Namespace,
 					time.Second*30,
 					cache.Indexers{
