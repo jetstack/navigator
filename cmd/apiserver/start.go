@@ -104,7 +104,7 @@ func (o NavigatorServerOptions) Config() (*apiserver.Config, error) {
 		return nil, fmt.Errorf("error creating self-signed certificates: %v", err)
 	}
 
-	serverConfig := genericapiserver.NewConfig(apiserver.Codecs)
+	serverConfig := genericapiserver.NewRecommendedConfig(apiserver.Codecs)
 	if err := o.RecommendedOptions.ApplyTo(serverConfig); err != nil {
 		return nil, err
 	}
