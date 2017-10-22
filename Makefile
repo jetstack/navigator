@@ -44,7 +44,7 @@ generate: .generate_files
 
 verify: .hack_verify go_verify
 
-.hack_verify: .generate_exes
+.hack_verify:
 	@echo Running repo-infra verify scripts
 	@echo Running href checker:
 	@${HACK_DIR}/verify-links.sh
@@ -94,43 +94,7 @@ go_fmt:
 
 # This section contains the code generation stuff
 #################################################
-.generate_exes: \
-	$(BINDIR)/defaulter-gen \
-	$(BINDIR)/deepcopy-gen \
-	$(BINDIR)/conversion-gen \
-	$(BINDIR)/client-gen \
-	$(BINDIR)/lister-gen \
-	$(BINDIR)/informer-gen
-	touch $@
-
-$(BINDIR)/%:
-	go build -o $@ ./vendor/k8s.io/code-generator/cmd/$*
-
-# Regenerate all files if the gen exes changed or any "types.go" files changed
-.generate_files: .generate_exes $(TYPES_FILES)
-	# Generate defaults
-	$(BINDIR)/defaulter-gen \
-		--v 1 --logtostderr \
-		--go-header-file "$(HACK_DIR)/boilerplate.go.txt" \
-		--input-dirs "$(NAVIGATOR_PKG)/pkg/apis/navigator" \
-		--input-dirs "$(NAVIGATOR_PKG)/pkg/apis/navigator/v1alpha1" \
-		--extra-peer-dirs "$(NAVIGATOR_PKG)/pkg/apis/navigator" \
-		--extra-peer-dirs "$(NAVIGATOR_PKG)/pkg/apis/navigator/v1alpha1" \
-		--output-file-base "zz_generated.defaults"
-	# Generate deep copies
-	$(BINDIR)/deepcopy-gen \
-		--v 1 --logtostderr \
-		--go-header-file "$(HACK_DIR)/boilerplate.go.txt" \
-		--input-dirs "$(NAVIGATOR_PKG)/pkg/apis/navigator" \
-		--input-dirs "$(NAVIGATOR_PKG)/pkg/apis/navigator/v1alpha1" \
-		--bounding-dirs "github.com/openshift/open-service-broker-sdk" \
-		--output-file-base zz_generated.deepcopy
-	# Generate conversions
-	$(BINDIR)/conversion-gen \
-		--v 1 --logtostderr \
-		--go-header-file "$(HACK_DIR)/boilerplate.go.txt" \
-		--input-dirs "$(NAVIGATOR_PKG)/pkg/apis/navigator" \
-		--input-dirs "$(NAVIGATOR_PKG)/pkg/apis/navigator/v1alpha1" \
-		--output-file-base zz_generated.conversion
+# Regenerate all files if any "types.go" files changed
+.generate_files: $(TYPES_FILES)
 	# generate all pkg/client contents
 	$(HACK_DIR)/update-client-gen.sh

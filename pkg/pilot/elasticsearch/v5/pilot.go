@@ -8,8 +8,8 @@ import (
 	"gopkg.in/olivere/elastic.v5"
 	"k8s.io/client-go/tools/cache"
 
-	"github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset"
-	listersv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/listers_generated/navigator/v1alpha1"
+	clientset "github.com/jetstack-experimental/navigator/pkg/client/clientset/versioned"
+	listersv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/listers/navigator/v1alpha1"
 	"github.com/jetstack-experimental/navigator/pkg/pilot/genericpilot/hook"
 )
 
