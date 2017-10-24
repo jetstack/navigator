@@ -3,6 +3,7 @@ package cassandra
 import (
 	"github.com/golang/glog"
 	v1alpha1 "github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
+	"k8s.io/client-go/tools/record"
 )
 
 const (
@@ -23,13 +24,23 @@ type ControlInterface interface {
 
 var _ ControlInterface = &defaultCassandraClusterControl{}
 
-type defaultCassandraClusterControl struct{}
+type defaultCassandraClusterControl struct {
+	recorder record.EventRecorder
+}
 
-func NewControl() ControlInterface {
-	return &defaultCassandraClusterControl{}
+func NewControl(recorder record.EventRecorder) ControlInterface {
+	return &defaultCassandraClusterControl{
+		recorder: recorder,
+	}
 }
 
 func (e *defaultCassandraClusterControl) Sync(c *v1alpha1.CassandraCluster) error {
 	glog.V(4).Infof("defaultCassandraClusterControl.Sync")
+	e.recorder.Event(
+		c,
+		"cassandra.defaultCassandraClusterControl",
+		successSync,
+		messageSuccessSync,
+	)
 	return nil
 }

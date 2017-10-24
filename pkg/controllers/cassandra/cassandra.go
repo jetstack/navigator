@@ -18,6 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 )
 
@@ -32,12 +33,14 @@ type CassandraController struct {
 	cassLister       listersv1alpha1.CassandraClusterLister
 	cassListerSynced cache.InformerSynced
 	queue            workqueue.RateLimitingInterface
+	recorder         record.EventRecorder
 }
 
 func NewCassandra(
 	naviClient navigatorclientset.Interface,
 	kubeClient kubernetes.Interface,
 	cassClusters cache.SharedIndexInformer,
+	recorder record.EventRecorder,
 ) *CassandraController {
 	queue := workqueue.NewNamedRateLimitingQueue(
 		workqueue.DefaultControllerRateLimiter(),
@@ -53,7 +56,8 @@ func NewCassandra(
 	)
 	cc.cassListerSynced = cassClusters.HasSynced
 
-	cc.control = NewControl()
+	cc.control = NewControl(recorder)
+	cc.recorder = recorder
 	return cc
 }
 
@@ -145,7 +149,6 @@ func (e *CassandraController) sync(key string) (err error) {
 }
 
 func (e *CassandraController) handleObject(obj interface{}) {
-
 }
 
 func init() {
@@ -169,6 +172,7 @@ func init() {
 					},
 				),
 			),
+			ctx.Recorder,
 		)
 		return e.Run
 	})

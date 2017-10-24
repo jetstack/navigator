@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	clienttesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/tools/record"
 )
 
 type fixture struct {
@@ -17,8 +18,10 @@ type fixture struct {
 	nclient    *navigatorfake.Clientset
 	nwatch     *watch.FakeWatcher
 	nfactory   externalversions.SharedInformerFactory
+	recorder   *record.FakeRecorder
 	controller *CassandraController
 	finished   chan struct{}
+	stopCh     chan struct{}
 }
 
 func newFixture(t *testing.T) *fixture {
@@ -30,28 +33,34 @@ func newFixture(t *testing.T) *fixture {
 	)
 	nfactory := externalversions.NewSharedInformerFactory(nclient, 0)
 	cassClusters := nfactory.Navigator().V1alpha1().CassandraClusters().Informer()
+	recorder := record.NewFakeRecorder(0)
+
+	controller := NewCassandra(nclient, nil, cassClusters, recorder)
+
 	return &fixture{
 		t:          t,
 		nclient:    nclient,
 		nwatch:     nwatch,
 		nfactory:   nfactory,
-		controller: NewCassandra(nclient, nil, cassClusters),
-		finished:   make(chan struct{}),
+		recorder:   recorder,
+		controller: controller,
 	}
 }
 
-func (f *fixture) run(stopCh chan struct{}) {
-	f.nfactory.Start(stopCh)
+func (f *fixture) run() {
+	f.stopCh = make(chan struct{})
+	f.finished = make(chan struct{})
+	f.nfactory.Start(f.stopCh)
 	go func() {
 		defer close(f.finished)
-		err := f.controller.Run(1, stopCh)
+		err := f.controller.Run(1, f.stopCh)
 		if err != nil {
 			f.t.Error(err)
 		}
 	}()
 
 	if !cache.WaitForCacheSync(
-		stopCh,
+		f.stopCh,
 		f.controller.cassListerSynced,
 	) {
 		f.t.Errorf("timed out waiting for caches to sync")
@@ -66,7 +75,9 @@ func (f *fixture) add(cluster *v1alpha1.CassandraCluster) {
 	if err != nil {
 		f.t.Fatal(err)
 	}
-	f.nwatch.Add(cluster)
+	if f.stopCh != nil {
+		f.nwatch.Add(cluster)
+	}
 }
 
 func (f *fixture) delete(cluster *v1alpha1.CassandraCluster) {
@@ -80,6 +91,20 @@ func (f *fixture) delete(cluster *v1alpha1.CassandraCluster) {
 	f.nwatch.Delete(cluster)
 }
 
+func (f *fixture) expectEvent() {
+	select {
+	case e := <-f.recorder.Events:
+		f.t.Log(e)
+	case <-time.After(time.Second):
+		f.t.Error("Timed out waiting for event")
+	}
+}
+
+func (f *fixture) close() {
+	close(f.stopCh)
+	<-f.finished
+}
+
 func newCassandraCluster() *v1alpha1.CassandraCluster {
 	c := &v1alpha1.CassandraCluster{}
 	c.SetName("cassandra-1")
@@ -88,25 +113,26 @@ func newCassandraCluster() *v1alpha1.CassandraCluster {
 }
 
 func TestCassandraController(t *testing.T) {
-	f := newFixture(t)
-	cluster := newCassandraCluster()
-	stopCh := make(chan struct{})
-	f.run(stopCh)
-	defer func() {
-		close(stopCh)
-		<-f.finished
-	}()
-
 	t.Run(
-		"Create a cluster",
+		"CassandraController syncs in response to informer events",
 		func(t *testing.T) {
+			f := newFixture(t)
+			cluster := newCassandraCluster()
+			f.run()
+			defer f.close()
 			f.add(cluster)
-			<-time.After(time.Second)
+			f.expectEvent()
 		},
 	)
 	t.Run(
-		"Delete a cluster",
+		"CassandraController handles deleted CassandraCluster resources",
 		func(t *testing.T) {
+			f := newFixture(t)
+			cluster := newCassandraCluster()
+			f.run()
+			defer f.close()
+			f.add(cluster)
+			f.expectEvent()
 			f.delete(cluster)
 			<-time.After(time.Second)
 		},
