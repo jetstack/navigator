@@ -116,3 +116,29 @@ function test_elasticsearchcluster_create() {
 
 test_elasticsearchcluster_shortname
 test_elasticsearchcluster_create
+
+
+function test_cassandracluster() {
+    echo "Testing CassandraCluster"
+    local USER_NAMESPACE="${USER_NAMESPACE}-cassandra"
+    kube_delete_namespace_and_wait "${USER_NAMESPACE}"
+    kubectl create namespace "${USER_NAMESPACE}"
+    if ! kubectl create \
+            --namespace "${USER_NAMESPACE}" \
+            --filename "${ROOT_DIR}/docs/quick-start/cassandra-cluster.yaml"; then
+        fail_test "Failed to create cassandracluster"
+    fi
+    if ! kubectl get \
+            --namespace "${USER_NAMESPACE}" \
+            CassandraClusters; then
+        fail_test "Failed to get cassandraclusters"
+    fi
+    if ! kubectl delete \
+            --namespace "${USER_NAMESPACE}" \
+            CassandraClusters \
+            --all; then
+        fail_test "Failed to delete cassandracluster"
+    fi
+}
+
+test_cassandracluster

@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -31,6 +31,7 @@ import (
 	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/install"
 	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
 	informers "github.com/jetstack-experimental/navigator/pkg/client/informers/internalversion"
+	cassandraclusterstorage "github.com/jetstack-experimental/navigator/pkg/registry/navigator/cassandracluster"
 	esclusterstorage "github.com/jetstack-experimental/navigator/pkg/registry/navigator/escluster"
 	pilotstorage "github.com/jetstack-experimental/navigator/pkg/registry/navigator/pilot"
 )
@@ -112,12 +113,18 @@ func (c completedConfig) New() (*NavigatorServer, error) {
 	if err != nil {
 		return nil, err
 	}
+	cassandraStorage, cassandraStatusStorage, err := cassandraclusterstorage.NewREST(Scheme, c.GenericConfig.RESTOptionsGetter)
+	if err != nil {
+		return nil, err
+	}
 	pilotStorage, pilotStatusStorage, err := pilotstorage.NewREST(Scheme, c.GenericConfig.RESTOptionsGetter)
 	if err != nil {
 		return nil, err
 	}
 	v1alpha1storage["elasticsearchclusters"] = escStorage
 	v1alpha1storage["elasticsearchclusters/status"] = escStatusStorage
+	v1alpha1storage["cassandraclusters"] = cassandraStorage
+	v1alpha1storage["cassandraclusters/status"] = cassandraStatusStorage
 	v1alpha1storage["pilots"] = pilotStorage
 	v1alpha1storage["pilots/status"] = pilotStatusStorage
 	apiGroupInfo.VersionedResourcesStorageMap["v1alpha1"] = v1alpha1storage
