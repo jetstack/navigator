@@ -20,9 +20,9 @@ package v1alpha1
 
 import (
 	navigator_v1alpha1 "github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
-	clientset "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset"
-	internalinterfaces "github.com/jetstack-experimental/navigator/pkg/client/informers_generated/externalversions/internalinterfaces"
-	v1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/listers_generated/navigator/v1alpha1"
+	versioned "github.com/jetstack-experimental/navigator/pkg/client/clientset/versioned"
+	internalinterfaces "github.com/jetstack-experimental/navigator/pkg/client/informers/externalversions/internalinterfaces"
+	v1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/listers/navigator/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
@@ -44,7 +44,7 @@ type cassandraClusterInformer struct {
 // NewCassandraClusterInformer constructs a new informer for CassandraCluster type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewCassandraClusterInformer(client clientset.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+func NewCassandraClusterInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
@@ -60,7 +60,7 @@ func NewCassandraClusterInformer(client clientset.Interface, namespace string, r
 	)
 }
 
-func defaultCassandraClusterInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+func defaultCassandraClusterInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
 	return NewCassandraClusterInformer(client, v1.NamespaceAll, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 }
 
