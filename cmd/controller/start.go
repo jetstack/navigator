@@ -10,6 +10,7 @@ import (
 
 	"github.com/jetstack-experimental/navigator/cmd/controller/app"
 	"github.com/jetstack-experimental/navigator/cmd/controller/app/options"
+	_ "github.com/jetstack-experimental/navigator/pkg/controllers/cassandra"
 	_ "github.com/jetstack-experimental/navigator/pkg/controllers/elasticsearch"
 )
 
