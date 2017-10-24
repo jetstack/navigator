@@ -3,6 +3,7 @@ package cassandra
 import (
 	"github.com/golang/glog"
 	v1alpha1 "github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
+	"github.com/jetstack-experimental/navigator/pkg/controllers/cassandra/service"
 	"k8s.io/client-go/tools/record"
 )
 
@@ -25,17 +26,30 @@ type ControlInterface interface {
 var _ ControlInterface = &defaultCassandraClusterControl{}
 
 type defaultCassandraClusterControl struct {
-	recorder record.EventRecorder
+	serviceControl service.Interface
+	recorder       record.EventRecorder
 }
 
-func NewControl(recorder record.EventRecorder) ControlInterface {
+func NewControl(serviceControl service.Interface, recorder record.EventRecorder) ControlInterface {
 	return &defaultCassandraClusterControl{
-		recorder: recorder,
+		serviceControl: serviceControl,
+		recorder:       recorder,
 	}
 }
 
 func (e *defaultCassandraClusterControl) Sync(c *v1alpha1.CassandraCluster) error {
 	glog.V(4).Infof("defaultCassandraClusterControl.Sync")
+	err := e.serviceControl.Sync(c)
+	if err != nil {
+		e.recorder.Eventf(
+			c,
+			"cassandra.defaultCassandraClusterControl",
+			errorSync,
+			messageErrorSyncService,
+			c,
+		)
+		return err
+	}
 	e.recorder.Event(
 		c,
 		"cassandra.defaultCassandraClusterControl",
