@@ -64,7 +64,7 @@ items:
     name: tiller
     namespace: kube-system
 ### Generic ###
-# Create a ClusterRole to work with ElasticsearchCluster resources
+# Create a ClusterRole to work with Navigator resources
 - apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRole
   metadata:
@@ -73,7 +73,7 @@ items:
   # namespace-lifecycle admission-controller
   rules:
   - apiGroups: ["navigator.jetstack.io"]
-    resources: ["elasticsearchclusters", "pilots"]
+    resources: ["elasticsearchclusters", "pilots", "cassandraclusters"]
     verbs:     ["get", "list", "watch", "create", "update", "delete"]
 - apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
