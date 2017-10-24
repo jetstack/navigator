@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
-	navigatorfake "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset/fake"
-	"github.com/jetstack-experimental/navigator/pkg/client/informers_generated/externalversions"
+	navigatorfake "github.com/jetstack-experimental/navigator/pkg/client/clientset/versioned/fake"
+	"github.com/jetstack-experimental/navigator/pkg/client/informers/externalversions"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
