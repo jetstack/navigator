@@ -13,8 +13,8 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 
-	"github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset"
-	listersv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/listers_generated/navigator/v1alpha1"
+	clientset "github.com/jetstack-experimental/navigator/pkg/client/clientset/versioned"
+	listersv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/listers/navigator/v1alpha1"
 	"github.com/jetstack-experimental/navigator/pkg/pilot/genericpilot/process"
 )
 

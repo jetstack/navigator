@@ -4,7 +4,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/record"
 
-	"github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset"
+	clientset "github.com/jetstack-experimental/navigator/pkg/client/clientset/versioned"
 	"github.com/jetstack-experimental/navigator/pkg/kube"
 )
 

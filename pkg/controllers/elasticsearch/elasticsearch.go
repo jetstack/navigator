@@ -22,9 +22,9 @@ import (
 
 	"github.com/jetstack-experimental/navigator/pkg/apis/navigator"
 	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
-	"github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset"
-	informerv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/informers_generated/externalversions/navigator/v1alpha1"
-	listersv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/listers_generated/navigator/v1alpha1"
+	clientset "github.com/jetstack-experimental/navigator/pkg/client/clientset/versioned"
+	informerv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/informers/externalversions/navigator/v1alpha1"
+	listersv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/listers/navigator/v1alpha1"
 	"github.com/jetstack-experimental/navigator/pkg/controllers"
 	"github.com/jetstack-experimental/navigator/pkg/controllers/elasticsearch/configmap"
 	"github.com/jetstack-experimental/navigator/pkg/controllers/elasticsearch/nodepool"

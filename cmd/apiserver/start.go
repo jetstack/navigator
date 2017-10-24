@@ -30,8 +30,8 @@ import (
 
 	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack-experimental/navigator/pkg/apiserver"
-	clientset "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/internalclientset"
-	informers "github.com/jetstack-experimental/navigator/pkg/client/informers_generated/internalversion"
+	clientset "github.com/jetstack-experimental/navigator/pkg/client/clientset/internalversion"
+	informers "github.com/jetstack-experimental/navigator/pkg/client/informers/internalversion"
 )
 
 const defaultEtcdPathPrefix = "/registry/navigator.jetstack.io"
@@ -104,7 +104,7 @@ func (o NavigatorServerOptions) Config() (*apiserver.Config, error) {
 		return nil, fmt.Errorf("error creating self-signed certificates: %v", err)
 	}
 
-	serverConfig := genericapiserver.NewConfig(apiserver.Codecs)
+	serverConfig := genericapiserver.NewRecommendedConfig(apiserver.Codecs)
 	if err := o.RecommendedOptions.ApplyTo(serverConfig); err != nil {
 		return nil, err
 	}

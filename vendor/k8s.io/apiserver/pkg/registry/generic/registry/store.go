@@ -175,10 +175,6 @@ type Store struct {
 	Storage storage.Interface
 	// Called to cleanup clients used by the underlying Storage; optional.
 	DestroyFunc func()
-	// Maximum size of the watch history cached in memory, in number of entries.
-	// This value is ignored if Storage is non-nil. Nil is replaced with a default value.
-	// A zero integer will disable caching.
-	WatchCacheSize *int
 }
 
 // Note: the rest.StandardStorage interface aggregates the common REST verbs
@@ -293,6 +289,8 @@ func (e *Store) ListPredicate(ctx genericapirequest.Context, p storage.Selection
 		options = &metainternalversion.ListOptions{ResourceVersion: ""}
 	}
 	p.IncludeUninitialized = options.IncludeUninitialized
+	p.Limit = options.Limit
+	p.Continue = options.Continue
 	list := e.NewListFunc()
 	qualifiedResource := e.qualifiedResourceFromContext(ctx)
 	if name, ok := p.MatchesSingle(); ok {
@@ -1335,7 +1333,6 @@ func (e *Store) CompleteWithOptions(options *generic.StoreOptions) error {
 		e.Storage, e.DestroyFunc = opts.Decorator(
 			e.Copier,
 			opts.StorageConfig,
-			e.WatchCacheSize,
 			e.NewFunc(),
 			prefix,
 			keyFunc,
