@@ -134,6 +134,10 @@ func TestCassandraController(t *testing.T) {
 			f.add(cluster)
 			f.expectEvent()
 			f.delete(cluster)
+			// XXX This stinks, but I haven't got another way to know when the
+			// controller has responded to the delete event from the informer.
+			// In followup branches I'll call CassandraCluster.sync directly, to
+			// avoid this async test.
 			<-time.After(time.Second)
 		},
 	)
