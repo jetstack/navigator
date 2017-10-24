@@ -16,7 +16,7 @@ limitations under the License.
 package internalversion
 
 import (
-	"github.com/jetstack-experimental/navigator/pkg/client/clientset/internalversion/scheme"
+	"github.com/jetstack/navigator/pkg/client/clientset/internalversion/scheme"
 	rest "k8s.io/client-go/rest"
 )
 

@@ -10,7 +10,7 @@ SCRIPT_ROOT=$(dirname ${BASH_SOURCE})/..
 CODEGEN_PKG=${CODEGEN_PKG:-$(cd ${SCRIPT_ROOT}; ls -d -1 ./vendor/k8s.io/code-generator 2>/dev/null || echo ../code-generator)}
 
 ${CODEGEN_PKG}/generate-internal-groups.sh "deepcopy,defaulter,client,informer,lister" \
-  github.com/jetstack-experimental/navigator/pkg/client github.com/jetstack-experimental/navigator/pkg/apis github.com/jetstack-experimental/navigator/pkg/apis \
+  github.com/jetstack/navigator/pkg/client github.com/jetstack/navigator/pkg/apis github.com/jetstack/navigator/pkg/apis \
   navigator:v1alpha1 \
   --output-base "${GOPATH}/src/" \
   --go-header-file ${SCRIPT_ROOT}/hack/boilerplate.go.txt
@@ -19,7 +19,7 @@ ${CODEGEN_PKG}/generate-internal-groups.sh "deepcopy,defaulter,client,informer,l
 # flag to not include k8s.io/kubernetes packages (https://github.com/kubernetes/kubernetes/issues/54301)
 
 ${CODEGEN_PKG}/generate-internal-groups.sh "conversion" \
-  github.com/jetstack-experimental/navigator/pkg/client github.com/jetstack-experimental/navigator/pkg/apis github.com/jetstack-experimental/navigator/pkg/apis \
+  github.com/jetstack/navigator/pkg/client github.com/jetstack/navigator/pkg/apis github.com/jetstack/navigator/pkg/apis \
   navigator:v1alpha1 \
   --output-base "${GOPATH}/src/" \
   --go-header-file ${SCRIPT_ROOT}/hack/boilerplate.go.txt \

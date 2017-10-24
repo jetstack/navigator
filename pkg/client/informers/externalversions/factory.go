@@ -19,9 +19,9 @@ limitations under the License.
 package externalversions
 
 import (
-	versioned "github.com/jetstack-experimental/navigator/pkg/client/clientset/versioned"
-	internalinterfaces "github.com/jetstack-experimental/navigator/pkg/client/informers/externalversions/internalinterfaces"
-	navigator "github.com/jetstack-experimental/navigator/pkg/client/informers/externalversions/navigator"
+	versioned "github.com/jetstack/navigator/pkg/client/clientset/versioned"
+	internalinterfaces "github.com/jetstack/navigator/pkg/client/informers/externalversions/internalinterfaces"
+	navigator "github.com/jetstack/navigator/pkg/client/informers/externalversions/navigator"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
