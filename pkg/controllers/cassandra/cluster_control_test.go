@@ -10,7 +10,6 @@ import (
 	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack-experimental/navigator/pkg/controllers/cassandra"
 	"github.com/jetstack-experimental/navigator/pkg/controllers/cassandra/service"
-	"github.com/stretchr/testify/assert"
 )
 
 type fixture struct {
@@ -41,7 +40,9 @@ func TestControl(t *testing.T) {
 		func(t *testing.T) {
 			fixture := setup(t)
 			err := fixture.control.Sync(fixture.cluster)
-			assert.NoError(t, err)
+			if err != nil {
+				t.Error(err)
+			}
 		},
 	)
 }
