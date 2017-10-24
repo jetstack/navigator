@@ -19,7 +19,7 @@ limitations under the License.
 package internalversion
 
 import (
-	navigator "github.com/jetstack-experimental/navigator/pkg/apis/navigator"
+	navigator "github.com/jetstack/navigator/pkg/apis/navigator"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"

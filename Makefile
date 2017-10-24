@@ -1,6 +1,6 @@
 BINDIR        ?= bin
 HACK_DIR     ?= hack
-NAVIGATOR_PKG = github.com/jetstack-experimental/navigator
+NAVIGATOR_PKG = github.com/jetstack/navigator
 
 TYPES_FILES      = $(shell find pkg/apis -name types.go)
 

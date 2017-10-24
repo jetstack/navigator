@@ -19,7 +19,7 @@ limitations under the License.
 package internalversion
 
 import (
-	internalinterfaces "github.com/jetstack-experimental/navigator/pkg/client/informers/internalversion/internalinterfaces"
+	internalinterfaces "github.com/jetstack/navigator/pkg/client/informers/internalversion/internalinterfaces"
 )
 
 // Interface provides access to all the informers in this group version.

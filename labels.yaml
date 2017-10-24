@@ -1,5 +1,5 @@
 ---
-repo: jetstack-experimental/navigator
+repo: jetstack/navigator
 labels:
 - name: approved
   color: 0ffa16

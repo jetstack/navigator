@@ -27,12 +27,12 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 
-	"github.com/jetstack-experimental/navigator/pkg/apis/navigator"
-	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/install"
-	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
-	informers "github.com/jetstack-experimental/navigator/pkg/client/informers/internalversion"
-	esclusterstorage "github.com/jetstack-experimental/navigator/pkg/registry/navigator/escluster"
-	pilotstorage "github.com/jetstack-experimental/navigator/pkg/registry/navigator/pilot"
+	"github.com/jetstack/navigator/pkg/apis/navigator"
+	"github.com/jetstack/navigator/pkg/apis/navigator/install"
+	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
+	informers "github.com/jetstack/navigator/pkg/client/informers/internalversion"
+	esclusterstorage "github.com/jetstack/navigator/pkg/registry/navigator/escluster"
+	pilotstorage "github.com/jetstack/navigator/pkg/registry/navigator/pilot"
 )
 
 var (
