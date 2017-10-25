@@ -8,15 +8,15 @@ import (
 )
 
 const (
-	errorSync = "ErrSync"
+	ErrorSync = "ErrSync"
 
-	successSync = "SuccessSync"
+	SuccessSync = "SuccessSync"
 
-	messageErrorSyncServiceAccount = "Error syncing service account: %s"
-	messageErrorSyncConfigMap      = "Error syncing config map: %s"
-	messageErrorSyncService        = "Error syncing service: %s"
-	messageErrorSyncNodePools      = "Error syncing node pools: %s"
-	messageSuccessSync             = "Successfully synced CassandraCluster"
+	MessageErrorSyncServiceAccount = "Error syncing service account: %s"
+	MessageErrorSyncConfigMap      = "Error syncing config map: %s"
+	MessageErrorSyncService        = "Error syncing service: %s"
+	MessageErrorSyncNodePools      = "Error syncing node pools: %s"
+	MessageSuccessSync             = "Successfully synced CassandraCluster"
 )
 
 type ControlInterface interface {
@@ -44,8 +44,8 @@ func (e *defaultCassandraClusterControl) Sync(c *v1alpha1.CassandraCluster) erro
 		e.recorder.Eventf(
 			c,
 			"cassandra.defaultCassandraClusterControl",
-			errorSync,
-			messageErrorSyncService,
+			ErrorSync,
+			MessageErrorSyncService,
 			c,
 		)
 		return err
@@ -53,8 +53,8 @@ func (e *defaultCassandraClusterControl) Sync(c *v1alpha1.CassandraCluster) erro
 	e.recorder.Event(
 		c,
 		"cassandra.defaultCassandraClusterControl",
-		successSync,
-		messageSuccessSync,
+		SuccessSync,
+		MessageSuccessSync,
 	)
 	return nil
 }

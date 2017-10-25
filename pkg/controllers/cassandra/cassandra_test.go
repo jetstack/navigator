@@ -1,12 +1,13 @@
-package cassandra
+package cassandra_test
 
 import (
 	"strings"
 	"testing"
 
-	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
 	navigatorfake "github.com/jetstack-experimental/navigator/pkg/client/clientset/versioned/fake"
 	"github.com/jetstack-experimental/navigator/pkg/client/informers/externalversions"
+	"github.com/jetstack-experimental/navigator/pkg/controllers/cassandra"
+	casstesting "github.com/jetstack-experimental/navigator/pkg/controllers/cassandra/testing"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
@@ -14,14 +15,7 @@ import (
 	"k8s.io/client-go/tools/record"
 )
 
-func newCassandraCluster() *v1alpha1.CassandraCluster {
-	c := &v1alpha1.CassandraCluster{}
-	c.SetName("cassandra-1")
-	c.SetNamespace("app-1")
-	return c
-}
-
-// A NewCassandra.sync is called in response to events from the supplied informers.
+// NewCassandra sets up event handlers for the supplied informers.
 func TestCassandraControllerIntegration(t *testing.T) {
 	nclient := navigatorfake.NewSimpleClientset()
 	nwatch := watch.NewFake()
@@ -38,7 +32,7 @@ func TestCassandraControllerIntegration(t *testing.T) {
 
 	recorder := record.NewFakeRecorder(0)
 
-	controller := NewCassandra(nclient, kclient, cassClusters, services, recorder)
+	controller := cassandra.NewCassandra(nclient, kclient, cassClusters, services, recorder)
 
 	stopCh := make(chan struct{})
 	nfactory.Start(stopCh)
@@ -48,7 +42,7 @@ func TestCassandraControllerIntegration(t *testing.T) {
 	go func() {
 		for e := range recorder.Events {
 			t.Logf("EVENT: %q", e)
-			if strings.Contains(e, messageSuccessSync) {
+			if strings.Contains(e, cassandra.MessageSuccessSync) {
 				close(syncFinished)
 			}
 		}
@@ -66,6 +60,6 @@ func TestCassandraControllerIntegration(t *testing.T) {
 		<-controllerFinished
 	}()
 
-	cluster := newCassandraCluster()
+	cluster := casstesting.ClusterForTest()
 	nwatch.Add(cluster)
 }
