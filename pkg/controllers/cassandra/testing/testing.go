@@ -23,10 +23,11 @@ func ClusterForTest() *v1alpha1.CassandraCluster {
 }
 
 type Fixture struct {
-	t          *testing.T
-	Cluster    *v1alpha1.CassandraCluster
-	k8sClient  *fake.Clientset
-	k8sObjects []runtime.Object
+	t              *testing.T
+	Cluster        *v1alpha1.CassandraCluster
+	ServiceControl service.Interface
+	k8sClient      *fake.Clientset
+	k8sObjects     []runtime.Object
 }
 
 func NewFixture(t *testing.T) *Fixture {
@@ -40,7 +41,7 @@ func (f *Fixture) AddObjectK(o runtime.Object) {
 	f.k8sObjects = append(f.k8sObjects, o)
 }
 
-func (f *Fixture) Run() {
+func (f *Fixture) setupAndSync() error {
 	recorder := record.NewFakeRecorder(0)
 	finished := make(chan struct{})
 	defer func() {
@@ -54,14 +55,28 @@ func (f *Fixture) Run() {
 		close(finished)
 	}()
 	f.k8sClient = fake.NewSimpleClientset(f.k8sObjects...)
-	k8sFactory := informers.NewSharedInformerFactory(f.k8sClient, 0)
-	services := k8sFactory.Core().V1().Services().Lister()
+	if f.ServiceControl == nil {
+		k8sFactory := informers.NewSharedInformerFactory(f.k8sClient, 0)
+		services := k8sFactory.Core().V1().Services().Lister()
+		f.ServiceControl = service.NewControl(f.k8sClient, services, recorder)
+	}
 	c := cassandra.NewControl(
-		service.NewControl(f.k8sClient, services, recorder),
+		f.ServiceControl,
 		recorder,
 	)
-	err := c.Sync(f.Cluster)
+	return c.Sync(f.Cluster)
+}
+
+func (f *Fixture) Run() {
+	err := f.setupAndSync()
 	if err != nil {
+		f.t.Error(err)
+	}
+}
+
+func (f *Fixture) RunExpectError() {
+	err := f.setupAndSync()
+	if err == nil {
 		f.t.Error(err)
 	}
 }
@@ -86,4 +101,12 @@ func (f *Fixture) AssertServicesLength(l int) {
 			"Incorrect number of services: %#v", servicesLength,
 		)
 	}
+}
+
+type FakeControl struct {
+	SyncError error
+}
+
+func (c *FakeControl) Sync(cluster *v1alpha1.CassandraCluster) error {
+	return c.SyncError
 }
