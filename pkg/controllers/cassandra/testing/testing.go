@@ -6,6 +6,7 @@ import (
 	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack-experimental/navigator/pkg/controllers/cassandra"
 	"github.com/jetstack-experimental/navigator/pkg/controllers/cassandra/service"
+	"k8s.io/api/apps/v1beta2"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -99,6 +100,28 @@ func (f *Fixture) AssertServicesLength(l int) {
 		f.t.Log(services)
 		f.t.Errorf(
 			"Incorrect number of services: %#v", servicesLength,
+		)
+	}
+}
+
+func (f *Fixture) StatefulSets() *v1beta2.StatefulSetList {
+	sets, err := f.k8sClient.
+		AppsV1beta2().
+		StatefulSets(f.Cluster.Namespace).
+		List(metav1.ListOptions{})
+	if err != nil {
+		f.t.Fatal(err)
+	}
+	return sets
+}
+
+func (f *Fixture) AssertStatefulSetsLength(l int) {
+	sets := f.StatefulSets()
+	setsLength := len(sets.Items)
+	if setsLength != 1 {
+		f.t.Log(sets)
+		f.t.Errorf(
+			"Incorrect number of StatefulSets: %#v", setsLength,
 		)
 	}
 }
