@@ -3,6 +3,7 @@ package nodepool_test
 import (
 	"testing"
 
+	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack-experimental/navigator/pkg/controllers/cassandra/nodepool"
 	casstesting "github.com/jetstack-experimental/navigator/pkg/controllers/cassandra/testing"
 )
@@ -51,4 +52,20 @@ func TestNodePoolControlSync(t *testing.T) {
 			}
 		},
 	)
+	t.Run(
+		"delete statefulset without nodepool",
+		func(t *testing.T) {
+			f := casstesting.NewFixture(t)
+			f.AddObjectK(
+				nodepool.StatefulSetForCluster(
+					f.Cluster,
+					&f.Cluster.Spec.NodePools[0],
+				),
+			)
+			f.Cluster.Spec.NodePools = []v1alpha1.CassandraClusterNodePool{}
+			f.Run()
+			f.AssertStatefulSetsLength(0)
+		},
+	)
+
 }

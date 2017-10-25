@@ -118,7 +118,7 @@ func (f *Fixture) Services() *v1.ServiceList {
 func (f *Fixture) AssertServicesLength(l int) {
 	services := f.Services()
 	servicesLength := len(services.Items)
-	if servicesLength != 1 {
+	if servicesLength != l {
 		f.t.Log(services)
 		f.t.Errorf(
 			"Incorrect number of services: %#v", servicesLength,
@@ -140,7 +140,7 @@ func (f *Fixture) StatefulSets() *v1beta2.StatefulSetList {
 func (f *Fixture) AssertStatefulSetsLength(l int) {
 	sets := f.StatefulSets()
 	setsLength := len(sets.Items)
-	if setsLength != 1 {
+	if setsLength != l {
 		f.t.Log(sets)
 		f.t.Errorf(
 			"Incorrect number of StatefulSets: %#v", setsLength,

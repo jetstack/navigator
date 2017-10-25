@@ -4,7 +4,9 @@ import (
 	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/selection"
 
 	"github.com/jetstack-experimental/navigator/pkg/apis/navigator"
 	v1alpha1 "github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
@@ -40,4 +42,16 @@ func ClusterLabels(c *v1alpha1.CassandraCluster) map[string]string {
 		"app":               "cassandracluster",
 		ClusterNameLabelKey: c.Name,
 	}
+}
+
+func SelectorForCluster(c *v1alpha1.CassandraCluster) (labels.Selector, error) {
+	clusterNameReq, err := labels.NewRequirement(
+		ClusterNameLabelKey,
+		selection.Equals,
+		[]string{c.Name},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return labels.NewSelector().Add(*clusterNameReq), nil
 }
