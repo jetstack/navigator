@@ -51,7 +51,8 @@ func NewCassandra(
 	)
 
 	cc := &CassandraController{
-		queue: queue,
+		queue:    queue,
+		recorder: recorder,
 	}
 	cassClusters.AddEventHandler(&controllers.QueuingEventHandler{Queue: queue})
 	cc.cassLister = listersv1alpha1.NewCassandraClusterLister(
@@ -62,6 +63,7 @@ func NewCassandra(
 		service.NewControl(
 			kubeClient,
 			corev1listers.NewServiceLister(services.GetIndexer()),
+			recorder,
 		),
 		recorder,
 	)
