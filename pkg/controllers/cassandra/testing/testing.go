@@ -5,6 +5,7 @@ import (
 
 	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack-experimental/navigator/pkg/controllers/cassandra"
+	"github.com/jetstack-experimental/navigator/pkg/controllers/cassandra/nodepool"
 	"github.com/jetstack-experimental/navigator/pkg/controllers/cassandra/service"
 	"k8s.io/api/apps/v1beta2"
 	"k8s.io/api/core/v1"
@@ -24,11 +25,12 @@ func ClusterForTest() *v1alpha1.CassandraCluster {
 }
 
 type Fixture struct {
-	t              *testing.T
-	Cluster        *v1alpha1.CassandraCluster
-	ServiceControl service.Interface
-	k8sClient      *fake.Clientset
-	k8sObjects     []runtime.Object
+	t               *testing.T
+	Cluster         *v1alpha1.CassandraCluster
+	ServiceControl  service.Interface
+	NodepoolControl nodepool.Interface
+	k8sClient       *fake.Clientset
+	k8sObjects      []runtime.Object
 }
 
 func NewFixture(t *testing.T) *Fixture {
@@ -56,13 +58,24 @@ func (f *Fixture) setupAndSync() error {
 		close(finished)
 	}()
 	f.k8sClient = fake.NewSimpleClientset(f.k8sObjects...)
+	k8sFactory := informers.NewSharedInformerFactory(f.k8sClient, 0)
 	if f.ServiceControl == nil {
-		k8sFactory := informers.NewSharedInformerFactory(f.k8sClient, 0)
-		services := k8sFactory.Core().V1().Services().Lister()
-		f.ServiceControl = service.NewControl(f.k8sClient, services, recorder)
+		f.ServiceControl = service.NewControl(
+			f.k8sClient,
+			k8sFactory.Core().V1().Services().Lister(),
+			recorder,
+		)
+	}
+	if f.NodepoolControl == nil {
+		f.NodepoolControl = nodepool.NewControl(
+			f.k8sClient,
+			k8sFactory.Apps().V1beta2().StatefulSets().Lister(),
+			recorder,
+		)
 	}
 	c := cassandra.NewControl(
 		f.ServiceControl,
+		f.NodepoolControl,
 		recorder,
 	)
 	return c.Sync(f.Cluster)

@@ -11,6 +11,7 @@ import (
 	informerv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/informers/externalversions/navigator/v1alpha1"
 	listersv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/listers/navigator/v1alpha1"
 	"github.com/jetstack-experimental/navigator/pkg/controllers"
+	"github.com/jetstack-experimental/navigator/pkg/controllers/cassandra/nodepool"
 	"github.com/jetstack-experimental/navigator/pkg/controllers/cassandra/service"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,6 +23,9 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
+
+	appsinformers "k8s.io/client-go/informers/apps/v1beta2"
+	appslisters "k8s.io/client-go/listers/apps/v1beta2"
 )
 
 // NewCassandra returns a new CassandraController that can be used
@@ -43,6 +47,7 @@ func NewCassandra(
 	kubeClient kubernetes.Interface,
 	cassClusters cache.SharedIndexInformer,
 	services cache.SharedIndexInformer,
+	statefulSets cache.SharedIndexInformer,
 	recorder record.EventRecorder,
 ) *CassandraController {
 	queue := workqueue.NewNamedRateLimitingQueue(
@@ -63,6 +68,11 @@ func NewCassandra(
 		service.NewControl(
 			kubeClient,
 			corev1listers.NewServiceLister(services.GetIndexer()),
+			recorder,
+		),
+		nodepool.NewControl(
+			kubeClient,
+			appslisters.NewStatefulSetLister(statefulSets.GetIndexer()),
 			recorder,
 		),
 		recorder,
@@ -190,6 +200,22 @@ func init() {
 					Kind:    "Service",
 				},
 				corev1informers.NewServiceInformer(
+					ctx.Client,
+					ctx.Namespace,
+					time.Second*30,
+					cache.Indexers{
+						cache.NamespaceIndex: cache.MetaNamespaceIndexFunc,
+					},
+				),
+			),
+			ctx.SharedInformerFactory.InformerFor(
+				ctx.Namespace,
+				metav1.GroupVersionKind{
+					Group:   navigator.GroupName,
+					Version: "v1beta2",
+					Kind:    "StatefulSet",
+				},
+				appsinformers.NewStatefulSetInformer(
 					ctx.Client,
 					ctx.Namespace,
 					time.Second*30,
