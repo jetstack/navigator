@@ -1,6 +1,7 @@
 package nodepool
 
 import (
+	"github.com/golang/glog"
 	v1alpha1 "github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
 	"k8s.io/client-go/kubernetes"
 	appslisters "k8s.io/client-go/listers/apps/v1beta2"
@@ -32,5 +33,8 @@ func NewControl(
 }
 
 func (e *defaultCassandraClusterNodepoolControl) Sync(cluster *v1alpha1.CassandraCluster) error {
+	for _, pool := range cluster.Spec.NodePools {
+		glog.V(4).Infof("syncing nodepool: %#v", pool)
+	}
 	return nil
 }
