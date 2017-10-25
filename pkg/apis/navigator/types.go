@@ -23,7 +23,13 @@ type CassandraCluster struct {
 }
 
 type CassandraClusterSpec struct {
-	Sysctl []string
+	Sysctl    []string
+	NodePools []CassandraClusterNodePool
+}
+
+type CassandraClusterNodePool struct {
+	Name     string
+	Replicas int64
 }
 
 type CassandraClusterStatus struct {
