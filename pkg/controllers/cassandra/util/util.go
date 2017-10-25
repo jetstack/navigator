@@ -1,6 +1,8 @@
 package util
 
 import (
+	"fmt"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
@@ -27,6 +29,10 @@ func NewControllerRef(c *v1alpha1.CassandraCluster) metav1.OwnerReference {
 
 func ResourceBaseName(c *v1alpha1.CassandraCluster) string {
 	return typeName + "-" + c.Name
+}
+
+func NodePoolResourceName(c *v1alpha1.CassandraCluster, np *v1alpha1.CassandraClusterNodePool) string {
+	return fmt.Sprintf("%s-%s", ResourceBaseName(c), np.Name)
 }
 
 func ClusterLabels(c *v1alpha1.CassandraCluster) map[string]string {
