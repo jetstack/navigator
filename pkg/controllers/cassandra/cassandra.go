@@ -5,18 +5,20 @@ import (
 	"sync"
 	"time"
 
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-
 	"github.com/golang/glog"
 	"github.com/jetstack-experimental/navigator/pkg/apis/navigator"
 	navigatorclientset "github.com/jetstack-experimental/navigator/pkg/client/clientset/versioned"
 	informerv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/informers/externalversions/navigator/v1alpha1"
 	listersv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/listers/navigator/v1alpha1"
 	"github.com/jetstack-experimental/navigator/pkg/controllers"
+	"github.com/jetstack-experimental/navigator/pkg/controllers/cassandra/service"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
+	corev1informers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
+	corev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
@@ -40,6 +42,7 @@ func NewCassandra(
 	naviClient navigatorclientset.Interface,
 	kubeClient kubernetes.Interface,
 	cassClusters cache.SharedIndexInformer,
+	services cache.SharedIndexInformer,
 	recorder record.EventRecorder,
 ) *CassandraController {
 	queue := workqueue.NewNamedRateLimitingQueue(
@@ -48,15 +51,22 @@ func NewCassandra(
 	)
 
 	cc := &CassandraController{
-		queue: queue,
+		queue:    queue,
+		recorder: recorder,
 	}
 	cassClusters.AddEventHandler(&controllers.QueuingEventHandler{Queue: queue})
 	cc.cassLister = listersv1alpha1.NewCassandraClusterLister(
 		cassClusters.GetIndexer(),
 	)
 	cc.cassListerSynced = cassClusters.HasSynced
-
-	cc.control = NewControl(recorder)
+	cc.control = NewControl(
+		service.NewControl(
+			kubeClient,
+			corev1listers.NewServiceLister(services.GetIndexer()),
+			recorder,
+		),
+		recorder,
+	)
 	cc.recorder = recorder
 	return cc
 }
@@ -165,6 +175,22 @@ func init() {
 				},
 				informerv1alpha1.NewCassandraClusterInformer(
 					ctx.NavigatorClient,
+					ctx.Namespace,
+					time.Second*30,
+					cache.Indexers{
+						cache.NamespaceIndex: cache.MetaNamespaceIndexFunc,
+					},
+				),
+			),
+			ctx.SharedInformerFactory.InformerFor(
+				ctx.Namespace,
+				metav1.GroupVersionKind{
+					Group:   navigator.GroupName,
+					Version: "corev1",
+					Kind:    "Service",
+				},
+				corev1informers.NewServiceInformer(
+					ctx.Client,
 					ctx.Namespace,
 					time.Second*30,
 					cache.Indexers{
