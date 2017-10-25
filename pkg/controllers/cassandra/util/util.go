@@ -55,3 +55,7 @@ func SelectorForCluster(c *v1alpha1.CassandraCluster) (labels.Selector, error) {
 	}
 	return labels.NewSelector().Add(*clusterNameReq), nil
 }
+
+func Int32Ptr(i int32) *int32 {
+	return &i
+}
