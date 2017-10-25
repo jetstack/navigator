@@ -35,6 +35,13 @@ func NewControl(
 func (e *defaultCassandraClusterNodepoolControl) Sync(cluster *v1alpha1.CassandraCluster) error {
 	for _, pool := range cluster.Spec.NodePools {
 		glog.V(4).Infof("syncing nodepool: %#v", pool)
+		_, err := e.kubeClient.
+			AppsV1beta2().
+			StatefulSets(cluster.Namespace).
+			Create(StatefulSetForCluster(cluster, &pool))
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
