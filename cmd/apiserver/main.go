@@ -31,6 +31,8 @@ func main() {
 	if len(os.Getenv("GOMAXPROCS")) == 0 {
 		runtime.GOMAXPROCS(runtime.NumCPU())
 	}
+	
+	panic(nil);
 
 	stopCh := genericapiserver.SetupSignalHandler()
 	cmd := NewCommandStartNavigatorServer(os.Stdout, os.Stderr, stopCh)
