@@ -5,3 +5,6 @@ metadata:
 spec:
   sysctl:
   - vm.max_map_count=0
+  nodePools:
+  - name: RingNodes
+    replicas: 3
