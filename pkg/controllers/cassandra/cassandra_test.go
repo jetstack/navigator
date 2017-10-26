@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
-	navigatorfake "github.com/jetstack-experimental/navigator/pkg/client/clientset/versioned/fake"
-	"github.com/jetstack-experimental/navigator/pkg/client/informers/externalversions"
+	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
+	navigatorfake "github.com/jetstack/navigator/pkg/client/clientset/versioned/fake"
+	"github.com/jetstack/navigator/pkg/client/informers/externalversions"
 	"k8s.io/apimachinery/pkg/watch"
 	clienttesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
