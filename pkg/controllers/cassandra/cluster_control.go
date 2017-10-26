@@ -2,7 +2,7 @@ package cassandra
 
 import (
 	"github.com/golang/glog"
-	v1alpha1 "github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
+	v1alpha1 "github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	"k8s.io/client-go/tools/record"
 )
 

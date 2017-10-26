@@ -16,8 +16,8 @@ limitations under the License.
 package internalversion
 
 import (
-	navigator "github.com/jetstack-experimental/navigator/pkg/apis/navigator"
-	scheme "github.com/jetstack-experimental/navigator/pkg/client/clientset/internalversion/scheme"
+	navigator "github.com/jetstack/navigator/pkg/apis/navigator"
+	scheme "github.com/jetstack/navigator/pkg/client/clientset/internalversion/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"

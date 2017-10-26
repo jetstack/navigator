@@ -19,7 +19,7 @@ limitations under the License.
 package internalinterfaces
 
 import (
-	internalversion "github.com/jetstack-experimental/navigator/pkg/client/clientset/internalversion"
+	internalversion "github.com/jetstack/navigator/pkg/client/clientset/internalversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	cache "k8s.io/client-go/tools/cache"
 	time "time"

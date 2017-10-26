@@ -17,7 +17,7 @@ package internalversion
 
 import (
 	glog "github.com/golang/glog"
-	navigatorinternalversion "github.com/jetstack-experimental/navigator/pkg/client/clientset/internalversion/typed/navigator/internalversion"
+	navigatorinternalversion "github.com/jetstack/navigator/pkg/client/clientset/internalversion/typed/navigator/internalversion"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"

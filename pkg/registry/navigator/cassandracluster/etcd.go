@@ -18,8 +18,8 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic"
 	genericregistry "k8s.io/apiserver/pkg/registry/generic/registry"
 
-	"github.com/jetstack-experimental/navigator/pkg/apis/navigator"
-	"github.com/jetstack-experimental/navigator/pkg/registry"
+	"github.com/jetstack/navigator/pkg/apis/navigator"
+	"github.com/jetstack/navigator/pkg/registry"
 )
 
 // NewREST returns a RESTStorage object that will work against API services.
