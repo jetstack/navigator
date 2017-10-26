@@ -2,6 +2,7 @@
 
 ## Please note this project is in a pre-alpha state, and still requires extensive integration, unit testing & health checks. Contributions are extremely welcome.
 
+
 Navigator is a centralised controller for managing common stateful services on Kubernetes.
 It provides a framework for building high-level resource types in Kubernetes by utilising
 `ThirdPartyResource`s. It's conceptually similar to the `kube-controller-manager`, and is
