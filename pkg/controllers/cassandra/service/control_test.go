@@ -1,6 +1,7 @@
 package service_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/jetstack-experimental/navigator/pkg/controllers/cassandra/service"
@@ -9,6 +10,16 @@ import (
 )
 
 func TestServiceSync(t *testing.T) {
+	t.Run(
+		"sync error",
+		func(t *testing.T) {
+			f := casstesting.NewFixture(t)
+			f.ServiceControl = &casstesting.FakeControl{
+				SyncError: fmt.Errorf("simulated sync error"),
+			}
+			f.RunExpectError()
+		},
+	)
 	t.Run(
 		"service created",
 		func(t *testing.T) {

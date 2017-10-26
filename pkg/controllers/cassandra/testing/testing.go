@@ -57,8 +57,8 @@ func (f *Fixture) setupAndSync() error {
 	}()
 	f.k8sClient = fake.NewSimpleClientset(f.k8sObjects...)
 	k8sFactory := informers.NewSharedInformerFactory(f.k8sClient, 0)
+	services := k8sFactory.Core().V1().Services().Lister()
 	if f.ServiceControl == nil {
-		services := k8sFactory.Core().V1().Services().Lister()
 		f.ServiceControl = service.NewControl(f.k8sClient, services, recorder)
 	}
 	c := cassandra.NewControl(
@@ -87,7 +87,7 @@ func (f *Fixture) Run() {
 func (f *Fixture) RunExpectError() {
 	err := f.setupAndSync()
 	if err == nil {
-		f.t.Error(err)
+		f.t.Error("Sync was expected to return an error. Got nil.")
 	}
 }
 

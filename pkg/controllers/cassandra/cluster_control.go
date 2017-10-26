@@ -47,7 +47,7 @@ func (e *defaultCassandraClusterControl) Sync(c *v1alpha1.CassandraCluster) erro
 			apiv1.EventTypeWarning,
 			ErrorSync,
 			MessageErrorSyncService,
-			c,
+			err,
 		)
 		return err
 	}
