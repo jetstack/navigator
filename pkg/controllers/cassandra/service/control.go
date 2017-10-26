@@ -38,7 +38,7 @@ func NewControl(
 func (e *defaultCassandraClusterServiceControl) Sync(cluster *v1alpha1.CassandraCluster) error {
 	svc := ServiceForCluster(cluster)
 	client := e.kubeClient.CoreV1().Services(svc.Namespace)
-	existingSvc, err := e.serviceLister.Services(cluster.Namespace).Get(svc.Name)
+	existingSvc, err := e.serviceLister.Services(svc.Namespace).Get(svc.Name)
 	if k8sErrors.IsNotFound(err) {
 		_, err := client.Create(svc)
 		return err
