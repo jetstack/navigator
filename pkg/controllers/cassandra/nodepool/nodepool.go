@@ -1,6 +1,8 @@
 package nodepool
 
 import (
+	"fmt"
+
 	"github.com/golang/glog"
 	v1alpha1 "github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/util"
@@ -57,14 +59,13 @@ func (e *defaultCassandraClusterNodepoolControl) removeUnusedStatefulSets(
 	for _, set := range existingSets {
 		if !metav1.IsControlledBy(set, cluster) {
 			ownerRef := metav1.GetControllerOf(set)
-			glog.Errorf(
+			return fmt.Errorf(
 				"Foreign owned StatefulSet: "+
 					"A StatefulSet with name '%s/%s' already exists, "+
 					"but it is controlled by '%v', not '%s/%s'.",
 				set.Namespace, set.Name, ownerRef,
 				cluster.Namespace, cluster.Name,
 			)
-			continue
 		}
 		_, found := expectedStatefulSetNames[set.Name]
 		if !found {
@@ -77,35 +78,38 @@ func (e *defaultCassandraClusterNodepoolControl) removeUnusedStatefulSets(
 	return nil
 }
 
-func (e *defaultCassandraClusterNodepoolControl) createAndUpdateStatefulSets(
+func (e *defaultCassandraClusterNodepoolControl) createOrUpdateStatefulSet(
 	cluster *v1alpha1.CassandraCluster,
+	nodePool *v1alpha1.CassandraClusterNodePool,
 ) error {
 	client := e.kubeClient.AppsV1beta2().StatefulSets(cluster.Namespace)
-	for _, pool := range cluster.Spec.NodePools {
-		glog.V(4).Infof("syncing nodepool: %#v", pool)
-		desiredSet := StatefulSetForCluster(cluster, &pool)
-		_, err := client.Update(desiredSet)
-		if k8sErrors.IsNotFound(err) {
-			_, err := client.Create(desiredSet)
-			if err != nil {
-				return err
-			}
-		} else {
+	glog.V(4).Infof("syncing nodepool: %#v", nodePool)
+	desiredSet := StatefulSetForCluster(cluster, nodePool)
+	_, err := client.Update(desiredSet)
+	if k8sErrors.IsNotFound(err) {
+		_, err := client.Create(desiredSet)
+		if err != nil {
 			return err
 		}
+	} else {
+		return err
 	}
 	return nil
 }
 
-func (e *defaultCassandraClusterNodepoolControl) Sync(cluster *v1alpha1.CassandraCluster) error {
-	var err error
-	err = e.createAndUpdateStatefulSets(cluster)
-	if err != nil {
-		return err
+func (e *defaultCassandraClusterNodepoolControl) syncStatefulSets(
+	cluster *v1alpha1.CassandraCluster,
+) error {
+	for _, pool := range cluster.Spec.NodePools {
+		err := e.createOrUpdateStatefulSet(cluster, &pool)
+		if err != nil {
+			return err
+		}
 	}
-	err = e.removeUnusedStatefulSets(cluster)
-	if err != nil {
-		return err
-	}
+	err := e.removeUnusedStatefulSets(cluster)
 	return err
+}
+
+func (e *defaultCassandraClusterNodepoolControl) Sync(cluster *v1alpha1.CassandraCluster) error {
+	return e.syncStatefulSets(cluster)
 }

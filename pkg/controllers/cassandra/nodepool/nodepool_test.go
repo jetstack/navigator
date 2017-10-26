@@ -79,8 +79,7 @@ func TestNodePoolControlSync(t *testing.T) {
 
 			f.AddObjectK(foreignStatefulSet)
 			f.Cluster.Spec.NodePools = []v1alpha1.CassandraClusterNodePool{}
-			f.Run()
-			f.AssertStatefulSetsLength(1)
+			f.RunExpectError()
 		},
 	)
 }
