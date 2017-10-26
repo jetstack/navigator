@@ -32,7 +32,7 @@ func TestNodePoolControlSync(t *testing.T) {
 		},
 	)
 	t.Run(
-		"statefulset need updating",
+		"update statefulset",
 		func(t *testing.T) {
 			f := casstesting.NewFixture(t)
 			unsyncedSet := nodepool.StatefulSetForCluster(
@@ -50,6 +50,20 @@ func TestNodePoolControlSync(t *testing.T) {
 				t.Log(set)
 				t.Error("StatefulSet was not updated")
 			}
+		},
+	)
+	t.Run(
+		"error on update foreign statefulset",
+		func(t *testing.T) {
+			f := casstesting.NewFixture(t)
+			foreignUnsyncedSet := nodepool.StatefulSetForCluster(
+				f.Cluster,
+				&f.Cluster.Spec.NodePools[0],
+			)
+			foreignUnsyncedSet.SetLabels(map[string]string{})
+			foreignUnsyncedSet.OwnerReferences = nil
+			f.AddObjectK(foreignUnsyncedSet)
+			f.RunExpectError()
 		},
 	)
 	t.Run(

@@ -3,7 +3,6 @@ package nodepool
 import (
 	"fmt"
 
-	"github.com/golang/glog"
 	v1alpha1 "github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/util"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -83,18 +82,29 @@ func (e *defaultCassandraClusterNodepoolControl) createOrUpdateStatefulSet(
 	nodePool *v1alpha1.CassandraClusterNodePool,
 ) error {
 	client := e.kubeClient.AppsV1beta2().StatefulSets(cluster.Namespace)
-	glog.V(4).Infof("syncing nodepool: %#v", nodePool)
 	desiredSet := StatefulSetForCluster(cluster, nodePool)
-	_, err := client.Update(desiredSet)
+	existingSet, err := e.statefulsetLister.
+		StatefulSets(desiredSet.Namespace).
+		Get(desiredSet.Name)
 	if k8sErrors.IsNotFound(err) {
-		_, err := client.Create(desiredSet)
-		if err != nil {
-			return err
-		}
-	} else {
+		_, err = client.Create(desiredSet)
 		return err
 	}
-	return nil
+	if err != nil {
+		return err
+	}
+	if !metav1.IsControlledBy(existingSet, cluster) {
+		ownerRef := metav1.GetControllerOf(existingSet)
+		return fmt.Errorf(
+			"Foreign owned StatefulSet: "+
+				"A StatefulSet with name '%s/%s' already exists, "+
+				"but it is controlled by '%v', not '%s/%s'.",
+			existingSet.Namespace, existingSet.Name, ownerRef,
+			cluster.Namespace, cluster.Name,
+		)
+	}
+	_, err = client.Update(desiredSet)
+	return err
 }
 
 func (e *defaultCassandraClusterNodepoolControl) syncStatefulSets(
