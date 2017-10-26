@@ -188,8 +188,7 @@ func init() {
 			ctx.SharedInformerFactory.InformerFor(
 				ctx.Namespace,
 				metav1.GroupVersionKind{
-					Group:   navigator.GroupName,
-					Version: "corev1",
+					Version: "v1",
 					Kind:    "Service",
 				},
 				corev1informers.NewServiceInformer(
