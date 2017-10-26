@@ -3,19 +3,21 @@ package cassandra
 import (
 	"github.com/golang/glog"
 	v1alpha1 "github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
+	"github.com/jetstack/navigator/pkg/controllers/cassandra/service"
+	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
 )
 
 const (
-	errorSync = "ErrSync"
+	ErrorSync = "ErrSync"
 
-	successSync = "SuccessSync"
+	SuccessSync = "SuccessSync"
 
-	messageErrorSyncServiceAccount = "Error syncing service account: %s"
-	messageErrorSyncConfigMap      = "Error syncing config map: %s"
-	messageErrorSyncService        = "Error syncing service: %s"
-	messageErrorSyncNodePools      = "Error syncing node pools: %s"
-	messageSuccessSync             = "Successfully synced CassandraCluster"
+	MessageErrorSyncServiceAccount = "Error syncing service account: %s"
+	MessageErrorSyncConfigMap      = "Error syncing config map: %s"
+	MessageErrorSyncService        = "Error syncing service: %s"
+	MessageErrorSyncNodePools      = "Error syncing node pools: %s"
+	MessageSuccessSync             = "Successfully synced CassandraCluster"
 )
 
 type ControlInterface interface {
@@ -25,22 +27,35 @@ type ControlInterface interface {
 var _ ControlInterface = &defaultCassandraClusterControl{}
 
 type defaultCassandraClusterControl struct {
-	recorder record.EventRecorder
+	serviceControl service.Interface
+	recorder       record.EventRecorder
 }
 
-func NewControl(recorder record.EventRecorder) ControlInterface {
+func NewControl(serviceControl service.Interface, recorder record.EventRecorder) ControlInterface {
 	return &defaultCassandraClusterControl{
-		recorder: recorder,
+		serviceControl: serviceControl,
+		recorder:       recorder,
 	}
 }
 
 func (e *defaultCassandraClusterControl) Sync(c *v1alpha1.CassandraCluster) error {
 	glog.V(4).Infof("defaultCassandraClusterControl.Sync")
+	err := e.serviceControl.Sync(c)
+	if err != nil {
+		e.recorder.Eventf(
+			c,
+			apiv1.EventTypeWarning,
+			ErrorSync,
+			MessageErrorSyncService,
+			err,
+		)
+		return err
+	}
 	e.recorder.Event(
 		c,
-		"cassandra.defaultCassandraClusterControl",
-		successSync,
-		messageSuccessSync,
+		apiv1.EventTypeNormal,
+		SuccessSync,
+		MessageSuccessSync,
 	)
 	return nil
 }
