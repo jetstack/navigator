@@ -3,9 +3,9 @@ package testing
 import (
 	"testing"
 
-	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
-	"github.com/jetstack-experimental/navigator/pkg/controllers/cassandra"
-	"github.com/jetstack-experimental/navigator/pkg/controllers/cassandra/service"
+	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
+	"github.com/jetstack/navigator/pkg/controllers/cassandra"
+	"github.com/jetstack/navigator/pkg/controllers/cassandra/service"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 

@@ -2,7 +2,7 @@ package v5
 
 import (
 	"fmt"
-	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
+	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 )
 

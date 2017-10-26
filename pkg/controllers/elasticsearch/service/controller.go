@@ -9,7 +9,7 @@ import (
 	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/record"
 
-	v1alpha1 "github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
+	v1alpha1 "github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 )
 
 type Interface interface {

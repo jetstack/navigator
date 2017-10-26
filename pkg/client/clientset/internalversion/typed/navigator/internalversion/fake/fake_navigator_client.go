@@ -16,7 +16,7 @@ limitations under the License.
 package fake
 
 import (
-	internalversion "github.com/jetstack-experimental/navigator/pkg/client/clientset/internalversion/typed/navigator/internalversion"
+	internalversion "github.com/jetstack/navigator/pkg/client/clientset/internalversion/typed/navigator/internalversion"
 	rest "k8s.io/client-go/rest"
 	testing "k8s.io/client-go/testing"
 )

@@ -3,7 +3,7 @@ package service
 import (
 	"fmt"
 
-	v1alpha1 "github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
+	v1alpha1 "github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"

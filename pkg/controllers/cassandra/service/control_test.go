@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/jetstack-experimental/navigator/pkg/controllers/cassandra/service"
-	casstesting "github.com/jetstack-experimental/navigator/pkg/controllers/cassandra/testing"
+	"github.com/jetstack/navigator/pkg/controllers/cassandra/service"
+	casstesting "github.com/jetstack/navigator/pkg/controllers/cassandra/testing"
 	"k8s.io/api/core/v1"
 )
 

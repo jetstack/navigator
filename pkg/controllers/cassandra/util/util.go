@@ -4,8 +4,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	"github.com/jetstack-experimental/navigator/pkg/apis/navigator"
-	v1alpha1 "github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
+	"github.com/jetstack/navigator/pkg/apis/navigator"
+	v1alpha1 "github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 )
 
 const (

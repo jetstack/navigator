@@ -20,16 +20,16 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 
-	"github.com/jetstack-experimental/navigator/pkg/apis/navigator"
-	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
-	clientset "github.com/jetstack-experimental/navigator/pkg/client/clientset/versioned"
-	informerv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/informers/externalversions/navigator/v1alpha1"
-	listersv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/listers/navigator/v1alpha1"
-	"github.com/jetstack-experimental/navigator/pkg/controllers"
-	"github.com/jetstack-experimental/navigator/pkg/controllers/elasticsearch/configmap"
-	"github.com/jetstack-experimental/navigator/pkg/controllers/elasticsearch/nodepool"
-	"github.com/jetstack-experimental/navigator/pkg/controllers/elasticsearch/service"
-	"github.com/jetstack-experimental/navigator/pkg/controllers/elasticsearch/serviceaccount"
+	"github.com/jetstack/navigator/pkg/apis/navigator"
+	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
+	clientset "github.com/jetstack/navigator/pkg/client/clientset/versioned"
+	informerv1alpha1 "github.com/jetstack/navigator/pkg/client/informers/externalversions/navigator/v1alpha1"
+	listersv1alpha1 "github.com/jetstack/navigator/pkg/client/listers/navigator/v1alpha1"
+	"github.com/jetstack/navigator/pkg/controllers"
+	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/configmap"
+	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/nodepool"
+	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/service"
+	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/serviceaccount"
 )
 
 type ElasticsearchController struct {
