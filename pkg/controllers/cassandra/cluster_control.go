@@ -4,6 +4,7 @@ import (
 	"github.com/golang/glog"
 	v1alpha1 "github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack-experimental/navigator/pkg/controllers/cassandra/service"
+	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
 )
 
@@ -43,7 +44,7 @@ func (e *defaultCassandraClusterControl) Sync(c *v1alpha1.CassandraCluster) erro
 	if err != nil {
 		e.recorder.Eventf(
 			c,
-			"cassandra.defaultCassandraClusterControl",
+			apiv1.EventTypeWarning,
 			ErrorSync,
 			MessageErrorSyncService,
 			c,
@@ -52,7 +53,7 @@ func (e *defaultCassandraClusterControl) Sync(c *v1alpha1.CassandraCluster) erro
 	}
 	e.recorder.Event(
 		c,
-		"cassandra.defaultCassandraClusterControl",
+		apiv1.EventTypeNormal,
 		SuccessSync,
 		MessageSuccessSync,
 	)
