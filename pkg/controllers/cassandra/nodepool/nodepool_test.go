@@ -67,5 +67,4 @@ func TestNodePoolControlSync(t *testing.T) {
 			f.AssertStatefulSetsLength(0)
 		},
 	)
-
 }

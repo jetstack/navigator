@@ -1,8 +1,6 @@
 package nodepool
 
 import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"github.com/golang/glog"
 	v1alpha1 "github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/util"
@@ -49,15 +47,13 @@ func (e *defaultCassandraClusterNodepoolControl) removeUnusedStatefulSets(
 	if err != nil {
 		return err
 	}
-	existingSets, err := client.List(
-		metav1.ListOptions{
-			LabelSelector: selector.String(),
-		},
-	)
+	existingSets, err := e.statefulsetLister.
+		StatefulSets(cluster.Namespace).
+		List(selector)
 	if err != nil {
 		return err
 	}
-	for _, set := range existingSets.Items {
+	for _, set := range existingSets {
 		_, found := expectedStatefulSetNames[set.Name]
 		if !found {
 			err := client.Delete(set.Name, nil)
