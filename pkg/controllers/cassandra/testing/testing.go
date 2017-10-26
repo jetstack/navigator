@@ -96,6 +96,7 @@ func (f *Fixture) setupAndSync() error {
 	if !cache.WaitForCacheSync(
 		stopCh,
 		k8sFactory.Core().V1().Services().Informer().HasSynced,
+		k8sFactory.Apps().V1beta2().StatefulSets().Informer().HasSynced,
 	) {
 		f.t.Fatal("WaitForCacheSync failure")
 	}
