@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 )
 
@@ -55,8 +56,8 @@ func (f *Fixture) setupAndSync() error {
 		close(finished)
 	}()
 	f.k8sClient = fake.NewSimpleClientset(f.k8sObjects...)
+	k8sFactory := informers.NewSharedInformerFactory(f.k8sClient, 0)
 	if f.ServiceControl == nil {
-		k8sFactory := informers.NewSharedInformerFactory(f.k8sClient, 0)
 		services := k8sFactory.Core().V1().Services().Lister()
 		f.ServiceControl = service.NewControl(f.k8sClient, services, recorder)
 	}
@@ -64,6 +65,15 @@ func (f *Fixture) setupAndSync() error {
 		f.ServiceControl,
 		recorder,
 	)
+	stopCh := make(chan struct{})
+	defer close(stopCh)
+	k8sFactory.Start(stopCh)
+	if !cache.WaitForCacheSync(
+		stopCh,
+		k8sFactory.Core().V1().Services().Informer().HasSynced,
+	) {
+		f.t.Fatal("WaitForCacheSync failure")
+	}
 	return c.Sync(f.Cluster)
 }
 
