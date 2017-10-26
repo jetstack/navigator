@@ -23,8 +23,8 @@ import (
 	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	"github.com/jetstack-experimental/navigator/pkg/apis/navigator"
-	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
+	"github.com/jetstack/navigator/pkg/apis/navigator"
+	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 )
 
 // Install registers the API group and adds types to a scheme

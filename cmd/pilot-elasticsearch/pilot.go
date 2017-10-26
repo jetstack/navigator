@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/jetstack-experimental/navigator/pkg/pilot/elasticsearch/v5"
+	"github.com/jetstack/navigator/pkg/pilot/elasticsearch/v5"
 	"github.com/spf13/cobra"
 	"io"
 )

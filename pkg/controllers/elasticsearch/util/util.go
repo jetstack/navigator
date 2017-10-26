@@ -6,8 +6,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/selection"
 
-	"github.com/jetstack-experimental/navigator/pkg/apis/navigator"
-	v1alpha1 "github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
+	"github.com/jetstack/navigator/pkg/apis/navigator"
+	v1alpha1 "github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 )
 
 const (

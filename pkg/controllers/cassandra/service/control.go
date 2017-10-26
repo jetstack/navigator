@@ -1,8 +1,11 @@
 package service
 
 import (
-	v1alpha1 "github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
+	"fmt"
+
+	v1alpha1 "github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/record"
@@ -34,9 +37,23 @@ func NewControl(
 
 func (e *defaultCassandraClusterServiceControl) Sync(cluster *v1alpha1.CassandraCluster) error {
 	svc := ServiceForCluster(cluster)
-	_, err := e.kubeClient.CoreV1().Services(svc.Namespace).Update(svc)
+	client := e.kubeClient.CoreV1().Services(svc.Namespace)
+	existingSvc, err := e.serviceLister.Services(svc.Namespace).Get(svc.Name)
 	if k8sErrors.IsNotFound(err) {
-		_, err = e.kubeClient.CoreV1().Services(svc.Namespace).Create(svc)
+		_, err = client.Create(svc)
+		return err
 	}
+	if err != nil {
+		return err
+	}
+	if !metav1.IsControlledBy(existingSvc, cluster) {
+		ownerRef := metav1.GetControllerOf(existingSvc)
+		return fmt.Errorf(
+			"A service with name '%s/%s' already exists, "+
+				"but it is controlled by '%v', not '%s/%s'.",
+			svc.Namespace, svc.Name, ownerRef, cluster.Namespace, cluster.Name,
+		)
+	}
+	_, err = client.Update(svc)
 	return err
 }

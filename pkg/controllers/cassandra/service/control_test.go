@@ -1,14 +1,25 @@
 package service_test
 
 import (
+	"fmt"
 	"testing"
 
-	"github.com/jetstack-experimental/navigator/pkg/controllers/cassandra/service"
-	casstesting "github.com/jetstack-experimental/navigator/pkg/controllers/cassandra/testing"
+	"github.com/jetstack/navigator/pkg/controllers/cassandra/service"
+	casstesting "github.com/jetstack/navigator/pkg/controllers/cassandra/testing"
 	"k8s.io/api/core/v1"
 )
 
 func TestServiceSync(t *testing.T) {
+	t.Run(
+		"sync error",
+		func(t *testing.T) {
+			f := casstesting.NewFixture(t)
+			f.ServiceControl = &casstesting.FakeControl{
+				SyncError: fmt.Errorf("simulated sync error"),
+			}
+			f.RunExpectError()
+		},
+	)
 	t.Run(
 		"service created",
 		func(t *testing.T) {
@@ -42,6 +53,18 @@ func TestServiceSync(t *testing.T) {
 				t.Log(service)
 				t.Error("Service was not updated")
 			}
+		},
+	)
+	t.Run(
+		"service with outside owner",
+		func(t *testing.T) {
+			f := casstesting.NewFixture(t)
+			// Remove the ports from the default cluster and expect them to be
+			// re-created.
+			unownedService := service.ServiceForCluster(f.Cluster)
+			unownedService.OwnerReferences = nil
+			f.AddObjectK(unownedService)
+			f.RunExpectError()
 		},
 	)
 }

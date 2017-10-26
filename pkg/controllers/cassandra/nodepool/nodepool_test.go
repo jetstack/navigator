@@ -3,9 +3,9 @@ package nodepool_test
 import (
 	"testing"
 
-	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
-	"github.com/jetstack-experimental/navigator/pkg/controllers/cassandra/nodepool"
-	casstesting "github.com/jetstack-experimental/navigator/pkg/controllers/cassandra/testing"
+	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
+	"github.com/jetstack/navigator/pkg/controllers/cassandra/nodepool"
+	casstesting "github.com/jetstack/navigator/pkg/controllers/cassandra/testing"
 )
 
 func TestNodePoolControlSync(t *testing.T) {

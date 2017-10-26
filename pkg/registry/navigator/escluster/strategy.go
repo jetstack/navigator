@@ -26,7 +26,7 @@ import (
 	"k8s.io/apiserver/pkg/storage"
 	"k8s.io/apiserver/pkg/storage/names"
 
-	"github.com/jetstack-experimental/navigator/pkg/apis/navigator"
+	"github.com/jetstack/navigator/pkg/apis/navigator"
 )
 
 func NewStrategy(typer runtime.ObjectTyper) esClusterStrategy {

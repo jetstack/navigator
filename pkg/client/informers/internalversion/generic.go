@@ -20,7 +20,7 @@ package internalversion
 
 import (
 	"fmt"
-	navigator "github.com/jetstack-experimental/navigator/pkg/apis/navigator"
+	navigator "github.com/jetstack/navigator/pkg/apis/navigator"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )
