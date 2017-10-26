@@ -40,9 +40,10 @@ func (e *defaultCassandraClusterServiceControl) Sync(cluster *v1alpha1.Cassandra
 	client := e.kubeClient.CoreV1().Services(svc.Namespace)
 	existingSvc, err := e.serviceLister.Services(svc.Namespace).Get(svc.Name)
 	if k8sErrors.IsNotFound(err) {
-		_, err := client.Create(svc)
+		_, err = client.Create(svc)
 		return err
-	} else if err != nil {
+	}
+	if err != nil {
 		return err
 	}
 	if !metav1.IsControlledBy(existingSvc, cluster) {
