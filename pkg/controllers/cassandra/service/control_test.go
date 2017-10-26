@@ -55,4 +55,16 @@ func TestServiceSync(t *testing.T) {
 			}
 		},
 	)
+	t.Run(
+		"service with outside owner",
+		func(t *testing.T) {
+			f := casstesting.NewFixture(t)
+			// Remove the ports from the default cluster and expect them to be
+			// re-created.
+			unownedService := service.ServiceForCluster(f.Cluster)
+			unownedService.OwnerReferences = nil
+			f.AddObjectK(unownedService)
+			f.RunExpectError()
+		},
+	)
 }

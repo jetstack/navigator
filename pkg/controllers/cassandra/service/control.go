@@ -47,7 +47,12 @@ func (e *defaultCassandraClusterServiceControl) Sync(cluster *v1alpha1.Cassandra
 		return err
 	}
 	if !metav1.IsControlledBy(existingSvc, cluster) {
-		return fmt.Errorf("Duplicate service detected: %s", svc)
+		ownerRef := metav1.GetControllerOf(existingSvc)
+		return fmt.Errorf(
+			"A service with name '%s/%s' already exists, "+
+				"but it is controlled by '%v', not '%s/%s'.",
+			svc.Namespace, svc.Name, ownerRef, cluster.Namespace, cluster.Name,
+		)
 	}
 	_, err = client.Update(svc)
 	return err
