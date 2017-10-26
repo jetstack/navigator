@@ -12,8 +12,8 @@ import (
 	"k8s.io/apimachinery/pkg/selection"
 	appslisters "k8s.io/client-go/listers/apps/v1beta1"
 
-	v1alpha1 "github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
-	hashutil "github.com/jetstack-experimental/navigator/pkg/util/hash"
+	v1alpha1 "github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
+	hashutil "github.com/jetstack/navigator/pkg/util/hash"
 )
 
 const (

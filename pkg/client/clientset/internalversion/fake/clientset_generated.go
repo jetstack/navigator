@@ -16,9 +16,9 @@ limitations under the License.
 package fake
 
 import (
-	clientset "github.com/jetstack-experimental/navigator/pkg/client/clientset/internalversion"
-	navigatorinternalversion "github.com/jetstack-experimental/navigator/pkg/client/clientset/internalversion/typed/navigator/internalversion"
-	fakenavigatorinternalversion "github.com/jetstack-experimental/navigator/pkg/client/clientset/internalversion/typed/navigator/internalversion/fake"
+	clientset "github.com/jetstack/navigator/pkg/client/clientset/internalversion"
+	navigatorinternalversion "github.com/jetstack/navigator/pkg/client/clientset/internalversion/typed/navigator/internalversion"
+	fakenavigatorinternalversion "github.com/jetstack/navigator/pkg/client/clientset/internalversion/typed/navigator/internalversion/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"

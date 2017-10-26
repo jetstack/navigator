@@ -19,8 +19,8 @@ limitations under the License.
 package navigator
 
 import (
-	internalinterfaces "github.com/jetstack-experimental/navigator/pkg/client/informers/externalversions/internalinterfaces"
-	v1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/informers/externalversions/navigator/v1alpha1"
+	internalinterfaces "github.com/jetstack/navigator/pkg/client/informers/externalversions/internalinterfaces"
+	v1alpha1 "github.com/jetstack/navigator/pkg/client/informers/externalversions/navigator/v1alpha1"
 )
 
 // Interface provides access to each of this group's versions.

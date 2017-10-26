@@ -6,7 +6,7 @@ import (
 
 	"github.com/golang/glog"
 
-	"github.com/jetstack-experimental/navigator/pkg/pilot/genericpilot/probe"
+	"github.com/jetstack/navigator/pkg/pilot/genericpilot/probe"
 )
 
 func (p *Pilot) ReadinessCheck() probe.Check {

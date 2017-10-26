@@ -16,7 +16,7 @@ limitations under the License.
 package scheme
 
 import (
-	navigator "github.com/jetstack-experimental/navigator/pkg/apis/navigator/install"
+	navigator "github.com/jetstack/navigator/pkg/apis/navigator/install"
 	announced "k8s.io/apimachinery/pkg/apimachinery/announced"
 	registered "k8s.io/apimachinery/pkg/apimachinery/registered"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"

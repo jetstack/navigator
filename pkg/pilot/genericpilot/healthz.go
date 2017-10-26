@@ -1,6 +1,6 @@
 package genericpilot
 
-import "github.com/jetstack-experimental/navigator/pkg/pilot/genericpilot/probe"
+import "github.com/jetstack/navigator/pkg/pilot/genericpilot/probe"
 
 func (g *GenericPilot) serveHealthz() {
 	// Start readiness checker
