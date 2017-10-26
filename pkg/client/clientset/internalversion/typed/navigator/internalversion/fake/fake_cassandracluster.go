@@ -16,7 +16,7 @@ limitations under the License.
 package fake
 
 import (
-	navigator "github.com/jetstack-experimental/navigator/pkg/apis/navigator"
+	navigator "github.com/jetstack/navigator/pkg/apis/navigator"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
