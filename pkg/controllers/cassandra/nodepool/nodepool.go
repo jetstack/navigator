@@ -5,6 +5,7 @@ import (
 	v1alpha1 "github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/util"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	appslisters "k8s.io/client-go/listers/apps/v1beta2"
 	"k8s.io/client-go/tools/record"
@@ -54,6 +55,17 @@ func (e *defaultCassandraClusterNodepoolControl) removeUnusedStatefulSets(
 		return err
 	}
 	for _, set := range existingSets {
+		if !metav1.IsControlledBy(set, cluster) {
+			ownerRef := metav1.GetControllerOf(set)
+			glog.Errorf(
+				"Foreign owned StatefulSet: "+
+					"A StatefulSet with name '%s/%s' already exists, "+
+					"but it is controlled by '%v', not '%s/%s'.",
+				set.Namespace, set.Name, ownerRef,
+				cluster.Namespace, cluster.Name,
+			)
+			continue
+		}
 		_, found := expectedStatefulSetNames[set.Name]
 		if !found {
 			err := client.Delete(set.Name, nil)

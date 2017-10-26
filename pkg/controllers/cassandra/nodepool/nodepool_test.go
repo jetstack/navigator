@@ -67,4 +67,20 @@ func TestNodePoolControlSync(t *testing.T) {
 			f.AssertStatefulSetsLength(0)
 		},
 	)
+	t.Run(
+		"do not delete foreign owned stateful sets",
+		func(t *testing.T) {
+			f := casstesting.NewFixture(t)
+			foreignStatefulSet := nodepool.StatefulSetForCluster(
+				f.Cluster,
+				&f.Cluster.Spec.NodePools[0],
+			)
+			foreignStatefulSet.OwnerReferences = nil
+
+			f.AddObjectK(foreignStatefulSet)
+			f.Cluster.Spec.NodePools = []v1alpha1.CassandraClusterNodePool{}
+			f.Run()
+			f.AssertStatefulSetsLength(1)
+		},
+	)
 }
