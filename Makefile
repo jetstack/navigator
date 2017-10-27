@@ -32,11 +32,19 @@ all: verify build docker_build
 
 test: go_test
 
+start_minikube:
+	# Create a cluster. We do this as root as we are using the 'docker' driver.
+	# We enable RBAC on the cluster too, to test the RBAC in Navigators chart
+	CHANGE_MINIKUBE_NONE_USER=true minikube start --vm-driver=none --kubernetes-version="v1.7.0" --extra-config=apiserver.Authorization.Mode=RBAC
+	while true; do if kubectl get nodes; then break; fi; echo "Waiting 5s for kubernetes to be ready..."; sleep 5; done
+	# Fix problems with kube-dns + rbac
+	kubectl create serviceaccount --namespace kube-system kube-dns
+
 .hack_e2e:
 	@${HACK_DIR}/prepare-e2e.sh
 	@${HACK_DIR}/e2e.sh
 
-e2e-test: docker_build .hack_e2e
+e2e-test: start_minikube build docker_build .hack_e2e
 
 build: $(CMDS)
 
