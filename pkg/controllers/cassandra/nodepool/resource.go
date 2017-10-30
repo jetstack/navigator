@@ -1,8 +1,8 @@
 package nodepool
 
 import (
-	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
-	"github.com/jetstack-experimental/navigator/pkg/controllers/cassandra/util"
+	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
+	"github.com/jetstack/navigator/pkg/controllers/cassandra/util"
 	apps "k8s.io/api/apps/v1beta2"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

@@ -22,7 +22,7 @@ import (
 	"k8s.io/apiserver/pkg/util/logs"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
-	"github.com/jetstack-experimental/navigator/pkg/pilot/genericpilot"
+	"github.com/jetstack/navigator/pkg/pilot/genericpilot"
 )
 
 func main() {

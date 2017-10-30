@@ -13,9 +13,9 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 
-	clientset "github.com/jetstack-experimental/navigator/pkg/client/clientset/versioned"
-	listersv1alpha1 "github.com/jetstack-experimental/navigator/pkg/client/listers/navigator/v1alpha1"
-	"github.com/jetstack-experimental/navigator/pkg/pilot/genericpilot/process"
+	clientset "github.com/jetstack/navigator/pkg/client/clientset/versioned"
+	listersv1alpha1 "github.com/jetstack/navigator/pkg/client/listers/navigator/v1alpha1"
+	"github.com/jetstack/navigator/pkg/pilot/genericpilot/process"
 )
 
 type GenericPilot struct {

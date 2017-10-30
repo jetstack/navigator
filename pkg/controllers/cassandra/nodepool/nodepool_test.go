@@ -3,9 +3,9 @@ package nodepool_test
 import (
 	"testing"
 
-	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
-	"github.com/jetstack-experimental/navigator/pkg/controllers/cassandra/nodepool"
-	casstesting "github.com/jetstack-experimental/navigator/pkg/controllers/cassandra/testing"
+	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
+	"github.com/jetstack/navigator/pkg/controllers/cassandra/nodepool"
+	casstesting "github.com/jetstack/navigator/pkg/controllers/cassandra/testing"
 )
 
 func TestNodePoolControlSync(t *testing.T) {
@@ -32,7 +32,7 @@ func TestNodePoolControlSync(t *testing.T) {
 		},
 	)
 	t.Run(
-		"statefulset need updating",
+		"update statefulset",
 		func(t *testing.T) {
 			f := casstesting.NewFixture(t)
 			unsyncedSet := nodepool.StatefulSetForCluster(
@@ -53,6 +53,20 @@ func TestNodePoolControlSync(t *testing.T) {
 		},
 	)
 	t.Run(
+		"error on update foreign statefulset",
+		func(t *testing.T) {
+			f := casstesting.NewFixture(t)
+			foreignUnsyncedSet := nodepool.StatefulSetForCluster(
+				f.Cluster,
+				&f.Cluster.Spec.NodePools[0],
+			)
+			foreignUnsyncedSet.SetLabels(map[string]string{})
+			foreignUnsyncedSet.OwnerReferences = nil
+			f.AddObjectK(foreignUnsyncedSet)
+			f.RunExpectError()
+		},
+	)
+	t.Run(
 		"delete statefulset without nodepool",
 		func(t *testing.T) {
 			f := casstesting.NewFixture(t)
@@ -67,5 +81,19 @@ func TestNodePoolControlSync(t *testing.T) {
 			f.AssertStatefulSetsLength(0)
 		},
 	)
+	t.Run(
+		"do not delete foreign owned stateful sets",
+		func(t *testing.T) {
+			f := casstesting.NewFixture(t)
+			foreignStatefulSet := nodepool.StatefulSetForCluster(
+				f.Cluster,
+				&f.Cluster.Spec.NodePools[0],
+			)
+			foreignStatefulSet.OwnerReferences = nil
 
+			f.AddObjectK(foreignStatefulSet)
+			f.Cluster.Spec.NodePools = []v1alpha1.CassandraClusterNodePool{}
+			f.RunExpectError()
+		},
+	)
 }

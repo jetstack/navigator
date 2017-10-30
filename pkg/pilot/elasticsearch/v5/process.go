@@ -5,7 +5,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
+	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 )
 
 func (p *Pilot) CmdFunc(pilot *v1alpha1.Pilot) (*exec.Cmd, error) {

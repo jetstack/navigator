@@ -10,9 +10,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/selection"
 
-	"github.com/jetstack-experimental/navigator/pkg/apis/navigator"
-	v1alpha1 "github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
-	hashutil "github.com/jetstack-experimental/navigator/pkg/util/hash"
+	"github.com/jetstack/navigator/pkg/apis/navigator"
+	v1alpha1 "github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
+	hashutil "github.com/jetstack/navigator/pkg/util/hash"
 )
 
 const (

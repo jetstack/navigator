@@ -3,10 +3,11 @@ package testing
 import (
 	"testing"
 
-	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
-	"github.com/jetstack-experimental/navigator/pkg/controllers/cassandra"
-	"github.com/jetstack-experimental/navigator/pkg/controllers/cassandra/nodepool"
-	"github.com/jetstack-experimental/navigator/pkg/controllers/cassandra/service"
+	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
+	"github.com/jetstack/navigator/pkg/controllers/cassandra"
+	"github.com/jetstack/navigator/pkg/controllers/cassandra/nodepool"
+	"github.com/jetstack/navigator/pkg/controllers/cassandra/service"
+
 	"k8s.io/api/apps/v1beta2"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -14,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 )
 
@@ -68,25 +70,36 @@ func (f *Fixture) setupAndSync() error {
 	}()
 	f.k8sClient = fake.NewSimpleClientset(f.k8sObjects...)
 	k8sFactory := informers.NewSharedInformerFactory(f.k8sClient, 0)
+
+	services := k8sFactory.Core().V1().Services().Lister()
 	if f.ServiceControl == nil {
-		f.ServiceControl = service.NewControl(
-			f.k8sClient,
-			k8sFactory.Core().V1().Services().Lister(),
-			recorder,
-		)
+		f.ServiceControl = service.NewControl(f.k8sClient, services, recorder)
 	}
+
+	statefulSets := k8sFactory.Apps().V1beta2().StatefulSets().Lister()
 	if f.NodepoolControl == nil {
 		f.NodepoolControl = nodepool.NewControl(
 			f.k8sClient,
-			k8sFactory.Apps().V1beta2().StatefulSets().Lister(),
+			statefulSets,
 			recorder,
 		)
 	}
+
 	c := cassandra.NewControl(
 		f.ServiceControl,
 		f.NodepoolControl,
 		recorder,
 	)
+	stopCh := make(chan struct{})
+	defer close(stopCh)
+	k8sFactory.Start(stopCh)
+	if !cache.WaitForCacheSync(
+		stopCh,
+		k8sFactory.Core().V1().Services().Informer().HasSynced,
+		k8sFactory.Apps().V1beta2().StatefulSets().Informer().HasSynced,
+	) {
+		f.t.Fatal("WaitForCacheSync failure")
+	}
 	return c.Sync(f.Cluster)
 }
 
@@ -100,7 +113,7 @@ func (f *Fixture) Run() {
 func (f *Fixture) RunExpectError() {
 	err := f.setupAndSync()
 	if err == nil {
-		f.t.Error(err)
+		f.t.Error("Sync was expected to return an error. Got nil.")
 	}
 }
 

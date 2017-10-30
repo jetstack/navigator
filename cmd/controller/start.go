@@ -8,10 +8,10 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
-	"github.com/jetstack-experimental/navigator/cmd/controller/app"
-	"github.com/jetstack-experimental/navigator/cmd/controller/app/options"
-	_ "github.com/jetstack-experimental/navigator/pkg/controllers/cassandra"
-	_ "github.com/jetstack-experimental/navigator/pkg/controllers/elasticsearch"
+	"github.com/jetstack/navigator/cmd/controller/app"
+	"github.com/jetstack/navigator/cmd/controller/app/options"
+	_ "github.com/jetstack/navigator/pkg/controllers/cassandra"
+	_ "github.com/jetstack/navigator/pkg/controllers/elasticsearch"
 )
 
 type NavigatorControllerOptions struct {
