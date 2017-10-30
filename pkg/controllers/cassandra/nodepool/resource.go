@@ -1,6 +1,8 @@
 package nodepool
 
 import (
+	"fmt"
+
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/util"
 	apps "k8s.io/api/apps/v1beta2"
@@ -14,6 +16,7 @@ func StatefulSetForCluster(
 ) *apps.StatefulSet {
 
 	statefulSetName := util.NodePoolResourceName(cluster, np)
+	serviceName := util.ResourceBaseName(cluster)
 	nodePoolLabels := util.NodePoolLabels(cluster, np.Name)
 	set := &apps.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -25,7 +28,7 @@ func StatefulSetForCluster(
 		},
 		Spec: apps.StatefulSetSpec{
 			Replicas:    util.Int32Ptr(int32(np.Replicas)),
-			ServiceName: statefulSetName,
+			ServiceName: serviceName,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: nodePoolLabels,
 			},
@@ -59,6 +62,49 @@ func StatefulSetForCluster(
 								{
 									Name:          "cql",
 									ContainerPort: int32(9042),
+								},
+							},
+							Env: []apiv1.EnvVar{
+								{
+									Name:  "MAX_HEAP_SIZE",
+									Value: "512M",
+								},
+								{
+									Name:  "HEAP_NEWSIZE",
+									Value: "100M",
+								},
+								{
+									Name: "CASSANDRA_SEEDS",
+									Value: fmt.Sprintf(
+										"%s-0.%s.%s.svc.cluster.local",
+										statefulSetName,
+										serviceName,
+										cluster.Namespace,
+									),
+								},
+								{
+									Name:  "CASSANDRA_CLUSTER_NAME",
+									Value: cluster.Name,
+								},
+								{
+									Name:  "CASSANDRA_DC",
+									Value: "DC1-K8Demo",
+								},
+								{
+									Name:  "CASSANDRA_RACK",
+									Value: "Rack1-K8Demo",
+								},
+								{
+									Name:  "CASSANDRA_AUTO_BOOTSTRAP",
+									Value: "false",
+								},
+								{
+									Name: "POD_IP",
+									ValueFrom: &apiv1.EnvVarSource{
+										FieldRef: &apiv1.ObjectFieldSelector{
+											FieldPath: "status.podIP",
+										},
+									},
 								},
 							},
 						},
