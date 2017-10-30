@@ -36,11 +36,6 @@ func StatefulSetForCluster(
 			Template: apiv1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: nodePoolLabels,
-					Annotations: map[string]string{
-						util.NodePoolHashAnnotationKey: util.ComputeNodePoolHash(
-							cluster, np, util.Int32Ptr(0),
-						),
-					},
 				},
 			},
 		},
