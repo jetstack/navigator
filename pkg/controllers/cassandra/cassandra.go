@@ -24,8 +24,8 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 
-	appsinformers "k8s.io/client-go/informers/apps/v1beta2"
-	appslisters "k8s.io/client-go/listers/apps/v1beta2"
+	appsinformers "k8s.io/client-go/informers/apps/v1beta1"
+	appslisters "k8s.io/client-go/listers/apps/v1beta1"
 )
 
 // NewCassandra returns a new CassandraController that can be used
@@ -217,7 +217,7 @@ func init() {
 				ctx.Namespace,
 				metav1.GroupVersionKind{
 					Group:   "apps",
-					Version: "v1beta2",
+					Version: "v1beta1",
 					Kind:    "StatefulSet",
 				},
 				appsinformers.NewStatefulSetInformer(

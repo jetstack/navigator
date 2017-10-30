@@ -5,11 +5,11 @@ import (
 
 	v1alpha1 "github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/util"
-	"k8s.io/api/apps/v1beta2"
+	apps "k8s.io/api/apps/v1beta1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	appslisters "k8s.io/client-go/listers/apps/v1beta2"
+	appslisters "k8s.io/client-go/listers/apps/v1beta1"
 	"k8s.io/client-go/tools/record"
 )
 
@@ -38,7 +38,7 @@ func NewControl(
 }
 
 func ownerCheck(
-	set *v1beta2.StatefulSet,
+	set *apps.StatefulSet,
 	cluster *v1alpha1.CassandraCluster,
 ) error {
 	if !metav1.IsControlledBy(set, cluster) {
@@ -62,7 +62,7 @@ func (e *defaultCassandraClusterNodepoolControl) removeUnusedStatefulSets(
 		name := util.NodePoolResourceName(cluster, &pool)
 		expectedStatefulSetNames[name] = true
 	}
-	client := e.kubeClient.AppsV1beta2().StatefulSets(cluster.Namespace)
+	client := e.kubeClient.AppsV1beta1().StatefulSets(cluster.Namespace)
 	selector, err := util.SelectorForCluster(cluster)
 	if err != nil {
 		return err
@@ -93,7 +93,7 @@ func (e *defaultCassandraClusterNodepoolControl) createOrUpdateStatefulSet(
 	cluster *v1alpha1.CassandraCluster,
 	nodePool *v1alpha1.CassandraClusterNodePool,
 ) error {
-	client := e.kubeClient.AppsV1beta2().StatefulSets(cluster.Namespace)
+	client := e.kubeClient.AppsV1beta1().StatefulSets(cluster.Namespace)
 	desiredSet := StatefulSetForCluster(cluster, nodePool)
 	existingSet, err := e.statefulsetLister.
 		StatefulSets(desiredSet.Namespace).

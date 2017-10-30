@@ -34,7 +34,7 @@ func TestCassandraControllerIntegration(t *testing.T) {
 		kclient,
 		nfactory.Navigator().V1alpha1().CassandraClusters().Informer(),
 		kfactory.Core().V1().Services().Informer(),
-		kfactory.Apps().V1beta2().StatefulSets().Informer(),
+		kfactory.Apps().V1beta1().StatefulSets().Informer(),
 		recorder,
 	)
 
