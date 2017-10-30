@@ -43,6 +43,24 @@ func StatefulSetForCluster(
 							Name:            "cassandra",
 							Image:           "gcr.io/google-samples/cassandra:v12",
 							ImagePullPolicy: apiv1.PullIfNotPresent,
+							Ports: []apiv1.ContainerPort{
+								{
+									Name:          "intra-node",
+									ContainerPort: int32(7000),
+								},
+								{
+									Name:          "intra-node-tls",
+									ContainerPort: int32(7001),
+								},
+								{
+									Name:          "jmx",
+									ContainerPort: int32(7199),
+								},
+								{
+									Name:          "cql",
+									ContainerPort: int32(9042),
+								},
+							},
 						},
 					},
 				},
