@@ -177,60 +177,66 @@ func (e *CassandraController) sync(key string) (err error) {
 func (e *CassandraController) handleObject(obj interface{}) {
 }
 
+func CassandraControllerFromContext(ctx *controllers.Context) *CassandraController {
+	return NewCassandra(
+		ctx.NavigatorClient,
+		ctx.Client,
+		ctx.SharedInformerFactory.InformerFor(
+			ctx.Namespace,
+			metav1.GroupVersionKind{
+				Group:   navigator.GroupName,
+				Version: "v1alpha1",
+				Kind:    "CassandraCluster",
+			},
+			informerv1alpha1.NewCassandraClusterInformer(
+				ctx.NavigatorClient,
+				ctx.Namespace,
+				time.Second*30,
+				cache.Indexers{
+					cache.NamespaceIndex: cache.MetaNamespaceIndexFunc,
+				},
+			),
+		),
+		ctx.SharedInformerFactory.InformerFor(
+			ctx.Namespace,
+			metav1.GroupVersionKind{
+				Version: "v1",
+				Kind:    "Service",
+			},
+			corev1informers.NewServiceInformer(
+				ctx.Client,
+				ctx.Namespace,
+				time.Second*30,
+				cache.Indexers{
+					cache.NamespaceIndex: cache.MetaNamespaceIndexFunc,
+				},
+			),
+		),
+		ctx.SharedInformerFactory.InformerFor(
+			ctx.Namespace,
+			metav1.GroupVersionKind{
+				Group:   "",
+				Version: "v1beta2",
+				Kind:    "StatefulSet",
+			},
+			appsinformers.NewStatefulSetInformer(
+				ctx.Client,
+				ctx.Namespace,
+				time.Second*30,
+				cache.Indexers{
+					cache.NamespaceIndex: cache.MetaNamespaceIndexFunc,
+				},
+			),
+		),
+		ctx.Recorder,
+	)
+}
+
 func init() {
-	controllers.Register("Cassandra", func(ctx *controllers.Context) controllers.Interface {
-		e := NewCassandra(
-			ctx.NavigatorClient,
-			ctx.Client,
-			ctx.SharedInformerFactory.InformerFor(
-				ctx.Namespace,
-				metav1.GroupVersionKind{
-					Group:   navigator.GroupName,
-					Version: "v1alpha1",
-					Kind:    "CassandraCluster",
-				},
-				informerv1alpha1.NewCassandraClusterInformer(
-					ctx.NavigatorClient,
-					ctx.Namespace,
-					time.Second*30,
-					cache.Indexers{
-						cache.NamespaceIndex: cache.MetaNamespaceIndexFunc,
-					},
-				),
-			),
-			ctx.SharedInformerFactory.InformerFor(
-				ctx.Namespace,
-				metav1.GroupVersionKind{
-					Version: "v1",
-					Kind:    "Service",
-				},
-				corev1informers.NewServiceInformer(
-					ctx.Client,
-					ctx.Namespace,
-					time.Second*30,
-					cache.Indexers{
-						cache.NamespaceIndex: cache.MetaNamespaceIndexFunc,
-					},
-				),
-			),
-			ctx.SharedInformerFactory.InformerFor(
-				ctx.Namespace,
-				metav1.GroupVersionKind{
-					Group:   "apps",
-					Version: "v1beta2",
-					Kind:    "StatefulSet",
-				},
-				appsinformers.NewStatefulSetInformer(
-					ctx.Client,
-					ctx.Namespace,
-					time.Second*30,
-					cache.Indexers{
-						cache.NamespaceIndex: cache.MetaNamespaceIndexFunc,
-					},
-				),
-			),
-			ctx.Recorder,
-		)
-		return e.Run
-	})
+	controllers.Register(
+		"Cassandra",
+		func(ctx *controllers.Context) controllers.Interface {
+			return CassandraControllerFromContext(ctx).Run
+		},
+	)
 }
