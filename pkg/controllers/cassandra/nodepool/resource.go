@@ -37,6 +37,15 @@ func StatefulSetForCluster(
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: nodePoolLabels,
 				},
+				Spec: apiv1.PodSpec{
+					Containers: []apiv1.Container{
+						{
+							Name:            "cassandra",
+							Image:           "gcr.io/google-samples/cassandra:v12",
+							ImagePullPolicy: apiv1.PullIfNotPresent,
+						},
+					},
+				},
 			},
 		},
 	}
