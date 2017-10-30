@@ -10,9 +10,9 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
 
-	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
-	"github.com/jetstack-experimental/navigator/pkg/pilot/genericpilot/hook"
-	"github.com/jetstack-experimental/navigator/pkg/pilot/genericpilot/process"
+	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
+	"github.com/jetstack/navigator/pkg/pilot/genericpilot/hook"
+	"github.com/jetstack/navigator/pkg/pilot/genericpilot/process"
 )
 
 const (

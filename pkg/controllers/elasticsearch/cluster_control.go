@@ -7,12 +7,12 @@ import (
 	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/record"
 
-	v1alpha1 "github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
-	"github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset"
-	"github.com/jetstack-experimental/navigator/pkg/controllers/elasticsearch/configmap"
-	"github.com/jetstack-experimental/navigator/pkg/controllers/elasticsearch/nodepool"
-	"github.com/jetstack-experimental/navigator/pkg/controllers/elasticsearch/service"
-	"github.com/jetstack-experimental/navigator/pkg/controllers/elasticsearch/serviceaccount"
+	v1alpha1 "github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
+	clientset "github.com/jetstack/navigator/pkg/client/clientset/versioned"
+	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/configmap"
+	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/nodepool"
+	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/service"
+	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/serviceaccount"
 )
 
 const (

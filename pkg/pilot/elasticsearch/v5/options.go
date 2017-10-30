@@ -11,9 +11,9 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset"
-	informers "github.com/jetstack-experimental/navigator/pkg/client/informers_generated/externalversions"
-	"github.com/jetstack-experimental/navigator/pkg/pilot/genericpilot"
+	clientset "github.com/jetstack/navigator/pkg/client/clientset/versioned"
+	informers "github.com/jetstack/navigator/pkg/client/informers/externalversions"
+	"github.com/jetstack/navigator/pkg/pilot/genericpilot"
 )
 
 const (

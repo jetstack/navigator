@@ -6,36 +6,21 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-REPO_ROOT=$(dirname "${BASH_SOURCE}")/..
-BINDIR=${REPO_ROOT}/bin
-HACKDIR=${HACKDIR:-hack}
+SCRIPT_ROOT=$(dirname ${BASH_SOURCE})/..
+CODEGEN_PKG=${CODEGEN_PKG:-$(cd ${SCRIPT_ROOT}; ls -d -1 ./vendor/k8s.io/code-generator 2>/dev/null || echo ../code-generator)}
 
-# Generate the internal clientset (pkg/client/clientset_generated/internalclientset)
-${BINDIR}/client-gen "$@" \
-	      --input-base "github.com/jetstack-experimental/navigator/pkg/apis/" \
-	      --input "navigator/" \
-	      --clientset-path "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/" \
-	      --clientset-name internalclientset \
-	      --go-header-file "${HACKDIR}/boilerplate.go.txt"
-# Generate the versioned clientset (pkg/client/clientset_generated/clientset)
-${BINDIR}/client-gen "$@" \
-		  --input-base "github.com/jetstack-experimental/navigator/pkg/apis/" \
-		  --input "navigator/v1alpha1" \
-	      --clientset-path "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/" \
-	      --clientset-name "clientset" \
-	      --go-header-file "${HACKDIR}/boilerplate.go.txt"
-# generate lister
-${BINDIR}/lister-gen "$@" \
-		  --input-dirs="github.com/jetstack-experimental/navigator/pkg/apis/navigator" \
-	      --input-dirs="github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1" \
-	      --output-package "github.com/jetstack-experimental/navigator/pkg/client/listers_generated" \
-	      --go-header-file "${HACKDIR}/boilerplate.go.txt"
-# generate informer
-${BINDIR}/informer-gen "$@" \
-	      --go-header-file "${HACKDIR}/boilerplate.go.txt" \
-	      --input-dirs "github.com/jetstack-experimental/navigator/pkg/apis/navigator" \
-	      --input-dirs "github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1" \
-	      --internal-clientset-package "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/internalclientset" \
-	      --versioned-clientset-package "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset" \
-	      --listers-package "github.com/jetstack-experimental/navigator/pkg/client/listers_generated" \
-	      --output-package "github.com/jetstack-experimental/navigator/pkg/client/informers_generated"
+${CODEGEN_PKG}/generate-internal-groups.sh "deepcopy,defaulter,client,informer,lister" \
+  github.com/jetstack/navigator/pkg/client github.com/jetstack/navigator/pkg/apis github.com/jetstack/navigator/pkg/apis \
+  navigator:v1alpha1 \
+  --output-base "${GOPATH}/src/" \
+  --go-header-file ${SCRIPT_ROOT}/hack/boilerplate.go.txt
+
+# We have to run conversion-gen separately so we can set the --extra-peer-dirs
+# flag to not include k8s.io/kubernetes packages (https://github.com/kubernetes/kubernetes/issues/54301)
+
+${CODEGEN_PKG}/generate-internal-groups.sh "conversion" \
+  github.com/jetstack/navigator/pkg/client github.com/jetstack/navigator/pkg/apis github.com/jetstack/navigator/pkg/apis \
+  navigator:v1alpha1 \
+  --output-base "${GOPATH}/src/" \
+  --go-header-file ${SCRIPT_ROOT}/hack/boilerplate.go.txt \
+  --extra-peer-dirs="k8s.io/api/core/v1,k8s.io/apimachinery/pkg/apis/meta/v1,k8s.io/apimachinery/pkg/conversion,k8s.io/apimachinery/pkg/runtime"

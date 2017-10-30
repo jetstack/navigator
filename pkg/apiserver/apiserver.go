@@ -27,12 +27,12 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 
-	"github.com/jetstack-experimental/navigator/pkg/apis/navigator"
-	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/install"
-	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
-	informers "github.com/jetstack-experimental/navigator/pkg/client/informers_generated/internalversion"
-	esclusterstorage "github.com/jetstack-experimental/navigator/pkg/registry/navigator/escluster"
-	pilotstorage "github.com/jetstack-experimental/navigator/pkg/registry/navigator/pilot"
+	"github.com/jetstack/navigator/pkg/apis/navigator"
+	"github.com/jetstack/navigator/pkg/apis/navigator/install"
+	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
+	informers "github.com/jetstack/navigator/pkg/client/informers/internalversion"
+	esclusterstorage "github.com/jetstack/navigator/pkg/registry/navigator/escluster"
+	pilotstorage "github.com/jetstack/navigator/pkg/registry/navigator/pilot"
 )
 
 var (
@@ -61,7 +61,7 @@ func init() {
 }
 
 type Config struct {
-	GenericConfig *genericapiserver.Config
+	GenericConfig *genericapiserver.RecommendedConfig
 	// SharedInformerFactory provides shared informers for resources
 	SharedInformerFactory informers.SharedInformerFactory
 }
@@ -73,28 +73,30 @@ type NavigatorServer struct {
 
 type completedConfig struct {
 	*Config
+	completedConfig *genericapiserver.CompletedConfig
 }
 
 // Complete fills in any fields not set that are required to have valid data. It's mutating the receiver.
 func (c *Config) Complete() completedConfig {
-	c.GenericConfig.Complete()
+	completedCfg := c.GenericConfig.Complete()
 
 	c.GenericConfig.Version = &version.Info{
 		Major: "1",
 		Minor: "0",
 	}
 
-	return completedConfig{c}
+	return completedConfig{Config: c, completedConfig: &completedCfg}
 }
 
 // SkipComplete provides a way to construct a server instance without config completion.
 func (c *Config) SkipComplete() completedConfig {
-	return completedConfig{c}
+	completedCfg := c.GenericConfig.Complete()
+	return completedConfig{Config: c, completedConfig: &completedCfg}
 }
 
 // New returns a new instance of NavigatorServer from the given config.
 func (c completedConfig) New() (*NavigatorServer, error) {
-	genericServer, err := c.Config.GenericConfig.SkipComplete().New("navigator", genericapiserver.EmptyDelegate) // completion is done in Complete, no need for a second time
+	genericServer, err := c.completedConfig.New("navigator", genericapiserver.EmptyDelegate) // completion is done in Complete, no need for a second time
 	if err != nil {
 		return nil, err
 	}

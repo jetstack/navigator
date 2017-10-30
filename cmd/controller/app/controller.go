@@ -17,11 +17,11 @@ import (
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	"k8s.io/client-go/tools/record"
 
-	"github.com/jetstack-experimental/navigator/cmd/controller/app/options"
-	clientset "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset"
-	intscheme "github.com/jetstack-experimental/navigator/pkg/client/clientset_generated/clientset/scheme"
-	"github.com/jetstack-experimental/navigator/pkg/controllers"
-	"github.com/jetstack-experimental/navigator/pkg/kube"
+	"github.com/jetstack/navigator/cmd/controller/app/options"
+	clientset "github.com/jetstack/navigator/pkg/client/clientset/versioned"
+	intscheme "github.com/jetstack/navigator/pkg/client/clientset/versioned/scheme"
+	"github.com/jetstack/navigator/pkg/controllers"
+	"github.com/jetstack/navigator/pkg/kube"
 )
 
 const controllerAgentName = "navigator-controller"
