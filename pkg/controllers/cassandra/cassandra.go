@@ -216,6 +216,7 @@ func init() {
 			ctx.SharedInformerFactory.InformerFor(
 				ctx.Namespace,
 				metav1.GroupVersionKind{
+					Group:   "apps",
 					Version: "v1beta2",
 					Kind:    "StatefulSet",
 				},
