@@ -26,10 +26,22 @@ helm install --wait --name "${RELEASE_NAME}" contrib/charts/navigator \
 
 # Wait for navigator API to be ready
 function navigator_ready() {
-    if kubectl api-versions | grep 'navigator.jetstack.io'; then
-        return 0
+    local replica_count_controller=$(
+        kubectl get deployment ${RELEASE_NAME}-navigator-controller \
+                --output 'jsonpath={.status.readyReplicas}' || true)
+    if [[ "${replica_count_controller}" -eq 0 ]]; then
+        return 1
     fi
-    return 1
+    local replica_count_apiserver=$(
+        kubectl get deployment ${RELEASE_NAME}-navigator-apiserver \
+                --output 'jsonpath={.status.readyReplicas}' || true)
+    if [[ "${replica_count_apiserver}" -eq 0 ]]; then
+        return 1
+    fi
+    if ! kubectl api-versions | grep 'navigator.jetstack.io'; then
+        return 1
+    fi
+    return 0
 }
 
 echo "Waiting for Navigator to be ready..."
