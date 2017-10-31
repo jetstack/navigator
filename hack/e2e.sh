@@ -51,12 +51,10 @@ function navigator_ready() {
 
 echo "Waiting for Navigator to be ready..."
 if ! retry navigator_ready; then
-    (
-        kubectl api-versions
-        kubectl get pods --all-namespaces
-        kubectl describe deploy
-        kubectl describe pod
-    ) > debug.log
+    kubectl api-versions
+    kubectl get pods --all-namespaces
+    kubectl describe deploy
+    kubectl describe pod
     echo "ERROR: Timeout waiting for Navigator API"
     exit 1
 fi
