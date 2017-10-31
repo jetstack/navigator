@@ -102,16 +102,14 @@ function test_elasticsearchcluster() {
 test_elasticsearchcluster
 
 if [[ "${FAILURE_COUNT}" -gt 0 ]]; then
-    (
-        kubectl get po -o yaml
-        kubectl describe po
-        kubectl get svc -o yaml
-        kubectl describe svc
-        kubectl get apiservice -o yaml
-        kubectl describe apiservice
-        kubectl logs -c apiserver -l app=navigator,component=apiserver
-        kubectl logs -c controller -l app=navigator,component=controller
-    ) > debug.log
+    kubectl get po -o yaml
+    kubectl describe po
+    kubectl get svc -o yaml
+    kubectl describe svc
+    kubectl get apiservice -o yaml
+    kubectl describe apiservice
+    kubectl logs -c apiserver -l app=navigator,component=apiserver
+    kubectl logs -c controller -l app=navigator,component=controller
 fi
 
 exit $FAILURE_COUNT
