@@ -20,8 +20,8 @@ apiserver:
 
 controller:
   ## Optional: namespace to watch for resources in. This can be used when RBAC
-  # restricts you to a single namespace.
-  namespace: default
+  ## restricts you to a single namespace.
+  # namespace: default
   ## Optional: if not set, a service account will be automatically created
   # serviceAccount: "controller-svc-acct"
   image:

@@ -84,17 +84,21 @@ items:
   kind: Role
 {{- end }}
   metadata:
-    name: "{{ template "fullname" . }}:controller-elasticsearch"
+    name: "{{ template "fullname" . }}:controller"
   rules:
   - apiGroups: ["navigator.jetstack.io"]
     resources: ["elasticsearchclusters", "pilots"]
-    verbs:     ["get", "list", "watch", "update"]
+    verbs:     ["get", "list", "watch", "update", "create", "delete"]
   - apiGroups: [""]
-    resources: ["services","configmaps","serviceaccounts"]
+    resources: ["services", "configmaps", "serviceaccounts", "pods"]
     verbs:     ["get", "list", "watch", "update", "create", "delete"]
   - apiGroups: ["apps"]
     resources: ["statefulsets"]
     verbs:     ["get", "list", "watch", "update", "create", "delete"]
+  - apiGroups: [""]
+    resources: ["endpoints"]
+    verbs:     ["*"]
+    resourceNames: ["navigator-controller"]
 
 - apiVersion: rbac.authorization.k8s.io/v1beta1
 {{- if not .Values.controller.namespace }}
@@ -103,11 +107,15 @@ items:
   kind: RoleBinding
 {{- end }}
   metadata:
-    name: "{{ template "fullname" . }}:controller-elasticsearch"
+    name: "{{ template "fullname" . }}:controller"
   roleRef:
     apiGroup: rbac.authorization.k8s.io
+{{- if not .Values.controller.namespace }}
     kind: ClusterRole
-    name: "{{ template "fullname" . }}:controller-elasticsearch"
+{{- else }}
+    kind: Role
+{{- end }}
+    name: "{{ template "fullname" . }}:controller"
   subjects:
   - apiGroup: ""
     kind: ServiceAccount

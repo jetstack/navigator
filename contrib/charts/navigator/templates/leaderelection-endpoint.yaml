@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: navigator-controller
+{{- if .Values.controller.namespace }}
+  namespace: {{ .Values.controller.namespace }}
+{{- else }}
+  namespace: kube-system
+{{- end }}
+subsets: []
