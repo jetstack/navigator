@@ -86,6 +86,11 @@ function test_elasticsearchcluster() {
             ElasticSearchClusters; then
         fail_test "Failed to get elasticsearchclusters"
     fi
+    if ! retry kubectl get \
+         --namespace "${USER_NAMESPACE}" \
+         service es-demo; then
+        fail_test "Navigator controller failed to create elasticsearchcluster service"
+    fi
     if ! kubectl delete \
             --namespace "${USER_NAMESPACE}" \
             ElasticSearchClusters \
