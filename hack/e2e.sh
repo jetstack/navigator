@@ -41,6 +41,11 @@ function navigator_ready() {
     if ! kubectl api-versions | grep 'navigator.jetstack.io'; then
         return 1
     fi
+    # Even after the API appears in api-versions, it takes a short time for API
+    # server to recognise navigator API types.
+    if ! kubectl get esc; then
+        return 1
+    fi
     return 0
 }
 
