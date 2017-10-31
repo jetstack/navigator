@@ -35,6 +35,7 @@ func main() {
 	stopCh := genericapiserver.SetupSignalHandler()
 	cmd := NewCommandStartNavigatorServer(os.Stdout, os.Stderr, stopCh)
 	cmd.Flags().AddGoFlagSet(flag.CommandLine)
+	flag.CommandLine.Parse([]string{})
 	if err := cmd.Execute(); err != nil {
 		glog.Fatal(err)
 	}
