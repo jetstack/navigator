@@ -88,9 +88,9 @@ items:
   rules:
   - apiGroups: ["navigator.jetstack.io"]
     resources: ["elasticsearchclusters", "pilots"]
-    verbs:     ["get", "list", "watch", "update"]
+    verbs:     ["get", "list", "watch", "update", "create", "delete"]
   - apiGroups: [""]
-    resources: ["services","configmaps","serviceaccounts"]
+    resources: ["services", "configmaps", "serviceaccounts", "pods"]
     verbs:     ["get", "list", "watch", "update", "create", "delete"]
   - apiGroups: ["apps"]
     resources: ["statefulsets"]
