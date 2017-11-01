@@ -39,18 +39,29 @@ type PilotInformer interface {
 
 type pilotInformer struct {
 	factory internalinterfaces.SharedInformerFactory
+	filter  internalinterfaces.FilterFunc
 }
 
 // NewPilotInformer constructs a new informer for Pilot type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
 func NewPilotInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	filter := internalinterfaces.NamespaceFilter(namespace)
+	return NewFilteredPilotInformer(client, filter, resyncPeriod, indexers)
+}
+
+// NewFilteredPilotInformer constructs a new informer for Pilot type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewFilteredPilotInformer(client versioned.Interface, filter internalinterfaces.FilterFunc, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
+				namespace := filter(&options)
 				return client.NavigatorV1alpha1().Pilots(namespace).List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
+				namespace := filter(&options)
 				return client.NavigatorV1alpha1().Pilots(namespace).Watch(options)
 			},
 		},
@@ -60,12 +71,12 @@ func NewPilotInformer(client versioned.Interface, namespace string, resyncPeriod
 	)
 }
 
-func defaultPilotInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewPilotInformer(client, v1.NamespaceAll, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+func (f *pilotInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredPilotInformer(client, f.filter, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 }
 
 func (f *pilotInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&navigator_v1alpha1.Pilot{}, defaultPilotInformer)
+	return f.factory.InformerFor(&navigator_v1alpha1.Pilot{}, f.defaultInformer)
 }
 
 func (f *pilotInformer) Lister() v1alpha1.PilotLister {

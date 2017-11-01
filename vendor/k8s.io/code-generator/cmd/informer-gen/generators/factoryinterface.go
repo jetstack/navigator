@@ -67,6 +67,8 @@ func (g *factoryInterfaceGenerator) GenerateType(c *generator.Context, t *types.
 		"clientSetPackage":         c.Universe.Type(types.Name{Package: g.clientSetPackage, Name: "Interface"}),
 		"runtimeObject":            c.Universe.Type(runtimeObject),
 		"timeDuration":             c.Universe.Type(timeDuration),
+		"v1ListOptions":            c.Universe.Type(v1ListOptions),
+		"namespaceAll":             c.Universe.Type(metav1NamespaceAll),
 	}
 
 	sw.Do(externalSharedInformerFactoryInterface, m)
@@ -81,5 +83,17 @@ type NewInformerFunc func({{.clientSetPackage|raw}}, {{.timeDuration|raw}}) cach
 type SharedInformerFactory interface {
 	Start(stopCh <-chan struct{})
 	InformerFor(obj {{.runtimeObject|raw}}, newFunc NewInformerFunc) {{.cacheSharedIndexInformer|raw}}
+}
+
+type FilterFunc func(*{{.v1ListOptions|raw}}) (namespace string)
+
+func DefaultFilterFunc(*{{.v1ListOptions|raw}}) (namespace string) {
+	return {{.namespaceAll|raw}}
+}
+
+func NamespaceFilter(namespace string) FilterFunc {
+	return func(*{{.v1ListOptions|raw}}) string {
+		return namespace
+	}
 }
 `

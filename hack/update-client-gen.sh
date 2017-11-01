@@ -24,3 +24,12 @@ ${CODEGEN_PKG}/generate-internal-groups.sh "conversion" \
   --output-base "${GOPATH}/src/" \
   --go-header-file ${SCRIPT_ROOT}/hack/boilerplate.go.txt \
   --extra-peer-dirs="k8s.io/api/core/v1,k8s.io/apimachinery/pkg/apis/meta/v1,k8s.io/apimachinery/pkg/conversion,k8s.io/apimachinery/pkg/runtime"
+
+${GOPATH}/bin/informer-gen \
+           --output-base "${GOPATH}/src/" \
+           --input-dirs "k8s.io/api/core/v1" \
+           --input-dirs "k8s.io/api/apps/v1beta1" \
+           --versioned-clientset-package "k8s.io/client-go/kubernetes" \
+           --listers-package "k8s.io/client-go/listers" \
+           --output-package "github.com/jetstack/navigator/third_party/k8s.io/client-go/informers" \
+           --go-header-file ${SCRIPT_ROOT}/hack/boilerplate.go.txt

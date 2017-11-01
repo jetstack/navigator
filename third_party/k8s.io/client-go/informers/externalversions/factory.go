@@ -19,11 +19,12 @@ limitations under the License.
 package externalversions
 
 import (
-	versioned "github.com/jetstack/navigator/pkg/client/clientset/versioned"
-	internalinterfaces "github.com/jetstack/navigator/pkg/client/informers/externalversions/internalinterfaces"
-	navigator "github.com/jetstack/navigator/pkg/client/informers/externalversions/navigator"
+	apps "github.com/jetstack/navigator/third_party/k8s.io/client-go/informers/externalversions/apps"
+	core "github.com/jetstack/navigator/third_party/k8s.io/client-go/informers/externalversions/core"
+	internalinterfaces "github.com/jetstack/navigator/third_party/k8s.io/client-go/informers/externalversions/internalinterfaces"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
+	kubernetes "k8s.io/client-go/kubernetes"
 	cache "k8s.io/client-go/tools/cache"
 	reflect "reflect"
 	sync "sync"
@@ -31,7 +32,7 @@ import (
 )
 
 type sharedInformerFactory struct {
-	client        versioned.Interface
+	client        kubernetes.Interface
 	filter        internalinterfaces.FilterFunc
 	lock          sync.Mutex
 	defaultResync time.Duration
@@ -43,12 +44,12 @@ type sharedInformerFactory struct {
 }
 
 // NewSharedInformerFactory constructs a new instance of sharedInformerFactory
-func NewSharedInformerFactory(client versioned.Interface, defaultResync time.Duration) SharedInformerFactory {
+func NewSharedInformerFactory(client kubernetes.Interface, defaultResync time.Duration) SharedInformerFactory {
 	return NewFilteredSharedInformerFactory(client, defaultResync, internalinterfaces.DefaultFilterFunc)
 }
 
 // NewFilteredSharedInformerFactory constructs a new instance of sharedInformerFactory
-func NewFilteredSharedInformerFactory(client versioned.Interface, defaultResync time.Duration, filter internalinterfaces.FilterFunc) SharedInformerFactory {
+func NewFilteredSharedInformerFactory(client kubernetes.Interface, defaultResync time.Duration, filter internalinterfaces.FilterFunc) SharedInformerFactory {
 	return &sharedInformerFactory{
 		client:           client,
 		filter:           filter,
@@ -117,9 +118,14 @@ type SharedInformerFactory interface {
 	ForResource(resource schema.GroupVersionResource) (GenericInformer, error)
 	WaitForCacheSync(stopCh <-chan struct{}) map[reflect.Type]bool
 
-	Navigator() navigator.Interface
+	Apps() apps.Interface
+	Core() core.Interface
 }
 
-func (f *sharedInformerFactory) Navigator() navigator.Interface {
-	return navigator.New(f, f.filter)
+func (f *sharedInformerFactory) Apps() apps.Interface {
+	return apps.New(f, f.filter)
+}
+
+func (f *sharedInformerFactory) Core() core.Interface {
+	return core.New(f, f.filter)
 }
