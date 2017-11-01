@@ -32,6 +32,7 @@ import (
 
 type sharedInformerFactory struct {
 	client        versioned.Interface
+	filter        internalinterfaces.FilterFunc
 	lock          sync.Mutex
 	defaultResync time.Duration
 
@@ -43,8 +44,14 @@ type sharedInformerFactory struct {
 
 // NewSharedInformerFactory constructs a new instance of sharedInformerFactory
 func NewSharedInformerFactory(client versioned.Interface, defaultResync time.Duration) SharedInformerFactory {
+	return NewFilteredSharedInformerFactory(client, defaultResync, internalinterfaces.DefaultFilterFunc)
+}
+
+// NewFilteredSharedInformerFactory constructs a new instance of sharedInformerFactory
+func NewFilteredSharedInformerFactory(client versioned.Interface, defaultResync time.Duration, filter internalinterfaces.FilterFunc) SharedInformerFactory {
 	return &sharedInformerFactory{
 		client:           client,
+		filter:           filter,
 		defaultResync:    defaultResync,
 		informers:        make(map[reflect.Type]cache.SharedIndexInformer),
 		startedInformers: make(map[reflect.Type]bool),
@@ -114,5 +121,5 @@ type SharedInformerFactory interface {
 }
 
 func (f *sharedInformerFactory) Navigator() navigator.Interface {
-	return navigator.New(f)
+	return navigator.New(f, f.filter)
 }

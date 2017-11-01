@@ -3,15 +3,15 @@ package nodepool
 import (
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/util"
-	"k8s.io/api/apps/v1beta2"
+	apps "k8s.io/api/apps/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func StatefulSetForCluster(
 	cluster *v1alpha1.CassandraCluster,
 	nodepool *v1alpha1.CassandraClusterNodePool,
-) *v1beta2.StatefulSet {
-	set := &v1beta2.StatefulSet{
+) *apps.StatefulSet {
+	set := &apps.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            util.NodePoolResourceName(cluster, nodepool),
 			Namespace:       cluster.Namespace,

@@ -63,5 +63,5 @@ make BUILD_TAG=latest e2e-test
 
 James Munnelly, Christian Simon & Matt Bates of [Jetstack.io](https://www.jetstack.io/)
 
-[Build Status Widget]: https://travis-ci.org/jetstack-experimental/navigator.svg?branch=master
-[Build Status]: https://travis-ci.org/jetstack-experimental/navigator
+[Build Status Widget]: https://travis-ci.org/jetstack/navigator.svg?branch=master
+[Build Status]: https://travis-ci.org/jetstack/navigator

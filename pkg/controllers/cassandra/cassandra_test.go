@@ -5,11 +5,13 @@ import (
 	"testing"
 	"time"
 
+	informers "github.com/jetstack/navigator/pkg/client/informers/externalversions"
+	kubeinformers "github.com/jetstack/navigator/third_party/k8s.io/client-go/informers/externalversions"
+
 	navigatorfake "github.com/jetstack/navigator/pkg/client/clientset/versioned/fake"
 	"github.com/jetstack/navigator/pkg/controllers"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra"
 	casstesting "github.com/jetstack/navigator/pkg/controllers/cassandra/testing"
-	"github.com/jetstack/navigator/pkg/kube"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes/fake"
 	clienttesting "k8s.io/client-go/testing"
@@ -33,7 +35,6 @@ func NewFixture(t *testing.T) *fixture {
 		"cassandraclusters",
 		clienttesting.DefaultWatchReactor(nwatch, nil),
 	)
-
 	return &fixture{
 		t:           t,
 		kclient:     fake.NewSimpleClientset(),
@@ -60,18 +61,19 @@ func (f *fixture) run() {
 // NewCassandra sets up event handlers for the supplied informers.
 func TestCassandraControllerIntegration(t *testing.T) {
 	f := NewFixture(t)
-
 	ctx := &controllers.Context{
-		Client:                f.kclient,
-		NavigatorClient:       f.nclient,
-		Recorder:              f.recorder,
-		SharedInformerFactory: kube.NewSharedInformerFactory(),
-		Namespace:             "",
+		Client:                    f.kclient,
+		NavigatorClient:           f.nclient,
+		Recorder:                  f.recorder,
+		KubeSharedInformerFactory: kubeinformers.NewSharedInformerFactory(f.kclient, 0),
+		SharedInformerFactory:     informers.NewSharedInformerFactory(f.nclient, 0),
+		Namespace:                 "namespace-not-used-in-this-test",
 	}
 	controller := cassandra.CassandraControllerFromContext(ctx)
 
 	stopCh := make(chan struct{})
 	ctx.SharedInformerFactory.Start(stopCh)
+	ctx.KubeSharedInformerFactory.Start(stopCh)
 	controllerFinished := make(chan struct{})
 	go func() {
 		defer func() {

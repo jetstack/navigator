@@ -39,18 +39,29 @@ type CassandraClusterInformer interface {
 
 type cassandraClusterInformer struct {
 	factory internalinterfaces.SharedInformerFactory
+	filter  internalinterfaces.FilterFunc
 }
 
 // NewCassandraClusterInformer constructs a new informer for CassandraCluster type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
 func NewCassandraClusterInformer(client clientset_internalversion.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	filter := internalinterfaces.NamespaceFilter(namespace)
+	return NewFilteredCassandraClusterInformer(client, filter, resyncPeriod, indexers)
+}
+
+// NewFilteredCassandraClusterInformer constructs a new informer for CassandraCluster type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewFilteredCassandraClusterInformer(client clientset_internalversion.Interface, filter internalinterfaces.FilterFunc, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
+				namespace := filter(&options)
 				return client.Navigator().CassandraClusters(namespace).List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
+				namespace := filter(&options)
 				return client.Navigator().CassandraClusters(namespace).Watch(options)
 			},
 		},
@@ -60,12 +71,12 @@ func NewCassandraClusterInformer(client clientset_internalversion.Interface, nam
 	)
 }
 
-func defaultCassandraClusterInformer(client clientset_internalversion.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewCassandraClusterInformer(client, v1.NamespaceAll, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+func (f *cassandraClusterInformer) defaultInformer(client clientset_internalversion.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredCassandraClusterInformer(client, f.filter, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 }
 
 func (f *cassandraClusterInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&navigator.CassandraCluster{}, defaultCassandraClusterInformer)
+	return f.factory.InformerFor(&navigator.CassandraCluster{}, f.defaultInformer)
 }
 
 func (f *cassandraClusterInformer) Lister() internalversion.CassandraClusterLister {

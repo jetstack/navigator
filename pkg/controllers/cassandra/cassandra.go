@@ -5,27 +5,23 @@ import (
 	"sync"
 	"time"
 
+	navigatorinformers "github.com/jetstack/navigator/pkg/client/informers/externalversions/navigator/v1alpha1"
+
 	"github.com/golang/glog"
-	"github.com/jetstack/navigator/pkg/apis/navigator"
 	navigatorclientset "github.com/jetstack/navigator/pkg/client/clientset/versioned"
-	informerv1alpha1 "github.com/jetstack/navigator/pkg/client/informers/externalversions/navigator/v1alpha1"
 	listersv1alpha1 "github.com/jetstack/navigator/pkg/client/listers/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/nodepool"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/service"
+	appsinformers "github.com/jetstack/navigator/third_party/k8s.io/client-go/informers/externalversions/apps/v1beta1"
+	coreinformers "github.com/jetstack/navigator/third_party/k8s.io/client-go/informers/externalversions/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
-	corev1informers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
-	corev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
-
-	appsinformers "k8s.io/client-go/informers/apps/v1beta2"
-	appslisters "k8s.io/client-go/listers/apps/v1beta2"
 )
 
 // NewCassandra returns a new CassandraController that can be used
@@ -35,21 +31,21 @@ import (
 // It accepts a list of informers that are then used to monitor the state of the
 // target cluster.
 type CassandraController struct {
-	control                  ControlInterface
-	cassLister               listersv1alpha1.CassandraClusterLister
-	cassListerSynced         cache.InformerSynced
-	serviceListerSynced      cache.InformerSynced
-	statefulSetsListerSynced cache.InformerSynced
-	queue                    workqueue.RateLimitingInterface
-	recorder                 record.EventRecorder
+	control                 ControlInterface
+	cassLister              listersv1alpha1.CassandraClusterLister
+	cassListerSynced        cache.InformerSynced
+	serviceListerSynced     cache.InformerSynced
+	statefulSetListerSynced cache.InformerSynced
+	queue                   workqueue.RateLimitingInterface
+	recorder                record.EventRecorder
 }
 
 func NewCassandra(
 	naviClient navigatorclientset.Interface,
 	kubeClient kubernetes.Interface,
-	cassClusters cache.SharedIndexInformer,
-	services cache.SharedIndexInformer,
-	statefulSets cache.SharedIndexInformer,
+	cassClusters navigatorinformers.CassandraClusterInformer,
+	services coreinformers.ServiceInformer,
+	statefulSets appsinformers.StatefulSetInformer,
 	recorder record.EventRecorder,
 ) *CassandraController {
 	queue := workqueue.NewNamedRateLimitingQueue(
@@ -61,23 +57,22 @@ func NewCassandra(
 		queue:    queue,
 		recorder: recorder,
 	}
-	cassClusters.AddEventHandler(&controllers.QueuingEventHandler{Queue: queue})
-	cc.cassLister = listersv1alpha1.NewCassandraClusterLister(
-		cassClusters.GetIndexer(),
+	cassClusters.Informer().AddEventHandler(
+		&controllers.QueuingEventHandler{Queue: queue},
 	)
-	cc.cassListerSynced = cassClusters.HasSynced
-	cc.serviceListerSynced = services.HasSynced
-	cc.statefulSetsListerSynced = statefulSets.HasSynced
-
+	cc.cassLister = cassClusters.Lister()
+	cc.cassListerSynced = cassClusters.Informer().HasSynced
+	cc.serviceListerSynced = services.Informer().HasSynced
+	cc.statefulSetListerSynced = statefulSets.Informer().HasSynced
 	cc.control = NewControl(
 		service.NewControl(
 			kubeClient,
-			corev1listers.NewServiceLister(services.GetIndexer()),
+			services.Lister(),
 			recorder,
 		),
 		nodepool.NewControl(
 			kubeClient,
-			appslisters.NewStatefulSetLister(statefulSets.GetIndexer()),
+			statefulSets.Lister(),
 			recorder,
 		),
 		recorder,
@@ -181,53 +176,9 @@ func CassandraControllerFromContext(ctx *controllers.Context) *CassandraControll
 	return NewCassandra(
 		ctx.NavigatorClient,
 		ctx.Client,
-		ctx.SharedInformerFactory.InformerFor(
-			ctx.Namespace,
-			metav1.GroupVersionKind{
-				Group:   navigator.GroupName,
-				Version: "v1alpha1",
-				Kind:    "CassandraCluster",
-			},
-			informerv1alpha1.NewCassandraClusterInformer(
-				ctx.NavigatorClient,
-				ctx.Namespace,
-				time.Second*30,
-				cache.Indexers{
-					cache.NamespaceIndex: cache.MetaNamespaceIndexFunc,
-				},
-			),
-		),
-		ctx.SharedInformerFactory.InformerFor(
-			ctx.Namespace,
-			metav1.GroupVersionKind{
-				Version: "v1",
-				Kind:    "Service",
-			},
-			corev1informers.NewServiceInformer(
-				ctx.Client,
-				ctx.Namespace,
-				time.Second*30,
-				cache.Indexers{
-					cache.NamespaceIndex: cache.MetaNamespaceIndexFunc,
-				},
-			),
-		),
-		ctx.SharedInformerFactory.InformerFor(
-			ctx.Namespace,
-			metav1.GroupVersionKind{
-				Group:   "",
-				Version: "v1beta2",
-				Kind:    "StatefulSet",
-			},
-			appsinformers.NewStatefulSetInformer(
-				ctx.Client,
-				ctx.Namespace,
-				time.Second*30,
-				cache.Indexers{
-					cache.NamespaceIndex: cache.MetaNamespaceIndexFunc,
-				},
-			),
-		),
+		ctx.SharedInformerFactory.Navigator().V1alpha1().CassandraClusters(),
+		ctx.KubeSharedInformerFactory.Core().V1().Services(),
+		ctx.KubeSharedInformerFactory.Apps().V1beta1().StatefulSets(),
 		ctx.Recorder,
 	)
 }

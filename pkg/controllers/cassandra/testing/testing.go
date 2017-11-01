@@ -8,10 +8,10 @@ import (
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/nodepool"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/service"
 
-	"k8s.io/api/apps/v1beta2"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	apps "k8s.io/api/apps/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
@@ -76,7 +76,7 @@ func (f *Fixture) setupAndSync() error {
 		f.ServiceControl = service.NewControl(f.k8sClient, services, recorder)
 	}
 
-	statefulSets := k8sFactory.Apps().V1beta2().StatefulSets().Lister()
+	statefulSets := k8sFactory.Apps().V1beta1().StatefulSets().Lister()
 	if f.NodepoolControl == nil {
 		f.NodepoolControl = nodepool.NewControl(
 			f.k8sClient,
@@ -96,7 +96,7 @@ func (f *Fixture) setupAndSync() error {
 	if !cache.WaitForCacheSync(
 		stopCh,
 		k8sFactory.Core().V1().Services().Informer().HasSynced,
-		k8sFactory.Apps().V1beta2().StatefulSets().Informer().HasSynced,
+		k8sFactory.Apps().V1beta1().StatefulSets().Informer().HasSynced,
 	) {
 		f.t.Fatal("WaitForCacheSync failure")
 	}
@@ -139,9 +139,9 @@ func (f *Fixture) AssertServicesLength(l int) {
 	}
 }
 
-func (f *Fixture) StatefulSets() *v1beta2.StatefulSetList {
+func (f *Fixture) StatefulSets() *apps.StatefulSetList {
 	sets, err := f.k8sClient.
-		AppsV1beta2().
+		AppsV1beta1().
 		StatefulSets(f.Cluster.Namespace).
 		List(metav1.ListOptions{})
 	if err != nil {
