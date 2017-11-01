@@ -72,18 +72,20 @@ func (g *factoryGenerator) GenerateType(c *generator.Context, t *types.Type, w i
 		gvNewFuncs[groupName] = c.Universe.Function(types.Name{Package: packageForGroup(vendorless(g.outputPackage), g.groupVersions[groupName].Group), Name: "New"})
 	}
 	m := map[string]interface{}{
-		"cacheSharedIndexInformer":   c.Universe.Type(cacheSharedIndexInformer),
-		"groupVersions":              g.groupVersions,
-		"gvInterfaces":               gvInterfaces,
-		"gvNewFuncs":                 gvNewFuncs,
-		"interfacesNewInformerFunc":  c.Universe.Type(types.Name{Package: g.internalInterfacesPackage, Name: "NewInformerFunc"}),
-		"informerFactoryInterface":   c.Universe.Type(types.Name{Package: g.internalInterfacesPackage, Name: "SharedInformerFactory"}),
-		"clientSetInterface":         c.Universe.Type(types.Name{Package: g.clientSetPackage, Name: "Interface"}),
-		"reflectType":                c.Universe.Type(reflectType),
-		"runtimeObject":              c.Universe.Type(runtimeObject),
-		"schemaGroupVersionResource": c.Universe.Type(schemaGroupVersionResource),
-		"syncMutex":                  c.Universe.Type(syncMutex),
-		"timeDuration":               c.Universe.Type(timeDuration),
+		"cacheSharedIndexInformer":    c.Universe.Type(cacheSharedIndexInformer),
+		"groupVersions":               g.groupVersions,
+		"gvInterfaces":                gvInterfaces,
+		"gvNewFuncs":                  gvNewFuncs,
+		"interfacesNewInformerFunc":   c.Universe.Type(types.Name{Package: g.internalInterfacesPackage, Name: "NewInformerFunc"}),
+		"interfacesFilterFunc":        c.Universe.Type(types.Name{Package: g.internalInterfacesPackage, Name: "FilterFunc"}),
+		"interfacesDefaultFilterFunc": c.Universe.Type(types.Name{Package: g.internalInterfacesPackage, Name: "DefaultFilterFunc"}),
+		"informerFactoryInterface":    c.Universe.Type(types.Name{Package: g.internalInterfacesPackage, Name: "SharedInformerFactory"}),
+		"clientSetInterface":          c.Universe.Type(types.Name{Package: g.clientSetPackage, Name: "Interface"}),
+		"reflectType":                 c.Universe.Type(reflectType),
+		"runtimeObject":               c.Universe.Type(runtimeObject),
+		"schemaGroupVersionResource":  c.Universe.Type(schemaGroupVersionResource),
+		"syncMutex":                   c.Universe.Type(syncMutex),
+		"timeDuration":                c.Universe.Type(timeDuration),
 	}
 
 	sw.Do(sharedInformerFactoryStruct, m)
@@ -95,6 +97,7 @@ func (g *factoryGenerator) GenerateType(c *generator.Context, t *types.Type, w i
 var sharedInformerFactoryStruct = `
 type sharedInformerFactory struct {
 	client {{.clientSetInterface|raw}}
+	filter {{.interfacesFilterFunc|raw}}
 	lock {{.syncMutex|raw}}
 	defaultResync {{.timeDuration|raw}}
 
@@ -106,8 +109,14 @@ type sharedInformerFactory struct {
 
 // NewSharedInformerFactory constructs a new instance of sharedInformerFactory
 func NewSharedInformerFactory(client {{.clientSetInterface|raw}}, defaultResync {{.timeDuration|raw}}) SharedInformerFactory {
+  return NewFilteredSharedInformerFactory(client, defaultResync, {{.interfacesDefaultFilterFunc|raw}})
+}
+
+// NewFilteredSharedInformerFactory constructs a new instance of sharedInformerFactory
+func NewFilteredSharedInformerFactory(client {{.clientSetInterface|raw}}, defaultResync {{.timeDuration|raw}}, filter {{.interfacesFilterFunc|raw}}) SharedInformerFactory {
   return &sharedInformerFactory{
-		client: client,
+	client:           client,
+	filter:           filter,
     defaultResync:    defaultResync,
     informers:        make(map[{{.reflectType|raw}}]{{.cacheSharedIndexInformer|raw}}),
     startedInformers: make(map[{{.reflectType|raw}}]bool),
@@ -184,7 +193,7 @@ type SharedInformerFactory interface {
 {{$gvNewFuncs := .gvNewFuncs}}
 {{range $groupName, $group := .groupVersions}}
 func (f *sharedInformerFactory) {{$groupName}}() {{index $gvInterfaces $groupName|raw}} {
-  return {{index $gvNewFuncs $groupName|raw}}(f)
+  return {{index $gvNewFuncs $groupName|raw}}(f, f.filter)
 }
 {{end}}
 `
