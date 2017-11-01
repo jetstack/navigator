@@ -13,8 +13,8 @@ import (
 	"github.com/jetstack/navigator/pkg/controllers"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/nodepool"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/service"
-	coreinformers "github.com/jetstack/navigator/third_party/k8s.io/client-go/informers/externalversions/core/v1"
 	appsinformers "github.com/jetstack/navigator/third_party/k8s.io/client-go/informers/externalversions/apps/v1beta1"
+	coreinformers "github.com/jetstack/navigator/third_party/k8s.io/client-go/informers/externalversions/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -22,9 +22,6 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
-
-	appsinformers "k8s.io/client-go/informers/apps/v1beta1"
-	appslisters "k8s.io/client-go/listers/apps/v1beta1"
 )
 
 // NewCassandra returns a new CassandraController that can be used
@@ -66,7 +63,7 @@ func NewCassandra(
 	cc.cassLister = cassClusters.Lister()
 	cc.cassListerSynced = cassClusters.Informer().HasSynced
 	cc.serviceListerSynced = services.Informer().HasSynced
-	cc.statefulSetsListerSynced = statefulSets.Informer().HasSynced,
+	cc.statefulSetsListerSynced = statefulSets.Informer().HasSynced
 	cc.control = NewControl(
 		service.NewControl(
 			kubeClient,
