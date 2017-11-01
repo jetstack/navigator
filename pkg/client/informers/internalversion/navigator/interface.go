@@ -30,15 +30,16 @@ type Interface interface {
 }
 
 type group struct {
-	internalinterfaces.SharedInformerFactory
+	factory internalinterfaces.SharedInformerFactory
+	filter  internalinterfaces.FilterFunc
 }
 
 // New returns a new Interface.
-func New(f internalinterfaces.SharedInformerFactory) Interface {
-	return &group{f}
+func New(f internalinterfaces.SharedInformerFactory, filter internalinterfaces.FilterFunc) Interface {
+	return &group{factory: f, filter: filter}
 }
 
 // InternalVersion returns a new internalversion.Interface.
 func (g *group) InternalVersion() internalversion.Interface {
-	return internalversion.New(g.SharedInformerFactory)
+	return internalversion.New(g.factory, g.filter)
 }

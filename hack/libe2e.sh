@@ -49,5 +49,5 @@ function kube_delete_namespace_and_wait() {
     local namespace=$1
     # Delete any previous namespace and wait for Kubernetes to finish deleting.
     kubectl delete namespace "${namespace}" || true
-    retry TIMEOUT=120 not kubectl get namespace ${namespace}
+    retry TIMEOUT=300 not kubectl get namespace ${namespace}
 }

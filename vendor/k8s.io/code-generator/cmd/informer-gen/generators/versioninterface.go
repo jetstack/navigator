@@ -59,6 +59,7 @@ func (g *versionInterfaceGenerator) GenerateType(c *generator.Context, t *types.
 	sw := generator.NewSnippetWriter(w, c, "$", "$")
 
 	m := map[string]interface{}{
+		"interfacesFilterFunc":            c.Universe.Type(types.Name{Package: g.internalInterfacesPackage, Name: "FilterFunc"}),
 		"interfacesSharedInformerFactory": c.Universe.Type(types.Name{Package: g.internalInterfacesPackage, Name: "SharedInformerFactory"}),
 		"types": g.types,
 	}
@@ -78,18 +79,19 @@ type Interface interface {
 }
 
 type version struct {
-	$.interfacesSharedInformerFactory|raw$
+	factory $.interfacesSharedInformerFactory|raw$
+	filter $.interfacesFilterFunc|raw$
 }
 
 // New returns a new Interface.
-func New(f $.interfacesSharedInformerFactory|raw$) Interface {
-	return &version{f}
+func New(f $.interfacesSharedInformerFactory|raw$, filter $.interfacesFilterFunc|raw$) Interface {
+	return &version{factory: f, filter: filter}
 }
 
 $range .types$
 // $.|publicPlural$ returns a $.|public$Informer.
 func (v *version) $.|publicPlural$() $.|public$Informer {
-	return &$.|private$Informer{factory: v.SharedInformerFactory}
+	return &$.|private$Informer{factory: v.factory, filter: v.filter}
 }
 $end$
 `

@@ -62,10 +62,10 @@ func (e *defaultCassandraClusterControl) Sync(c *v1alpha1.CassandraCluster) erro
 	if err != nil {
 		e.recorder.Eventf(
 			c,
-			"cassandra.defaultCassandraClusterControl",
+			apiv1.EventTypeWarning,
 			ErrorSync,
 			MessageErrorSyncNodePools,
-			c,
+			err,
 		)
 		return err
 	}
