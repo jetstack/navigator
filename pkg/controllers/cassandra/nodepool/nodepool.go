@@ -19,7 +19,7 @@ type Interface interface {
 
 type defaultCassandraClusterNodepoolControl struct {
 	kubeClient        kubernetes.Interface
-	statefulsetLister appslisters.StatefulSetLister
+	statefulSetLister appslisters.StatefulSetLister
 	recorder          record.EventRecorder
 }
 
@@ -27,12 +27,12 @@ var _ Interface = &defaultCassandraClusterNodepoolControl{}
 
 func NewControl(
 	kubeClient kubernetes.Interface,
-	statefulsetLister appslisters.StatefulSetLister,
+	statefulSetLister appslisters.StatefulSetLister,
 	recorder record.EventRecorder,
 ) Interface {
 	return &defaultCassandraClusterNodepoolControl{
 		kubeClient:        kubeClient,
-		statefulsetLister: statefulsetLister,
+		statefulSetLister: statefulSetLister,
 		recorder:          recorder,
 	}
 }
@@ -63,13 +63,12 @@ func (e *defaultCassandraClusterNodepoolControl) removeUnusedStatefulSets(
 		expectedStatefulSetNames[name] = true
 	}
 	client := e.kubeClient.AppsV1beta1().StatefulSets(cluster.Namespace)
+	lister := e.statefulSetLister.StatefulSets(cluster.Namespace)
 	selector, err := util.SelectorForCluster(cluster)
 	if err != nil {
 		return err
 	}
-	existingSets, err := e.statefulsetLister.
-		StatefulSets(cluster.Namespace).
-		List(selector)
+	existingSets, err := lister.List(selector)
 	if err != nil {
 		return err
 	}
@@ -93,11 +92,10 @@ func (e *defaultCassandraClusterNodepoolControl) createOrUpdateStatefulSet(
 	cluster *v1alpha1.CassandraCluster,
 	nodePool *v1alpha1.CassandraClusterNodePool,
 ) error {
-	client := e.kubeClient.AppsV1beta1().StatefulSets(cluster.Namespace)
 	desiredSet := StatefulSetForCluster(cluster, nodePool)
-	existingSet, err := e.statefulsetLister.
-		StatefulSets(desiredSet.Namespace).
-		Get(desiredSet.Name)
+	client := e.kubeClient.AppsV1beta1().StatefulSets(cluster.Namespace)
+	lister := e.statefulSetLister.StatefulSets(desiredSet.Namespace)
+	existingSet, err := lister.Get(desiredSet.Name)
 	if k8sErrors.IsNotFound(err) {
 		_, err = client.Create(desiredSet)
 		return err

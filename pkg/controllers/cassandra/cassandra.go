@@ -31,13 +31,13 @@ import (
 // It accepts a list of informers that are then used to monitor the state of the
 // target cluster.
 type CassandraController struct {
-	control                  ControlInterface
-	cassLister               listersv1alpha1.CassandraClusterLister
-	cassListerSynced         cache.InformerSynced
-	serviceListerSynced      cache.InformerSynced
-	statefulSetsListerSynced cache.InformerSynced
-	queue                    workqueue.RateLimitingInterface
-	recorder                 record.EventRecorder
+	control                 ControlInterface
+	cassLister              listersv1alpha1.CassandraClusterLister
+	cassListerSynced        cache.InformerSynced
+	serviceListerSynced     cache.InformerSynced
+	statefulSetListerSynced cache.InformerSynced
+	queue                   workqueue.RateLimitingInterface
+	recorder                record.EventRecorder
 }
 
 func NewCassandra(
@@ -63,7 +63,7 @@ func NewCassandra(
 	cc.cassLister = cassClusters.Lister()
 	cc.cassListerSynced = cassClusters.Informer().HasSynced
 	cc.serviceListerSynced = services.Informer().HasSynced
-	cc.statefulSetsListerSynced = statefulSets.Informer().HasSynced
+	cc.statefulSetListerSynced = statefulSets.Informer().HasSynced
 	cc.control = NewControl(
 		service.NewControl(
 			kubeClient,
