@@ -11,8 +11,6 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
-	appsinformers "k8s.io/client-go/informers/apps/v1beta1"
-	coreinformers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
 	appslisters "k8s.io/client-go/listers/apps/v1beta1"
 	corelisters "k8s.io/client-go/listers/core/v1"
@@ -20,16 +18,17 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 
-	"github.com/jetstack/navigator/pkg/apis/navigator"
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	clientset "github.com/jetstack/navigator/pkg/client/clientset/versioned"
-	informerv1alpha1 "github.com/jetstack/navigator/pkg/client/informers/externalversions/navigator/v1alpha1"
+	navigatorinformers "github.com/jetstack/navigator/pkg/client/informers/externalversions/navigator/v1alpha1"
 	listersv1alpha1 "github.com/jetstack/navigator/pkg/client/listers/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers"
 	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/configmap"
 	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/nodepool"
 	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/service"
 	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/serviceaccount"
+	appsinformers "github.com/jetstack/navigator/third_party/k8s.io/client-go/informers/externalversions/apps/v1beta1"
+	coreinformers "github.com/jetstack/navigator/third_party/k8s.io/client-go/informers/externalversions/core/v1"
 )
 
 type ElasticsearchController struct {
@@ -69,13 +68,13 @@ type ElasticsearchController struct {
 // It accepts a list of informers that are then used to monitor the state of the
 // target cluster.
 func NewElasticsearch(
-	es cache.SharedIndexInformer,
-	pilots cache.SharedIndexInformer,
-	statefulsets cache.SharedIndexInformer,
-	pods cache.SharedIndexInformer,
-	serviceaccounts cache.SharedIndexInformer,
-	services cache.SharedIndexInformer,
-	configmaps cache.SharedIndexInformer,
+	es navigatorinformers.ElasticsearchClusterInformer,
+	pilots navigatorinformers.PilotInformer,
+	statefulsets appsinformers.StatefulSetInformer,
+	pods coreinformers.PodInformer,
+	serviceaccounts coreinformers.ServiceAccountInformer,
+	services coreinformers.ServiceInformer,
+	configmaps coreinformers.ConfigMapInformer,
 	cl kubernetes.Interface,
 	navigatorCl clientset.Interface,
 	recorder record.EventRecorder,
@@ -90,39 +89,39 @@ func NewElasticsearch(
 	}
 
 	// add an event handler to the ElasticsearchCluster informer
-	es.AddEventHandler(&controllers.QueuingEventHandler{Queue: queue})
-	elasticsearchController.esLister = listersv1alpha1.NewElasticsearchClusterLister(es.GetIndexer())
-	elasticsearchController.esListerSynced = es.HasSynced
+	es.Informer().AddEventHandler(&controllers.QueuingEventHandler{Queue: queue})
+	elasticsearchController.esLister = es.Lister()
+	elasticsearchController.esListerSynced = es.Informer().HasSynced
 
 	// add an event handler to the Pilot informer
-	pilots.AddEventHandler(&controllers.BlockingEventHandler{WorkFunc: elasticsearchController.handleObject})
-	elasticsearchController.pilotLister = listersv1alpha1.NewPilotLister(pilots.GetIndexer())
-	elasticsearchController.pilotListerSynced = pilots.HasSynced
+	pilots.Informer().AddEventHandler(&controllers.BlockingEventHandler{WorkFunc: elasticsearchController.handleObject})
+	elasticsearchController.pilotLister = pilots.Lister()
+	elasticsearchController.pilotListerSynced = pilots.Informer().HasSynced
 
 	// add an event handler to the StatefulSet informer
-	statefulsets.AddEventHandler(&controllers.BlockingEventHandler{WorkFunc: elasticsearchController.handleObject})
-	elasticsearchController.statefulSetLister = appslisters.NewStatefulSetLister(statefulsets.GetIndexer())
-	elasticsearchController.statefulSetListerSynced = statefulsets.HasSynced
+	statefulsets.Informer().AddEventHandler(&controllers.BlockingEventHandler{WorkFunc: elasticsearchController.handleObject})
+	elasticsearchController.statefulSetLister = statefulsets.Lister()
+	elasticsearchController.statefulSetListerSynced = statefulsets.Informer().HasSynced
 
 	// add an event handler to the Pod informer
-	pods.AddEventHandler(&controllers.BlockingEventHandler{WorkFunc: elasticsearchController.handlePodObject})
-	elasticsearchController.podLister = corelisters.NewPodLister(pods.GetIndexer())
-	elasticsearchController.podListerSynced = pods.HasSynced
+	pods.Informer().AddEventHandler(&controllers.BlockingEventHandler{WorkFunc: elasticsearchController.handlePodObject})
+	elasticsearchController.podLister = pods.Lister()
+	elasticsearchController.podListerSynced = pods.Informer().HasSynced
 
 	// add an event handler to the ServiceAccount informer
-	serviceaccounts.AddEventHandler(&controllers.BlockingEventHandler{WorkFunc: elasticsearchController.handleObject})
-	elasticsearchController.serviceAccountLister = corelisters.NewServiceAccountLister(serviceaccounts.GetIndexer())
-	elasticsearchController.serviceAccountListerSynced = serviceaccounts.HasSynced
+	serviceaccounts.Informer().AddEventHandler(&controllers.BlockingEventHandler{WorkFunc: elasticsearchController.handleObject})
+	elasticsearchController.serviceAccountLister = serviceaccounts.Lister()
+	elasticsearchController.serviceAccountListerSynced = serviceaccounts.Informer().HasSynced
 
 	// add an event handler to the Service informer
-	services.AddEventHandler(&controllers.BlockingEventHandler{WorkFunc: elasticsearchController.handleObject})
-	elasticsearchController.serviceLister = corelisters.NewServiceLister(services.GetIndexer())
-	elasticsearchController.serviceListerSynced = services.HasSynced
+	services.Informer().AddEventHandler(&controllers.BlockingEventHandler{WorkFunc: elasticsearchController.handleObject})
+	elasticsearchController.serviceLister = services.Lister()
+	elasticsearchController.serviceListerSynced = services.Informer().HasSynced
 
 	// add an event handler to the Service informer
-	configmaps.AddEventHandler(&controllers.BlockingEventHandler{WorkFunc: elasticsearchController.handleObject})
-	elasticsearchController.configMapLister = corelisters.NewConfigMapLister(configmaps.GetIndexer())
-	elasticsearchController.configMapListerSynced = configmaps.HasSynced
+	configmaps.Informer().AddEventHandler(&controllers.BlockingEventHandler{WorkFunc: elasticsearchController.handleObject})
+	elasticsearchController.configMapLister = configmaps.Lister()
+	elasticsearchController.configMapListerSynced = configmaps.Informer().HasSynced
 
 	// create the actual ElasticsearchCluster controller
 	elasticsearchController.elasticsearchClusterControl = NewController(
@@ -164,7 +163,14 @@ func NewElasticsearch(
 func (e *ElasticsearchController) Run(workers int, stopCh <-chan struct{}) error {
 	glog.Infof("Starting Elasticsearch controller")
 
-	if !cache.WaitForCacheSync(stopCh, e.esListerSynced, e.pilotListerSynced, e.statefulSetListerSynced, e.podListerSynced, e.serviceAccountListerSynced, e.serviceListerSynced) {
+	if !cache.WaitForCacheSync(stopCh,
+		e.esListerSynced,
+		e.pilotListerSynced,
+		e.statefulSetListerSynced,
+		e.podListerSynced,
+		e.serviceAccountListerSynced,
+		e.serviceListerSynced,
+		e.configMapListerSynced) {
 		return fmt.Errorf("timed out waiting for caches to sync")
 	}
 
@@ -311,41 +317,13 @@ func (e *ElasticsearchController) handlePodObject(obj interface{}) {
 func init() {
 	controllers.Register("ElasticSearch", func(ctx *controllers.Context) controllers.Interface {
 		e := NewElasticsearch(
-			ctx.SharedInformerFactory.InformerFor(
-				ctx.Namespace,
-				metav1.GroupVersionKind{Group: navigator.GroupName, Version: "v1alpha1", Kind: "ElasticsearchCluster"},
-				informerv1alpha1.NewElasticsearchClusterInformer(ctx.NavigatorClient, ctx.Namespace, time.Second*30, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
-			),
-			ctx.SharedInformerFactory.InformerFor(
-				ctx.Namespace,
-				metav1.GroupVersionKind{Group: navigator.GroupName, Version: "v1alpha1", Kind: "Pilot"},
-				informerv1alpha1.NewPilotInformer(ctx.NavigatorClient, ctx.Namespace, time.Second*30, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
-			),
-			ctx.SharedInformerFactory.InformerFor(
-				ctx.Namespace,
-				metav1.GroupVersionKind{Group: "apps", Version: "v1beta1", Kind: "StatefulSet"},
-				appsinformers.NewStatefulSetInformer(ctx.Client, ctx.Namespace, time.Second*30, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
-			),
-			ctx.SharedInformerFactory.InformerFor(
-				ctx.Namespace,
-				metav1.GroupVersionKind{Version: "v1", Kind: "Pod"},
-				coreinformers.NewPodInformer(ctx.Client, ctx.Namespace, time.Second*30, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
-			),
-			ctx.SharedInformerFactory.InformerFor(
-				ctx.Namespace,
-				metav1.GroupVersionKind{Version: "v1", Kind: "ServiceAccount"},
-				coreinformers.NewServiceAccountInformer(ctx.Client, ctx.Namespace, time.Second*30, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
-			),
-			ctx.SharedInformerFactory.InformerFor(
-				ctx.Namespace,
-				metav1.GroupVersionKind{Version: "v1", Kind: "Service"},
-				coreinformers.NewServiceInformer(ctx.Client, ctx.Namespace, time.Second*30, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
-			),
-			ctx.SharedInformerFactory.InformerFor(
-				ctx.Namespace,
-				metav1.GroupVersionKind{Version: "v1", Kind: "ConfigMap"},
-				coreinformers.NewConfigMapInformer(ctx.Client, ctx.Namespace, time.Second*30, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
-			),
+			ctx.SharedInformerFactory.Navigator().V1alpha1().ElasticsearchClusters(),
+			ctx.SharedInformerFactory.Navigator().V1alpha1().Pilots(),
+			ctx.KubeSharedInformerFactory.Apps().V1beta1().StatefulSets(),
+			ctx.KubeSharedInformerFactory.Core().V1().Pods(),
+			ctx.KubeSharedInformerFactory.Core().V1().ServiceAccounts(),
+			ctx.KubeSharedInformerFactory.Core().V1().Services(),
+			ctx.KubeSharedInformerFactory.Core().V1().ConfigMaps(),
 			ctx.Client,
 			ctx.NavigatorClient,
 			ctx.Recorder,

@@ -79,6 +79,7 @@ func (g *groupInterfaceGenerator) GenerateType(c *generator.Context, t *types.Ty
 		})
 	}
 	m := map[string]interface{}{
+		"interfacesFilterFunc":            c.Universe.Type(types.Name{Package: g.internalInterfacesPackage, Name: "FilterFunc"}),
 		"interfacesSharedInformerFactory": c.Universe.Type(types.Name{Package: g.internalInterfacesPackage, Name: "SharedInformerFactory"}),
 		"versions":                        versions,
 	}
@@ -98,18 +99,19 @@ type Interface interface {
 }
 
 type group struct {
-	$.interfacesSharedInformerFactory|raw$
+	factory $.interfacesSharedInformerFactory|raw$
+	filter  $.interfacesFilterFunc|raw$
 }
 
 // New returns a new Interface.
-func New(f $.interfacesSharedInformerFactory|raw$) Interface {
-	return &group{f}
+func New(f $.interfacesSharedInformerFactory|raw$, filter $.interfacesFilterFunc|raw$) Interface {
+	return &group{factory: f, filter: filter}
 }
 
 $range .versions$
 // $.Name$ returns a new $.Interface|raw$.
 func (g *group) $.Name$() $.Interface|raw$ {
-	return $.New|raw$(g.SharedInformerFactory)
+	return $.New|raw$(g.factory, g.filter)
 }
 $end$
 `

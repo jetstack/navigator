@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes/scheme"
+	kubescheme "k8s.io/client-go/kubernetes/scheme"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -20,8 +21,9 @@ import (
 	"github.com/jetstack/navigator/cmd/controller/app/options"
 	clientset "github.com/jetstack/navigator/pkg/client/clientset/versioned"
 	intscheme "github.com/jetstack/navigator/pkg/client/clientset/versioned/scheme"
+	informers "github.com/jetstack/navigator/pkg/client/informers/externalversions"
 	"github.com/jetstack/navigator/pkg/controllers"
-	"github.com/jetstack/navigator/pkg/kube"
+	kubeinformers "github.com/jetstack/navigator/third_party/k8s.io/client-go/informers/externalversions"
 )
 
 const controllerAgentName = "navigator-controller"
@@ -52,7 +54,8 @@ func Run(opts *options.ControllerOptions, stopCh <-chan struct{}) {
 				}
 			}(n, fn)
 		}
-		glog.V(4).Infof("Starting shared informer factory")
+		glog.V(4).Infof("Starting shared informer factories")
+		ctx.KubeSharedInformerFactory.Start(stopCh)
 		ctx.SharedInformerFactory.Start(stopCh)
 		wg.Wait()
 		glog.Fatalf("Control loops exited")
@@ -82,14 +85,14 @@ func buildControllerContext(opts *options.ControllerOptions) (*controllers.Conte
 	}
 
 	// Create a Navigator api client
-	intcl, err := clientset.NewForConfig(kubeCfg)
+	cl, err := clientset.NewForConfig(kubeCfg)
 
 	if err != nil {
 		return nil, nil, fmt.Errorf("error creating internal group client: %s", err.Error())
 	}
 
 	// Create a Kubernetes api client
-	cl, err := kubernetes.NewForConfig(kubeCfg)
+	kubecl, err := kubernetes.NewForConfig(kubeCfg)
 
 	if err != nil {
 		return nil, nil, fmt.Errorf("error creating kubernetes client: %s", err.Error())
@@ -98,20 +101,22 @@ func buildControllerContext(opts *options.ControllerOptions) (*controllers.Conte
 	// Create event broadcaster
 	// Add cert-manager types to the default Kubernetes Scheme so Events can be
 	// logged properly
-	intscheme.AddToScheme(scheme.Scheme)
+	intscheme.AddToScheme(kubescheme.Scheme)
 	glog.V(4).Info("Creating event broadcaster")
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(glog.V(4).Infof)
-	eventBroadcaster.StartRecordingToSink(&corev1.EventSinkImpl{Interface: cl.CoreV1().Events("")})
-	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, v1.EventSource{Component: controllerAgentName})
+	eventBroadcaster.StartRecordingToSink(&corev1.EventSinkImpl{Interface: kubecl.CoreV1().Events("")})
+	recorder := eventBroadcaster.NewRecorder(kubescheme.Scheme, v1.EventSource{Component: controllerAgentName})
 
-	sharedInformerFactory := kube.NewSharedInformerFactory()
+	sharedInformerFactory := informers.NewFilteredSharedInformerFactory(cl, time.Second*30, NamespaceFilter(opts.Namespace))
+	kubeSharedInformerFactory := kubeinformers.NewFilteredSharedInformerFactory(kubecl, time.Second*30, NamespaceFilter(opts.Namespace))
 	return &controllers.Context{
-		Client:                cl,
-		NavigatorClient:       intcl,
-		Recorder:              recorder,
-		SharedInformerFactory: sharedInformerFactory,
-		Namespace:             opts.Namespace,
+		Client:                    kubecl,
+		NavigatorClient:           cl,
+		Recorder:                  recorder,
+		KubeSharedInformerFactory: kubeSharedInformerFactory,
+		SharedInformerFactory:     sharedInformerFactory,
+		Namespace:                 opts.Namespace,
 	}, kubeCfg, nil
 }
 
@@ -176,4 +181,10 @@ func KubeConfig(apiServerHost string) (*rest.Config, error) {
 	}
 
 	return cfg, nil
+}
+
+func NamespaceFilter(namespace string) func(listOptions *metav1.ListOptions) string {
+	return func(*metav1.ListOptions) string {
+		return namespace
+	}
 }

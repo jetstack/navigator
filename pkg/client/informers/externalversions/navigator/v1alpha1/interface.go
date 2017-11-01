@@ -33,12 +33,13 @@ type Interface interface {
 }
 
 type version struct {
-	internalinterfaces.SharedInformerFactory
+	factory internalinterfaces.SharedInformerFactory
+	filter  internalinterfaces.FilterFunc
 }
 
 // New returns a new Interface.
-func New(f internalinterfaces.SharedInformerFactory) Interface {
-	return &version{f}
+func New(f internalinterfaces.SharedInformerFactory, filter internalinterfaces.FilterFunc) Interface {
+	return &version{factory: f, filter: filter}
 }
 
 // CassandraClusters returns a CassandraClusterInformer.
@@ -48,10 +49,10 @@ func (v *version) CassandraClusters() CassandraClusterInformer {
 
 // ElasticsearchClusters returns a ElasticsearchClusterInformer.
 func (v *version) ElasticsearchClusters() ElasticsearchClusterInformer {
-	return &elasticsearchClusterInformer{factory: v.SharedInformerFactory}
+	return &elasticsearchClusterInformer{factory: v.factory, filter: v.filter}
 }
 
 // Pilots returns a PilotInformer.
 func (v *version) Pilots() PilotInformer {
-	return &pilotInformer{factory: v.SharedInformerFactory}
+	return &pilotInformer{factory: v.factory, filter: v.filter}
 }
