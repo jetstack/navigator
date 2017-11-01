@@ -20,6 +20,7 @@ package internalinterfaces
 
 import (
 	versioned "github.com/jetstack/navigator/pkg/client/clientset/versioned"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	cache "k8s.io/client-go/tools/cache"
 	time "time"
@@ -31,4 +32,16 @@ type NewInformerFunc func(versioned.Interface, time.Duration) cache.SharedIndexI
 type SharedInformerFactory interface {
 	Start(stopCh <-chan struct{})
 	InformerFor(obj runtime.Object, newFunc NewInformerFunc) cache.SharedIndexInformer
+}
+
+type FilterFunc func(*v1.ListOptions) (namespace string)
+
+func DefaultFilterFunc(*v1.ListOptions) (namespace string) {
+	return v1.NamespaceAll
+}
+
+func NamespaceFilter(namespace string) FilterFunc {
+	return func(*v1.ListOptions) string {
+		return namespace
+	}
 }
