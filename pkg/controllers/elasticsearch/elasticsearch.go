@@ -163,7 +163,14 @@ func NewElasticsearch(
 func (e *ElasticsearchController) Run(workers int, stopCh <-chan struct{}) error {
 	glog.Infof("Starting Elasticsearch controller")
 
-	if !cache.WaitForCacheSync(stopCh, e.esListerSynced, e.pilotListerSynced, e.statefulSetListerSynced, e.podListerSynced, e.serviceAccountListerSynced, e.serviceListerSynced) {
+	if !cache.WaitForCacheSync(stopCh,
+		e.esListerSynced,
+		e.pilotListerSynced,
+		e.statefulSetListerSynced,
+		e.podListerSynced,
+		e.serviceAccountListerSynced,
+		e.serviceListerSynced,
+		e.configMapListerSynced) {
 		return fmt.Errorf("timed out waiting for caches to sync")
 	}
 
