@@ -39,18 +39,29 @@ type ElasticsearchClusterInformer interface {
 
 type elasticsearchClusterInformer struct {
 	factory internalinterfaces.SharedInformerFactory
+	filter  internalinterfaces.FilterFunc
 }
 
 // NewElasticsearchClusterInformer constructs a new informer for ElasticsearchCluster type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
 func NewElasticsearchClusterInformer(client clientset_internalversion.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	filter := internalinterfaces.NamespaceFilter(namespace)
+	return NewFilteredElasticsearchClusterInformer(client, filter, resyncPeriod, indexers)
+}
+
+// NewFilteredElasticsearchClusterInformer constructs a new informer for ElasticsearchCluster type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewFilteredElasticsearchClusterInformer(client clientset_internalversion.Interface, filter internalinterfaces.FilterFunc, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
+				namespace := filter(&options)
 				return client.Navigator().ElasticsearchClusters(namespace).List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
+				namespace := filter(&options)
 				return client.Navigator().ElasticsearchClusters(namespace).Watch(options)
 			},
 		},
@@ -60,12 +71,12 @@ func NewElasticsearchClusterInformer(client clientset_internalversion.Interface,
 	)
 }
 
-func defaultElasticsearchClusterInformer(client clientset_internalversion.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewElasticsearchClusterInformer(client, v1.NamespaceAll, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+func (f *elasticsearchClusterInformer) defaultInformer(client clientset_internalversion.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredElasticsearchClusterInformer(client, f.filter, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 }
 
 func (f *elasticsearchClusterInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&navigator.ElasticsearchCluster{}, defaultElasticsearchClusterInformer)
+	return f.factory.InformerFor(&navigator.ElasticsearchCluster{}, f.defaultInformer)
 }
 
 func (f *elasticsearchClusterInformer) Lister() internalversion.ElasticsearchClusterLister {
