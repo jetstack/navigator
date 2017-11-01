@@ -5,10 +5,13 @@ import (
 
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra"
+	"github.com/jetstack/navigator/pkg/controllers/cassandra/nodepool"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/service"
+
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	apps "k8s.io/api/apps/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
@@ -17,18 +20,28 @@ import (
 )
 
 func ClusterForTest() *v1alpha1.CassandraCluster {
-	c := &v1alpha1.CassandraCluster{}
+	c := &v1alpha1.CassandraCluster{
+		Spec: v1alpha1.CassandraClusterSpec{
+			NodePools: []v1alpha1.CassandraClusterNodePool{
+				v1alpha1.CassandraClusterNodePool{
+					Name:     "RingNodes",
+					Replicas: 3,
+				},
+			},
+		},
+	}
 	c.SetName("cassandra-1")
 	c.SetNamespace("app-1")
 	return c
 }
 
 type Fixture struct {
-	t              *testing.T
-	Cluster        *v1alpha1.CassandraCluster
-	ServiceControl service.Interface
-	k8sClient      *fake.Clientset
-	k8sObjects     []runtime.Object
+	t               *testing.T
+	Cluster         *v1alpha1.CassandraCluster
+	ServiceControl  service.Interface
+	NodepoolControl nodepool.Interface
+	k8sClient       *fake.Clientset
+	k8sObjects      []runtime.Object
 }
 
 func NewFixture(t *testing.T) *Fixture {
@@ -57,12 +70,24 @@ func (f *Fixture) setupAndSync() error {
 	}()
 	f.k8sClient = fake.NewSimpleClientset(f.k8sObjects...)
 	k8sFactory := informers.NewSharedInformerFactory(f.k8sClient, 0)
+
 	services := k8sFactory.Core().V1().Services().Lister()
 	if f.ServiceControl == nil {
 		f.ServiceControl = service.NewControl(f.k8sClient, services, recorder)
 	}
+
+	statefulSets := k8sFactory.Apps().V1beta1().StatefulSets().Lister()
+	if f.NodepoolControl == nil {
+		f.NodepoolControl = nodepool.NewControl(
+			f.k8sClient,
+			statefulSets,
+			recorder,
+		)
+	}
+
 	c := cassandra.NewControl(
 		f.ServiceControl,
+		f.NodepoolControl,
 		recorder,
 	)
 	stopCh := make(chan struct{})
@@ -71,6 +96,7 @@ func (f *Fixture) setupAndSync() error {
 	if !cache.WaitForCacheSync(
 		stopCh,
 		k8sFactory.Core().V1().Services().Informer().HasSynced,
+		k8sFactory.Apps().V1beta1().StatefulSets().Informer().HasSynced,
 	) {
 		f.t.Fatal("WaitForCacheSync failure")
 	}
@@ -105,10 +131,32 @@ func (f *Fixture) Services() *v1.ServiceList {
 func (f *Fixture) AssertServicesLength(l int) {
 	services := f.Services()
 	servicesLength := len(services.Items)
-	if servicesLength != 1 {
+	if servicesLength != l {
 		f.t.Log(services)
 		f.t.Errorf(
 			"Incorrect number of services: %#v", servicesLength,
+		)
+	}
+}
+
+func (f *Fixture) StatefulSets() *apps.StatefulSetList {
+	sets, err := f.k8sClient.
+		AppsV1beta1().
+		StatefulSets(f.Cluster.Namespace).
+		List(metav1.ListOptions{})
+	if err != nil {
+		f.t.Fatal(err)
+	}
+	return sets
+}
+
+func (f *Fixture) AssertStatefulSetsLength(l int) {
+	sets := f.StatefulSets()
+	setsLength := len(sets.Items)
+	if setsLength != l {
+		f.t.Log(sets)
+		f.t.Errorf(
+			"Incorrect number of StatefulSets: %#v", setsLength,
 		)
 	}
 }

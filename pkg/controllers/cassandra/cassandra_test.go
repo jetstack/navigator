@@ -24,15 +24,20 @@ func TestCassandraControllerIntegration(t *testing.T) {
 		clienttesting.DefaultWatchReactor(nwatch, nil),
 	)
 	nfactory := externalversions.NewSharedInformerFactory(nclient, 0)
-	cassClusters := nfactory.Navigator().V1alpha1().CassandraClusters()
 
 	kclient := fake.NewSimpleClientset()
 	kfactory := informers.NewSharedInformerFactory(kclient, 0)
-	services := kfactory.Core().V1().Services()
 
 	recorder := record.NewFakeRecorder(0)
 
-	controller := cassandra.NewCassandra(nclient, kclient, cassClusters, services, recorder)
+	controller := cassandra.NewCassandra(
+		nclient,
+		kclient,
+		nfactory.Navigator().V1alpha1().CassandraClusters(),
+		kfactory.Core().V1().Services(),
+		kfactory.Apps().V1beta1().StatefulSets(),
+		recorder,
+	)
 
 	stopCh := make(chan struct{})
 	nfactory.Start(stopCh)

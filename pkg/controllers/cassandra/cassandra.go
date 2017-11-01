@@ -11,7 +11,9 @@ import (
 	navigatorclientset "github.com/jetstack/navigator/pkg/client/clientset/versioned"
 	listersv1alpha1 "github.com/jetstack/navigator/pkg/client/listers/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers"
+	"github.com/jetstack/navigator/pkg/controllers/cassandra/nodepool"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/service"
+	appsinformers "github.com/jetstack/navigator/third_party/k8s.io/client-go/informers/externalversions/apps/v1beta1"
 	coreinformers "github.com/jetstack/navigator/third_party/k8s.io/client-go/informers/externalversions/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -29,12 +31,13 @@ import (
 // It accepts a list of informers that are then used to monitor the state of the
 // target cluster.
 type CassandraController struct {
-	control             ControlInterface
-	cassLister          listersv1alpha1.CassandraClusterLister
-	cassListerSynced    cache.InformerSynced
-	serviceListerSynced cache.InformerSynced
-	queue               workqueue.RateLimitingInterface
-	recorder            record.EventRecorder
+	control                 ControlInterface
+	cassLister              listersv1alpha1.CassandraClusterLister
+	cassListerSynced        cache.InformerSynced
+	serviceListerSynced     cache.InformerSynced
+	statefulSetListerSynced cache.InformerSynced
+	queue                   workqueue.RateLimitingInterface
+	recorder                record.EventRecorder
 }
 
 func NewCassandra(
@@ -42,6 +45,7 @@ func NewCassandra(
 	kubeClient kubernetes.Interface,
 	cassClusters navigatorinformers.CassandraClusterInformer,
 	services coreinformers.ServiceInformer,
+	statefulSets appsinformers.StatefulSetInformer,
 	recorder record.EventRecorder,
 ) *CassandraController {
 	queue := workqueue.NewNamedRateLimitingQueue(
@@ -59,10 +63,16 @@ func NewCassandra(
 	cc.cassLister = cassClusters.Lister()
 	cc.cassListerSynced = cassClusters.Informer().HasSynced
 	cc.serviceListerSynced = services.Informer().HasSynced
+	cc.statefulSetListerSynced = statefulSets.Informer().HasSynced
 	cc.control = NewControl(
 		service.NewControl(
 			kubeClient,
 			services.Lister(),
+			recorder,
+		),
+		nodepool.NewControl(
+			kubeClient,
+			statefulSets.Lister(),
 			recorder,
 		),
 		recorder,
@@ -169,6 +179,7 @@ func init() {
 			ctx.Client,
 			ctx.SharedInformerFactory.Navigator().V1alpha1().CassandraClusters(),
 			ctx.KubeSharedInformerFactory.Core().V1().Services(),
+			ctx.KubeSharedInformerFactory.Apps().V1beta1().StatefulSets(),
 			ctx.Recorder,
 		)
 		return e.Run
