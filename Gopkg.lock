@@ -395,7 +395,8 @@
   branch = "release-1.8"
   name = "k8s.io/code-generator"
   packages = ["cmd/client-gen","cmd/client-gen/args","cmd/client-gen/generators","cmd/client-gen/generators/fake","cmd/client-gen/generators/scheme","cmd/client-gen/generators/util","cmd/client-gen/path","cmd/client-gen/types","cmd/conversion-gen","cmd/conversion-gen/generators","cmd/deepcopy-gen","cmd/defaulter-gen","cmd/informer-gen","cmd/informer-gen/generators","cmd/lister-gen","cmd/lister-gen/generators"]
-  revision = "0c5165a97e055df28cca8bbcb8b7c8ae1019b3f1"
+  revision = "7e0ed2052457764291c6c4e5914445a5291b6668"
+  source = "https://github.com/munnerz/code-generator.git"
 
 [[projects]]
   branch = "master"
@@ -412,6 +413,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "0de954e667332c13ae3670afe978b1e5fb5a0271dccc3f18b00bb0845555860b"
+  inputs-digest = "da40358f2ae34ca9dc86352aedf4aafaaed71510fbc4b42899dfb1101da1b6bf"
   solver-name = "gps-cdcl"
   solver-version = 1
