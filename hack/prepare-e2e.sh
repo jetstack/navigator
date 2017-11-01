@@ -1,25 +1,11 @@
 #!/bin/bash
 set -eux
 
-NAVIGATOR_NAMESPACE="navigator"
-USER_NAMESPACE="navigator-e2e-database1"
-RELEASE_NAME="nav-e2e"
-
-ROOT_DIR="$(git rev-parse --show-toplevel)"
 SCRIPT_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)"
-CONFIG_DIR=$(mktemp -d -t navigator-e2e.XXXXXXXXX)
-mkdir -p $CONFIG_DIR
-CERT_DIR="$CONFIG_DIR/certs"
-mkdir -p $CERT_DIR
-TEST_DIR="$CONFIG_DIR/tmp"
-mkdir -p $TEST_DIR
 
 source "${SCRIPT_DIR}/libe2e.sh"
 
-helm delete --purge "${RELEASE_NAME}" || true
-kube_delete_namespace_and_wait "${USER_NAMESPACE}"
-
-echo "Waiting up to 5 minutes for Kubernetes to be ready..."
+echo "Waiting up to 10 minutes for Kubernetes to be ready..."
 retry TIMEOUT=600 kubectl get nodes
 
 echo "Installing helm..."
@@ -28,7 +14,13 @@ apiVersion: v1
 kind: List
 items:
 
-### Fix kube-dns ###
+### Fix kube-dns RBAC issues ###
+# Create a ServiceAccount for kube-dns to use
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: kube-dns
+    namespace: kube-system
 - apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
@@ -92,3 +84,6 @@ items:
     apiGroup: rbac.authorization.k8s.io
 EOF
 helm init --service-account=tiller
+
+echo "Waiting for tiller to be ready..."
+retry TIMEOUT=60 helm version
