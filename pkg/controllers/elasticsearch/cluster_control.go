@@ -104,5 +104,7 @@ func (e *defaultElasticsearchClusterControl) Sync(c *v1alpha1.ElasticsearchClust
 		return c.Status, err
 	}
 
+	e.recorder.Eventf(c, apiv1.EventTypeNormal, successSync, messageSuccessSync)
+
 	return c.Status, nil
 }

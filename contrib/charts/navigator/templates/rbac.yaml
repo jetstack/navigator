@@ -6,7 +6,7 @@ items:
 {{- if not .Values.apiserver.rbacDisabled }}
 ### API Server ###
 # TODO: if this is just for namespace lifecycle admission, move to a generic role
-# the role for the apiserver 
+# the role for the apiserver
 - apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRole
   metadata:
@@ -99,6 +99,9 @@ items:
     resources: ["endpoints"]
     verbs:     ["*"]
     resourceNames: ["navigator-controller"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs:     ["create", "update"]
 
 - apiVersion: rbac.authorization.k8s.io/v1beta1
 {{- if not .Values.controller.namespace }}
