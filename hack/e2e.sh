@@ -2,7 +2,6 @@
 set -eux
 
 NAVIGATOR_NAMESPACE="navigator"
-USER_NAMESPACE="navigator-e2e-database1"
 RELEASE_NAME="nav-e2e"
 
 ROOT_DIR="$(git rev-parse --show-toplevel)"
@@ -17,7 +16,6 @@ mkdir -p $TEST_DIR
 source "${SCRIPT_DIR}/libe2e.sh"
 
 helm delete --purge "${RELEASE_NAME}" || true
-kube_delete_namespace_and_wait "${USER_NAMESPACE}"
 
 echo "Installing navigator..."
 helm install --wait --name "${RELEASE_NAME}" contrib/charts/navigator \
@@ -64,8 +62,7 @@ if ! retry navigator_ready; then
     exit 1
 fi
 
-kubectl create namespace "${USER_NAMESPACE}"
-
+TEST_ID="${RANDOM}"
 FAILURE_COUNT=0
 
 function fail_test() {
@@ -73,41 +70,99 @@ function fail_test() {
     echo "TEST FAILURE: $1"
 }
 
-function test_elasticsearchcluster() {
-    echo "Testing ElasticsearchCluster"
+function test_elasticsearchcluster_success() {
+    echo "Testing ElasticsearchCluster success path"
+    local FAILURE_COUNT=0
+    local NAMESPACE="${TEST_ID}-test-elasticsearchcluster-success"
+    kubectl create namespace "${NAMESPACE}"
+
     if ! kubectl get esc; then
         fail_test "Failed to use shortname to get ElasticsearchClusters"
     fi
     # Create and delete an ElasticSearchCluster
     if ! kubectl create \
-            --namespace "${USER_NAMESPACE}" \
+            --namespace "${NAMESPACE}" \
             --filename "${ROOT_DIR}/docs/quick-start/es-cluster-demo.yaml"; then
         fail_test "Failed to create elasticsearchcluster"
     fi
     if ! kubectl get \
-            --namespace "${USER_NAMESPACE}" \
+            --namespace "${NAMESPACE}" \
             ElasticSearchClusters; then
         fail_test "Failed to get elasticsearchclusters"
     fi
     if ! retry kubectl get \
-         --namespace "${USER_NAMESPACE}" \
+         --namespace "${NAMESPACE}" \
          service es-demo; then
         fail_test "Navigator controller failed to create elasticsearchcluster service"
     fi
-    if ! retry kube_event_exists "${USER_NAMESPACE}" \
+    if ! retry kube_event_exists "${NAMESPACE}" \
          "navigator-controller:ElasticsearchCluster:Normal:SuccessSync"
     then
         fail_test "Navigator controller failed to create SuccessSync event"
     fi
     if ! kubectl delete \
-            --namespace "${USER_NAMESPACE}" \
+            --namespace "${NAMESPACE}" \
             ElasticSearchClusters \
             --all; then
         fail_test "Failed to delete elasticsearchcluster"
     fi
+
+    # XXX: Enable this when we can run the e2e tests without scheduling warnings
+    # etc.
+    # if kubectl get --namespace "${NAMESPACE}" events \
+    #         | grep 'Warning'; then
+    #     fail_test "unexpected warnings found"
+    # fi
+
+    if [[ "${FAILURE_COUNT}" -eq 0 ]]; then
+        kubectl delete namespace "${NAMESPACE}"
+    fi
+    return $FAILURE_COUNT
 }
 
-test_elasticsearchcluster
+if ! test_elasticsearchcluster_success; then
+    fail_test "test_elasticsearchcluster_success"
+fi
+
+
+function test_elasticsearchcluster_failure() {
+    echo "Testing ElasticsearchCluster failure path"
+    local FAILURE_COUNT=0
+    local NAMESPACE="${TEST_ID}-test-elasticsearchcluster-failure"
+    kubectl create namespace "${NAMESPACE}"
+
+    # Create a clashing servicaccount name to trigger a controller sync failure
+    kubectl create --namespace "${NAMESPACE}" \
+            serviceaccount es-demo
+    if ! kubectl create \
+            --namespace "${NAMESPACE}" \
+            --filename "${ROOT_DIR}/docs/quick-start/es-cluster-demo.yaml"; then
+        fail_test "Failed to create elasticsearchcluster"
+    fi
+    if ! retry kube_event_exists "${NAMESPACE}" \
+         "navigator-controller:ElasticsearchCluster:Warning:ErrorSync"
+    then
+        fail_test "Navigator controller failed to create ErrorSync event"
+    fi
+    if [[ "${FAILURE_COUNT}" -eq 0 ]]; then
+        kubectl delete namespace "${NAMESPACE}"
+    fi
+    return $FAILURE_COUNT
+}
+
+if ! test_elasticsearchcluster_failure; then
+    fail_test "test_elasticsearchcluster_failure"
+fi
+
+function test_logs() {
+    if kubectl logs deployments/nav-e2e-navigator-controller \
+            | grep '^E' \
+            | grep -v 'reflector.go:205'; then
+        fail_test "Unexpected errors in controller logs"
+    fi
+}
+
+test_logs
 
 if [[ "${FAILURE_COUNT}" -gt 0 ]]; then
     kubectl get po -o yaml
