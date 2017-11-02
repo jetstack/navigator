@@ -126,6 +126,33 @@ if ! test_elasticsearchcluster_success; then
 fi
 
 
+function test_elasticsearchcluster_failure() {
+    echo "Testing ElasticsearchCluster failure path"
+    local FAILURE_COUNT=0
+    local NAMESPACE="${TEST_ID}-test-elasticsearchcluster-failure"
+    kubectl create namespace "${NAMESPACE}"
+
+    # Create a clashing service name to trigger a controller sync failure
+    kubectl create service clusterip cass-demo --clusterip="None"
+    if ! kubectl create \
+            --namespace "${USER_NAMESPACE}" \
+            --filename "${ROOT_DIR}/docs/quick-start/es-cluster-demo.yaml"; then
+        fail_test "Failed to create elasticsearchcluster"
+    fi
+    if ! retry kube_event_exists "${USER_NAMESPACE}" \
+         "navigator-controller:ElasticsearchCluster:Warning:ErrorSync"
+    then
+        fail_test "Navigator controller failed to create ErrorSync event"
+    fi
+    if [[ "${FAILURE_COUNT}" -eq 0 ]]; then
+        kubectl delete namespace "${NAMESPACE}"
+    fi
+    return $FAILURE_COUNT
+}
+
+if ! test_elasticsearchcluster_failure; then
+    fail_test "test_elasticsearchcluster_failure"
+fi
 
 function test_logs() {
     if kubectl logs deployments/nav-e2e-navigator-controller \
