@@ -2,7 +2,6 @@
 set -eux
 
 NAVIGATOR_NAMESPACE="navigator"
-USER_NAMESPACE="navigator-e2e-database1"
 RELEASE_NAME="nav-e2e"
 
 ROOT_DIR="$(git rev-parse --show-toplevel)"
@@ -17,7 +16,6 @@ mkdir -p $TEST_DIR
 source "${SCRIPT_DIR}/libe2e.sh"
 
 helm delete --purge "${RELEASE_NAME}" || true
-kube_delete_namespace_and_wait "${USER_NAMESPACE}"
 
 echo "Installing navigator..."
 helm install --wait --name "${RELEASE_NAME}" contrib/charts/navigator \
@@ -132,14 +130,15 @@ function test_elasticsearchcluster_failure() {
     local NAMESPACE="${TEST_ID}-test-elasticsearchcluster-failure"
     kubectl create namespace "${NAMESPACE}"
 
-    # Create a clashing service name to trigger a controller sync failure
-    kubectl create service clusterip cass-demo --clusterip="None"
+    # Create a clashing servicaccount name to trigger a controller sync failure
+    kubectl create --namespace "${NAMESPACE}" \
+            serviceaccount es-demo
     if ! kubectl create \
-            --namespace "${USER_NAMESPACE}" \
+            --namespace "${NAMESPACE}" \
             --filename "${ROOT_DIR}/docs/quick-start/es-cluster-demo.yaml"; then
         fail_test "Failed to create elasticsearchcluster"
     fi
-    if ! retry kube_event_exists "${USER_NAMESPACE}" \
+    if ! retry kube_event_exists "${NAMESPACE}" \
          "navigator-controller:ElasticsearchCluster:Warning:ErrorSync"
     then
         fail_test "Navigator controller failed to create ErrorSync event"
