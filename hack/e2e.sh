@@ -46,6 +46,11 @@ function navigator_ready() {
     if ! kubectl get esc; then
         return 1
     fi
+    if ! kube_event_exists "kube-system" \
+         "navigator-controller:Endpoints:Normal:LeaderElection"
+    then
+        return 1
+    fi
     return 0
 }
 
@@ -88,6 +93,11 @@ function test_elasticsearchcluster() {
          --namespace "${USER_NAMESPACE}" \
          service es-demo; then
         fail_test "Navigator controller failed to create elasticsearchcluster service"
+    fi
+    if ! retry kube_event_exists "${USER_NAMESPACE}" \
+         "navigator-controller:ElasticsearchCluster:Normal:SuccessSync"
+    then
+        fail_test "Navigator controller failed to create SuccessSync event"
     fi
     if ! kubectl delete \
             --namespace "${USER_NAMESPACE}" \
