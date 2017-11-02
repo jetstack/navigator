@@ -109,6 +109,17 @@ function test_elasticsearchcluster() {
 
 test_elasticsearchcluster
 
+
+function test_logs() {
+    if kubectl logs deployments/nav-e2e-navigator-controller \
+            | grep '^E' \
+            | grep -v 'reflector.go:205'; then
+        fail_test "Unexpected errors in controller logs"
+    fi
+}
+
+test_logs
+
 if [[ "${FAILURE_COUNT}" -gt 0 ]]; then
     kubectl get po -o yaml
     kubectl describe po
