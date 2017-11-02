@@ -21,7 +21,7 @@ spec:
     fsGroup: 1000
 
   nodePools:
-  - name: MasterPool
+  - name: master
     replicas: 3
 
     roles:
