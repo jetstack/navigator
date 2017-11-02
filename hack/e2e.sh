@@ -64,8 +64,7 @@ if ! retry navigator_ready; then
     exit 1
 fi
 
-kubectl create namespace "${USER_NAMESPACE}"
-
+TEST_ID="${RANDOM}"
 FAILURE_COUNT=0
 
 function fail_test() {
@@ -73,41 +72,59 @@ function fail_test() {
     echo "TEST FAILURE: $1"
 }
 
-function test_elasticsearchcluster() {
-    echo "Testing ElasticsearchCluster"
+function test_elasticsearchcluster_success() {
+    echo "Testing ElasticsearchCluster success path"
+    local FAILURE_COUNT=0
+    local NAMESPACE="${TEST_ID}-test-elasticsearchcluster-success"
+    kubectl create namespace "${NAMESPACE}"
+
     if ! kubectl get esc; then
         fail_test "Failed to use shortname to get ElasticsearchClusters"
     fi
     # Create and delete an ElasticSearchCluster
     if ! kubectl create \
-            --namespace "${USER_NAMESPACE}" \
+            --namespace "${NAMESPACE}" \
             --filename "${ROOT_DIR}/docs/quick-start/es-cluster-demo.yaml"; then
         fail_test "Failed to create elasticsearchcluster"
     fi
     if ! kubectl get \
-            --namespace "${USER_NAMESPACE}" \
+            --namespace "${NAMESPACE}" \
             ElasticSearchClusters; then
         fail_test "Failed to get elasticsearchclusters"
     fi
     if ! retry kubectl get \
-         --namespace "${USER_NAMESPACE}" \
+         --namespace "${NAMESPACE}" \
          service es-demo; then
         fail_test "Navigator controller failed to create elasticsearchcluster service"
     fi
-    if ! retry kube_event_exists "${USER_NAMESPACE}" \
+    if ! retry kube_event_exists "${NAMESPACE}" \
          "navigator-controller:ElasticsearchCluster:Normal:SuccessSync"
     then
         fail_test "Navigator controller failed to create SuccessSync event"
     fi
     if ! kubectl delete \
-            --namespace "${USER_NAMESPACE}" \
+            --namespace "${NAMESPACE}" \
             ElasticSearchClusters \
             --all; then
         fail_test "Failed to delete elasticsearchcluster"
     fi
+
+    if kubectl get --namespace "${NAMESPACE}" events \
+            | grep 'Warning'; then
+        fail_test "unexpected warnings found"
+    fi
+
+
+    if [[ "${FAILURE_COUNT}" -eq 0 ]]; then
+        kubectl delete namespace "${NAMESPACE}"
+    fi
+    return $FAILURE_COUNT
 }
 
-test_elasticsearchcluster
+if ! test_elasticsearchcluster_success; then
+    fail_test "test_elasticsearchcluster_success"
+fi
+
 
 
 function test_logs() {
