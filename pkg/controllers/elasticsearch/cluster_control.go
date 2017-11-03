@@ -11,6 +11,8 @@ import (
 	clientset "github.com/jetstack/navigator/pkg/client/clientset/versioned"
 	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/configmap"
 	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/nodepool"
+	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/role"
+	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/rolebinding"
 	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/service"
 	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/serviceaccount"
 )
@@ -24,6 +26,8 @@ const (
 	messageErrorSyncConfigMap      = "Error syncing config map: %s"
 	messageErrorSyncService        = "Error syncing service: %s"
 	messageErrorSyncNodePools      = "Error syncing node pools: %s"
+	messageErrorSyncRoles          = "Error syncing RBAC roles: %s"
+	messageErrorSyncRoleBindings   = "Error syncing RBAC role bindings: %s"
 	messageSuccessSync             = "Successfully synced ElasticsearchCluster"
 )
 
@@ -45,6 +49,8 @@ type defaultElasticsearchClusterControl struct {
 	configMapControl      configmap.Interface
 	serviceAccountControl serviceaccount.Interface
 	serviceControl        service.Interface
+	roleControl           role.Interface
+	roleBindingControl    rolebinding.Interface
 
 	recorder record.EventRecorder
 }
@@ -61,6 +67,8 @@ func NewController(
 	configMapControl configmap.Interface,
 	serviceAccountControl serviceaccount.Interface,
 	serviceControl service.Interface,
+	roleControl role.Interface,
+	roleBindingControl rolebinding.Interface,
 	recorder record.EventRecorder,
 ) ControlInterface {
 	return &defaultElasticsearchClusterControl{
@@ -73,6 +81,8 @@ func NewController(
 		configMapControl:      configMapControl,
 		serviceAccountControl: serviceAccountControl,
 		serviceControl:        serviceControl,
+		roleControl:           roleControl,
+		roleBindingControl:    roleBindingControl,
 		recorder:              recorder,
 	}
 }
@@ -95,6 +105,18 @@ func (e *defaultElasticsearchClusterControl) Sync(c *v1alpha1.ElasticsearchClust
 	// TODO: handle status
 	if _, err = e.serviceControl.Sync(c); err != nil {
 		e.recorder.Eventf(c, apiv1.EventTypeWarning, errorSync, messageErrorSyncService, err.Error())
+		return c.Status, err
+	}
+
+	// TODO: handle status
+	if err = e.roleControl.Sync(c); err != nil {
+		e.recorder.Eventf(c, apiv1.EventTypeWarning, errorSync, messageErrorSyncRoles, err.Error())
+		return c.Status, err
+	}
+
+	// TODO: handle status
+	if err = e.roleBindingControl.Sync(c); err != nil {
+		e.recorder.Eventf(c, apiv1.EventTypeWarning, errorSync, messageErrorSyncRoleBindings, err.Error())
 		return c.Status, err
 	}
 
