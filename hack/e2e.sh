@@ -16,8 +16,9 @@ mkdir -p $TEST_DIR
 
 source "${SCRIPT_DIR}/libe2e.sh"
 
+START_TIME="$(date +"%s")"
+
 helm delete --purge "${RELEASE_NAME}" || true
-kube_delete_namespace_and_wait "${USER_NAMESPACE}"
 
 echo "Installing navigator..."
 helm install --wait --name "${RELEASE_NAME}" contrib/charts/navigator \
@@ -64,8 +65,7 @@ if ! retry navigator_ready; then
     exit 1
 fi
 
-kubectl create namespace "${USER_NAMESPACE}"
-
+TEST_ID="${RANDOM}"
 FAILURE_COUNT=0
 
 function fail_test() {
@@ -75,6 +75,10 @@ function fail_test() {
 
 function test_elasticsearchcluster() {
     echo "Testing ElasticsearchCluster"
+    local FAILURE_COUNT=0
+    local USER_NAMESPACE="${USER_NAMESPACE}-elasticsearch-${TEST_ID}"
+    kubectl create namespace "${USER_NAMESPACE}"
+
     if ! kubectl get esc; then
         fail_test "Failed to use shortname to get ElasticsearchClusters"
     fi
@@ -89,7 +93,7 @@ function test_elasticsearchcluster() {
             ElasticSearchClusters; then
         fail_test "Failed to get elasticsearchclusters"
     fi
-    if ! retry kubectl get \
+    if ! retry TIMEOUT=10 kubectl get \
          --namespace "${USER_NAMESPACE}" \
          service es-demo; then
         fail_test "Navigator controller failed to create elasticsearchcluster service"
@@ -105,9 +109,18 @@ function test_elasticsearchcluster() {
             --all; then
         fail_test "Failed to delete elasticsearchcluster"
     fi
+    if [[ "${FAILURE_COUNT}" -eq 0 ]]; then
+        kubectl delete namespace "${USER_NAMESPACE}"
+    fi
+    return $FAILURE_COUNT
 }
 
-test_elasticsearchcluster
+if ! test_elasticsearchcluster; then
+    fail_test "Failures in test_elasticsearchcluster"
+fi
+
+END_TIME="$(date +"%s")"
+DURATION="$((END_TIME - START_TIME + 10))"
 
 if [[ "${FAILURE_COUNT}" -gt 0 ]]; then
     kubectl get po -o yaml
@@ -116,8 +129,8 @@ if [[ "${FAILURE_COUNT}" -gt 0 ]]; then
     kubectl describe svc
     kubectl get apiservice -o yaml
     kubectl describe apiservice
-    kubectl logs -c apiserver -l app=navigator,component=apiserver
-    kubectl logs -c controller -l app=navigator,component=controller
+    kubectl logs --since "${DURATION}s" --timestamps -c apiserver -l app=navigator,component=apiserver
+    kubectl logs --since "${DURATION}s" --timestamps -c controller -l app=navigator,component=controller
 fi
 
 exit $FAILURE_COUNT
