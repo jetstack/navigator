@@ -38,8 +38,3 @@ jobs:
           mkdir -p ~/.docker && echo "${DOCKER_AUTH_CONFIG}" > ~/.docker/config.json && chmod 600 ~/.docker/config.json;
           make docker_push IMAGE_TAGS="${TRAVIS_COMMIT} latest";
         fi
-
-# Only run tests when master branch changes or when a PR branch is updated.
-branches:
-  only:
-  - master
