@@ -29,6 +29,7 @@ ${GOPATH}/bin/informer-gen \
            --output-base "${GOPATH}/src/" \
            --input-dirs "k8s.io/api/core/v1" \
            --input-dirs "k8s.io/api/apps/v1beta1" \
+           --input-dirs "k8s.io/api/rbac/v1beta1" \
            --versioned-clientset-package "k8s.io/client-go/kubernetes" \
            --listers-package "k8s.io/client-go/listers" \
            --output-package "github.com/jetstack/navigator/third_party/k8s.io/client-go/informers" \

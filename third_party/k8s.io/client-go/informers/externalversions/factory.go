@@ -22,6 +22,7 @@ import (
 	apps "github.com/jetstack/navigator/third_party/k8s.io/client-go/informers/externalversions/apps"
 	core "github.com/jetstack/navigator/third_party/k8s.io/client-go/informers/externalversions/core"
 	internalinterfaces "github.com/jetstack/navigator/third_party/k8s.io/client-go/informers/externalversions/internalinterfaces"
+	rbac "github.com/jetstack/navigator/third_party/k8s.io/client-go/informers/externalversions/rbac"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	kubernetes "k8s.io/client-go/kubernetes"
@@ -120,6 +121,7 @@ type SharedInformerFactory interface {
 
 	Apps() apps.Interface
 	Core() core.Interface
+	Rbac() rbac.Interface
 }
 
 func (f *sharedInformerFactory) Apps() apps.Interface {
@@ -128,4 +130,8 @@ func (f *sharedInformerFactory) Apps() apps.Interface {
 
 func (f *sharedInformerFactory) Core() core.Interface {
 	return core.New(f, f.filter)
+}
+
+func (f *sharedInformerFactory) Rbac() rbac.Interface {
+	return rbac.New(f, f.filter)
 }

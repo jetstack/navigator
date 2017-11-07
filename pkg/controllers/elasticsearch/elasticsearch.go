@@ -14,6 +14,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	appslisters "k8s.io/client-go/listers/apps/v1beta1"
 	corelisters "k8s.io/client-go/listers/core/v1"
+	rbaclisters "k8s.io/client-go/listers/rbac/v1beta1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
@@ -25,10 +26,13 @@ import (
 	"github.com/jetstack/navigator/pkg/controllers"
 	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/configmap"
 	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/nodepool"
+	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/role"
+	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/rolebinding"
 	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/service"
 	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/serviceaccount"
 	appsinformers "github.com/jetstack/navigator/third_party/k8s.io/client-go/informers/externalversions/apps/v1beta1"
 	coreinformers "github.com/jetstack/navigator/third_party/k8s.io/client-go/informers/externalversions/core/v1"
+	rbacinformers "github.com/jetstack/navigator/third_party/k8s.io/client-go/informers/externalversions/rbac/v1beta1"
 )
 
 type ElasticsearchController struct {
@@ -56,6 +60,12 @@ type ElasticsearchController struct {
 	configMapLister       corelisters.ConfigMapLister
 	configMapListerSynced cache.InformerSynced
 
+	roleLister       rbaclisters.RoleLister
+	roleListerSynced cache.InformerSynced
+
+	roleBindingLister       rbaclisters.RoleBindingLister
+	roleBindingListerSynced cache.InformerSynced
+
 	queue                       workqueue.RateLimitingInterface
 	elasticsearchClusterControl ControlInterface
 	recorder                    record.EventRecorder
@@ -75,6 +85,8 @@ func NewElasticsearch(
 	serviceaccounts coreinformers.ServiceAccountInformer,
 	services coreinformers.ServiceInformer,
 	configmaps coreinformers.ConfigMapInformer,
+	roles rbacinformers.RoleInformer,
+	rolebindings rbacinformers.RoleBindingInformer,
 	cl kubernetes.Interface,
 	navigatorCl clientset.Interface,
 	recorder record.EventRecorder,
@@ -123,6 +135,14 @@ func NewElasticsearch(
 	elasticsearchController.configMapLister = configmaps.Lister()
 	elasticsearchController.configMapListerSynced = configmaps.Informer().HasSynced
 
+	roles.Informer().AddEventHandler(&controllers.BlockingEventHandler{WorkFunc: elasticsearchController.handleObject})
+	elasticsearchController.roleLister = roles.Lister()
+	elasticsearchController.roleListerSynced = roles.Informer().HasSynced
+
+	rolebindings.Informer().AddEventHandler(&controllers.BlockingEventHandler{WorkFunc: elasticsearchController.handleObject})
+	elasticsearchController.roleBindingLister = rolebindings.Lister()
+	elasticsearchController.roleBindingListerSynced = rolebindings.Informer().HasSynced
+
 	// create the actual ElasticsearchCluster controller
 	elasticsearchController.elasticsearchClusterControl = NewController(
 		elasticsearchController.kubeClient,
@@ -151,6 +171,16 @@ func NewElasticsearch(
 		service.NewController(
 			cl,
 			elasticsearchController.serviceLister,
+			recorder,
+		),
+		role.NewController(
+			cl,
+			elasticsearchController.roleLister,
+			recorder,
+		),
+		rolebinding.NewController(
+			cl,
+			elasticsearchController.roleBindingLister,
 			recorder,
 		),
 		recorder,
@@ -324,6 +354,8 @@ func init() {
 			ctx.KubeSharedInformerFactory.Core().V1().ServiceAccounts(),
 			ctx.KubeSharedInformerFactory.Core().V1().Services(),
 			ctx.KubeSharedInformerFactory.Core().V1().ConfigMaps(),
+			ctx.KubeSharedInformerFactory.Rbac().V1beta1().Roles(),
+			ctx.KubeSharedInformerFactory.Rbac().V1beta1().RoleBindings(),
 			ctx.Client,
 			ctx.NavigatorClient,
 			ctx.Recorder,
