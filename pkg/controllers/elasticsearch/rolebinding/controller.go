@@ -1,0 +1,78 @@
+package rolebinding
+
+import (
+	"fmt"
+	"reflect"
+
+	rbacv1beta1 "k8s.io/api/rbac/v1beta1"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	rbaclisters "k8s.io/client-go/listers/rbac/v1beta1"
+	"k8s.io/client-go/tools/record"
+
+	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
+)
+
+type Interface interface {
+	Sync(*v1alpha1.ElasticsearchCluster) error
+}
+
+type roleBindingControl struct {
+	kubeClient        kubernetes.Interface
+	roleBindingLister rbaclisters.RoleBindingLister
+
+	recorder record.EventRecorder
+}
+
+var _ Interface = &roleBindingControl{}
+
+func NewController(
+	kubeClient kubernetes.Interface,
+	roleBindingLister rbaclisters.RoleBindingLister,
+	recorder record.EventRecorder,
+) Interface {
+	return &roleBindingControl{
+		kubeClient:        kubeClient,
+		roleBindingLister: roleBindingLister,
+		recorder:          recorder,
+	}
+}
+
+func ownerCheck(
+	role *rbacv1beta1.RoleBinding,
+	cluster *v1alpha1.ElasticsearchCluster,
+) error {
+	if !metav1.IsControlledBy(role, cluster) {
+		ownerRef := metav1.GetControllerOf(role)
+		return fmt.Errorf(
+			"foreign owned Role: "+
+				"A Role with name '%s/%s' already exists, "+
+				"but it is controlled by '%v', not '%s/%s'",
+			role.Namespace, role.Name, ownerRef,
+			cluster.Namespace, cluster.Name,
+		)
+	}
+	return nil
+}
+
+func (e *roleBindingControl) Sync(c *v1alpha1.ElasticsearchCluster) error {
+	desiredRoleBinding := roleBindingForCluster(c)
+	existingRoleBinding, err := e.roleBindingLister.RoleBindings(desiredRoleBinding.Namespace).Get(desiredRoleBinding.Name)
+	if k8sErrors.IsNotFound(err) {
+		_, err := e.kubeClient.RbacV1beta1().RoleBindings(desiredRoleBinding.Namespace).Create(desiredRoleBinding)
+		return err
+	}
+	if err != nil {
+		return err
+	}
+	if err := ownerCheck(existingRoleBinding, c); err != nil {
+		return err
+	}
+	// TODO: avoid using `reflect` here
+	if !reflect.DeepEqual(desiredRoleBinding.RoleRef, existingRoleBinding.RoleRef) || !reflect.DeepEqual(desiredRoleBinding.Subjects, existingRoleBinding.Subjects) {
+		_, err = e.kubeClient.RbacV1beta1().RoleBindings(desiredRoleBinding.Namespace).Update(desiredRoleBinding)
+		return err
+	}
+	return nil
+}
