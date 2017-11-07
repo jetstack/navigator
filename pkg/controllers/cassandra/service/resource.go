@@ -24,10 +24,11 @@ func ServiceForCluster(
 			Ports: []apiv1.ServicePort{
 				{
 					Name:       "transport",
-					Port:       int32(9300),
-					TargetPort: intstr.FromInt(9300),
+					Port:       int32(9042),
+					TargetPort: intstr.FromInt(9042),
 				},
 			},
+			Selector: util.NodePoolLabels(cluster, ""),
 		},
 	}
 	return &svc
