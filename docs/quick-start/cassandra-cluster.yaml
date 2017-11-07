@@ -8,3 +8,7 @@ spec:
   nodePools:
   - name: RingNodes
     replicas: 3
+  image:
+    repository:  gcr.io/google-samples/cassandra
+    tag: v12
+    pullPolicy: IfNotPresent

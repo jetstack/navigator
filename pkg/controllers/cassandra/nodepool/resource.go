@@ -43,9 +43,15 @@ func StatefulSetForCluster(
 				Spec: apiv1.PodSpec{
 					Containers: []apiv1.Container{
 						{
-							Name:            "cassandra",
-							Image:           "gcr.io/google-samples/cassandra:v12",
-							ImagePullPolicy: apiv1.PullIfNotPresent,
+							Name: "cassandra",
+							Image: fmt.Sprintf(
+								"%s:%s",
+								cluster.Spec.Image.Repository,
+								cluster.Spec.Image.Tag,
+							),
+							ImagePullPolicy: apiv1.PullPolicy(
+								cluster.Spec.Image.PullPolicy,
+							),
 							Ports: []apiv1.ContainerPort{
 								{
 									Name:          "intra-node",
