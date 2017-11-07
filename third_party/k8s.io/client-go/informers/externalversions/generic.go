@@ -22,6 +22,7 @@ import (
 	"fmt"
 	v1beta1 "k8s.io/api/apps/v1beta1"
 	v1 "k8s.io/api/core/v1"
+	rbac_v1beta1 "k8s.io/api/rbac/v1beta1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )
@@ -93,6 +94,16 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Core().V1().Services().Informer()}, nil
 	case v1.SchemeGroupVersion.WithResource("serviceaccounts"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Core().V1().ServiceAccounts().Informer()}, nil
+
+		// Group=Rbac, Version=V1beta1
+	case rbac_v1beta1.SchemeGroupVersion.WithResource("clusterroles"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Rbac().V1beta1().ClusterRoles().Informer()}, nil
+	case rbac_v1beta1.SchemeGroupVersion.WithResource("clusterrolebindings"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Rbac().V1beta1().ClusterRoleBindings().Informer()}, nil
+	case rbac_v1beta1.SchemeGroupVersion.WithResource("roles"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Rbac().V1beta1().Roles().Informer()}, nil
+	case rbac_v1beta1.SchemeGroupVersion.WithResource("rolebindings"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Rbac().V1beta1().RoleBindings().Informer()}, nil
 
 	}
 

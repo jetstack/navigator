@@ -51,3 +51,17 @@ function kube_delete_namespace_and_wait() {
     kubectl delete namespace "${namespace}" || true
     retry TIMEOUT=300 not kubectl get namespace ${namespace}
 }
+
+function kube_event_exists() {
+    local namespace="${1}"
+    local event="${2}"
+    local go_template='{{range .items}}{{.source.component}}:{{.involvedObject.kind}}:{{.type}}:{{.reason}}{{"\n"}}{{end}}'
+    if kubectl get \
+               --namespace "${namespace}" \
+               events \
+               --output=go-template="${go_template}" \
+            | grep "^${event}$"; then
+        return 0
+    fi
+    return 1
+}
