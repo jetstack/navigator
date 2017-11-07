@@ -98,6 +98,21 @@ function test_elasticsearchcluster() {
 
 test_elasticsearchcluster
 
+function kube_service_responding() {
+    local namespace="${1}"
+    local host="${2}"
+    local port="${3}"
+    kubectl run \
+            --namespace="${namespace}" \
+            "kube-service-responding-${RANDOM}" \
+            --stdin=true\
+            --rm \
+            --restart=Never \
+            --image alpine \
+            -- \
+            nc -w 5 -v "${host}" "${port}" <<< ping
+}
+
 function test_cassandracluster() {
     echo "Testing CassandraCluster"
     local USER_NAMESPACE="test-cassandracluster-${TEST_ID}"
@@ -110,6 +125,8 @@ function test_cassandracluster() {
         fail_test "Failed to get cassandraclusters"
     fi
 
+    docker build --tag gcr.io/google-samples/cassandra:v12 hack/cassandrafake
+
     helm install \
          --wait \
          --name "${CHART_NAME}" \
@@ -118,9 +135,10 @@ function test_cassandracluster() {
          --set replicaCount=1 \
          --set image.pullPolicy=Never
 
-    if ! retry kubectl get \
-         --namespace "${USER_NAMESPACE}" \
-         service "cass-${CHART_NAME}-cassandra"; then
+    if ! retry kube_service_responding \
+         "${USER_NAMESPACE}" \
+         "cass-${CHART_NAME}-cassandra" \
+         9042; then
         fail_test "Navigator controller failed to create cassandracluster service"
     fi
 }
