@@ -2,7 +2,6 @@
 set -eux
 
 NAVIGATOR_NAMESPACE="navigator"
-USER_NAMESPACE="navigator-e2e-database1"
 RELEASE_NAME="nav-e2e"
 
 ROOT_DIR="$(git rev-parse --show-toplevel)"
@@ -17,7 +16,6 @@ mkdir -p $TEST_DIR
 source "${SCRIPT_DIR}/libe2e.sh"
 
 helm delete --purge "${RELEASE_NAME}" || true
-kube_delete_namespace_and_wait "${USER_NAMESPACE}"
 
 echo "Installing navigator..."
 helm install --wait --name "${RELEASE_NAME}" contrib/charts/navigator \
@@ -59,9 +57,8 @@ if ! retry navigator_ready; then
     exit 1
 fi
 
-kubectl create namespace "${USER_NAMESPACE}"
-
 FAILURE_COUNT=0
+TEST_ID="$(date +%s)-${RANDOM}"
 
 function fail_test() {
     FAILURE_COUNT=$(($FAILURE_COUNT+1))
@@ -70,6 +67,8 @@ function fail_test() {
 
 function test_elasticsearchcluster() {
     echo "Testing ElasticsearchCluster"
+    local USER_NAMESPACE="test-elasticsearchcluster-${TEST_ID}"
+    kubectl create namespace "${USER_NAMESPACE}"
     if ! kubectl get esc; then
         fail_test "Failed to use shortname to get ElasticsearchClusters"
     fi
@@ -101,24 +100,28 @@ test_elasticsearchcluster
 
 function test_cassandracluster() {
     echo "Testing CassandraCluster"
-    local USER_NAMESPACE="${USER_NAMESPACE}-cassandra"
-    kube_delete_namespace_and_wait "${USER_NAMESPACE}"
+    local USER_NAMESPACE="test-cassandracluster-${TEST_ID}"
+    local CHART_NAME="cassandra-${TEST_ID}"
     kubectl create namespace "${USER_NAMESPACE}"
-    if ! kubectl create \
-            --namespace "${USER_NAMESPACE}" \
-            --filename "${ROOT_DIR}/docs/quick-start/cassandra-cluster.yaml"; then
-        fail_test "Failed to create cassandracluster"
-    fi
+
     if ! kubectl get \
-            --namespace "${USER_NAMESPACE}" \
-            CassandraClusters; then
+         --namespace "${USER_NAMESPACE}" \
+         CassandraClusters; then
         fail_test "Failed to get cassandraclusters"
     fi
-    if ! kubectl delete \
-            --namespace "${USER_NAMESPACE}" \
-            CassandraClusters \
-            --all; then
-        fail_test "Failed to delete cassandracluster"
+
+    helm install \
+         --wait \
+         --name "${CHART_NAME}" \
+         --namespace "${USER_NAMESPACE}" \
+         contrib/charts/cassandra \
+         --set replicaCount=1 \
+         --set image.pullPolicy=Never
+
+    if ! retry kubectl get \
+         --namespace "${USER_NAMESPACE}" \
+         service "cass-${CHART_NAME}-cassandra"; then
+        fail_test "Navigator controller failed to create cassandracluster service"
     fi
 }
 
