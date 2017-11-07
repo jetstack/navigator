@@ -1,0 +1,4 @@
+apiVersion: v1
+description: A Helm chart for Cassandra with Navigator and Kubernetes
+name: cassandra
+version: 0.1.0
