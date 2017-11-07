@@ -25,6 +25,11 @@ type CassandraCluster struct {
 type CassandraClusterSpec struct {
 	Sysctl    []string                   `json:"sysctl"`
 	NodePools []CassandraClusterNodePool `json:"nodePools"`
+	Image     CassandraImage             `json:"image"`
+}
+
+type CassandraImage struct {
+	ImageSpec `json:",inline"`
 }
 
 // CassandraClusterNodePool describes a node pool within a CassandraCluster.
