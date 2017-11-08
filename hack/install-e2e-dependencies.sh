@@ -2,6 +2,10 @@
 #
 # Install e2e test dependencies on Travis
 set -eux
+
+SCRIPT_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)"
+source "${SCRIPT_DIR}/libe2e.sh"
+
 curl -Lo helm.tar.gz \
      https://storage.googleapis.com/kubernetes-helm/helm-v2.6.1-linux-amd64.tar.gz
 tar xvf helm.tar.gz
