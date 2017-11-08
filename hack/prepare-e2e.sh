@@ -5,9 +5,6 @@ SCRIPT_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)"
 
 source "${SCRIPT_DIR}/libe2e.sh"
 
-echo "Waiting up to 10 minutes for Kubernetes to be ready..."
-retry TIMEOUT=600 kubectl get nodes
-
 echo "Installing helm..."
 cat <<EOF | kubectl apply -f -
 apiVersion: v1

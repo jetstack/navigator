@@ -1,4 +1,11 @@
+#!/bin/bash
+#
+# Install e2e test dependencies on Travis
 set -eux
+
+SCRIPT_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)"
+source "${SCRIPT_DIR}/libe2e.sh"
+
 curl -Lo helm.tar.gz \
      https://storage.googleapis.com/kubernetes-helm/helm-v2.6.1-linux-amd64.tar.gz
 tar xvf helm.tar.gz
@@ -23,3 +30,10 @@ sudo -E CHANGE_MINIKUBE_NONE_USER=true minikube start \
      --vm-driver=none \
      --kubernetes-version="$KUBERNETES_VERSION" \
      --extra-config=apiserver.Authorization.Mode=RBAC
+
+echo "Waiting up to 5 minutes for Kubernetes to be ready..."
+if ! retry TIMEOUT=300 kubectl get nodes; then
+    minikube logs
+    echo "ERROR: Timeout waiting for Minikube to be ready"
+    exit 1
+fi
