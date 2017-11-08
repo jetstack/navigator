@@ -149,6 +149,11 @@ function test_cassandracluster() {
          9042; then
         fail_test "Navigator controller failed to create cassandracluster service"
     fi
+
+    # TODO Fail test if there are unexpected cassandra errors.
+    kubectl log \
+            --namespace "${USER_NAMESPACE}" \
+            "statefulset/cass-${CHART_NAME}-cassandra-ringnodes"
 }
 
 test_cassandracluster
