@@ -134,6 +134,24 @@ function test_cassandracluster() {
 
 test_cassandracluster
 
+function ignore_expected_errors() {
+    # Ignored failures to list navigator API objects when the controller starts
+    # before the API server has started and registered its self. E.g.
+    # E1103 14:58:06.819858       1 reflector.go:205] github.com/jetstack/navigator/pkg/client/informers/externalversions/factory.go:68: Failed to list *v1alpha1.Pilot: the server could not find the requested resource (get pilots.navigator.jetstack.io)
+    egrep --invert-match 'Failed to list \*v1alpha1\.\w+:\s+the server could not find the requested resource\s+\(get \w+\.navigator\.jetstack\.io\)$'
+}
+
+function test_logged_errors() {
+    if kubectl logs deployments/nav-e2e-navigator-controller \
+            | egrep '^E' \
+            | ignore_expected_errors
+    then
+        fail_test "Unexpected errors in controller logs"
+    fi
+}
+
+test_logged_errors
+
 if [[ "${FAILURE_COUNT}" -gt 0 ]]; then
     kubectl get po -o yaml
     kubectl describe po
