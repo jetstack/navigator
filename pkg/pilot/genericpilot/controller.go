@@ -6,7 +6,8 @@ import (
 
 	"github.com/golang/glog"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
 
@@ -63,7 +64,7 @@ func (g *GenericPilot) sync(key string) (err error) {
 	}
 
 	pilot, err := g.pilotLister.Pilots(namespace).Get(name)
-	if errors.IsNotFound(err) {
+	if apierrors.IsNotFound(err) {
 		glog.Infof("Pilot %q has been deleted", key)
 		return nil
 	}
@@ -72,15 +73,6 @@ func (g *GenericPilot) sync(key string) (err error) {
 		return err
 	}
 
-	err = g.syncPilot(pilot)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (g *GenericPilot) syncPilot(pilot *v1alpha1.Pilot) error {
 	// check if the pilot we are processing is a member of the same cluster as
 	// this pilot
 	isPeer, err := g.IsPeer(pilot)
@@ -91,33 +83,46 @@ func (g *GenericPilot) syncPilot(pilot *v1alpha1.Pilot) error {
 		glog.V(2).Infof("Skipping pilot %q as it is not a peer in the cluster", pilot.Name)
 		return nil
 	}
-	// don't perform status updates for any Pilot other than our own
-	if !g.IsThisPilot(pilot) {
-		return g.Options.SyncFunc(pilot)
-	}
 
-	err = g.reconcileHooks(pilot)
-	if err != nil {
-		return err
-	}
-
-	err = g.reconcileProcessState(pilot)
-	if err != nil {
-		return err
-	}
-
-	err = g.Options.SyncFunc(pilot)
-	if err != nil {
-		return err
-	}
-
-	// update the status field of the Pilot resource
-	err = g.updatePilotStatus(pilot)
+	err = g.syncPilot(pilot)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (g *GenericPilot) syncPilot(pilot *v1alpha1.Pilot) (err error) {
+	// don't perform status updates for any Pilot other than our own
+	if !g.IsThisPilot(pilot) {
+		return g.Options.SyncFunc(pilot)
+	}
+
+	// we defer this to the end of execution to ensure it is run even if a part
+	// of the sync errors
+	defer func() {
+		errs := []error{err}
+		errs = append(errs, g.updatePilotStatus(pilot))
+		// err will be nil if the contents of errs is all nil
+		err = utilerrors.NewAggregate(errs)
+	}()
+
+	err = g.reconcileHooks(pilot)
+	if err != nil {
+		return
+	}
+
+	err = g.reconcileProcessState(pilot)
+	if err != nil {
+		return
+	}
+
+	err = g.Options.SyncFunc(pilot)
+	if err != nil {
+		return
+	}
+
+	return
 }
 
 func (g *GenericPilot) reconcileHooks(pilot *v1alpha1.Pilot) error {
