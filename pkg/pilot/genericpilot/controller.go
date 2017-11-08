@@ -40,19 +40,23 @@ func (e *GenericPilot) processNextWorkItem() bool {
 	}
 	defer e.queue.Done(key)
 
-	if k, ok := key.(string); ok {
-		if err := e.sync(k); err != nil {
-			glog.Infof("Error syncing Pilot %v, requeuing: %v", key.(string), err)
-			e.queue.AddRateLimited(key)
-		} else {
-			e.queue.Forget(key)
-		}
+	if err := e.sync(key); err != nil {
+		glog.Infof("Error syncing Pilot %v, requeuing: %v", key.(string), err)
+		e.queue.AddRateLimited(key)
+	} else {
+		e.queue.Forget(key)
 	}
 
 	return true
 }
 
-func (g *GenericPilot) sync(key string) (err error) {
+func (g *GenericPilot) sync(obj interface{}) (err error) {
+	var key string
+	var ok bool
+	if key, ok = obj.(string); !ok {
+		glog.Errorf("Unexpected non-string item passed to sync: %#v", obj)
+		return nil
+	}
 	startTime := time.Now()
 	defer func() {
 		glog.Infof("Finished syncing pilot %q (%v)", key, time.Now().Sub(startTime))
@@ -84,6 +88,9 @@ func (g *GenericPilot) sync(key string) (err error) {
 		return nil
 	}
 
+	// TODO: make 10 seconds configurable
+	// we should resync all peers every 10s
+	defer g.scheduledWorkQueue.Add(key, time.Second*10)
 	err = g.syncPilot(pilot)
 	if err != nil {
 		return err

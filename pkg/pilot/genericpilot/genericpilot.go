@@ -17,6 +17,7 @@ import (
 	clientset "github.com/jetstack/navigator/pkg/client/clientset/versioned"
 	listersv1alpha1 "github.com/jetstack/navigator/pkg/client/listers/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/pilot/genericpilot/process"
+	"github.com/jetstack/navigator/pkg/pilot/genericpilot/scheduler"
 )
 
 type GenericPilot struct {
@@ -46,6 +47,8 @@ type GenericPilot struct {
 	// lock is used internally to coordinate updates to fields on the
 	// GenericPilot structure
 	lock sync.Mutex
+	// scheduledWorkQueue is used to periodically re-sync 'this' Pilot resource.
+	scheduledWorkQueue scheduler.ScheduledWorkQueue
 }
 
 // only run one worker to prevent threading issues when dealing with processes
