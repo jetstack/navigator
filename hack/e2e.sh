@@ -135,17 +135,15 @@ function test_cassandracluster() {
         fail_test "Failed to get cassandraclusters"
     fi
 
-    docker build --tag gcr.io/google-samples/cassandra:v12 hack/cassandrafake
-
     helm install \
          --wait \
          --name "${CHART_NAME}" \
          --namespace "${USER_NAMESPACE}" \
          contrib/charts/cassandra \
          --set replicaCount=1 \
-         --set image.pullPolicy=Never
 
-    if ! retry kube_service_responding \
+    # Wait 5 minutes for cassandra to start and listen for CQL queries.
+    if ! retry TIMEOUT=300 kube_service_responding \
          "${USER_NAMESPACE}" \
          "cass-${CHART_NAME}-cassandra" \
          9042; then
