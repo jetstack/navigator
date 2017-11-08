@@ -144,8 +144,15 @@ func (o *PilotOptions) Run(stopCh <-chan struct{}) error {
 		return err
 	}
 
-	// start the shared informer factories
-	go o.sharedInformerFactory.Start(stopCh)
+	// set the genericPilot on
+	o.pilot.genericPilot = genericPilot
+
+	// create a new stopCh just for the factory so the factory continues to
+	// receive updates after the process has been signaled to exit
+	stopInformers := make(chan struct{})
+	defer close(stopInformers)
+	// start the shared informer factory
+	go o.sharedInformerFactory.Start(stopInformers)
 
 	if err := o.pilot.WaitForCacheSync(stopCh); err != nil {
 		return err

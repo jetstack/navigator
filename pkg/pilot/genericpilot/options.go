@@ -155,8 +155,6 @@ func (o *Options) Pilot() (*GenericPilot, error) {
 
 	// TODO: use a filtered informer that only watches pilot-namespace
 	pilotInformer := o.SharedInformerFactory.Navigator().V1alpha1().Pilots()
-	pilotInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{})
-
 	genericPilot := &GenericPilot{
 		Options:             *o,
 		client:              o.NavigatorClient,

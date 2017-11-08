@@ -113,22 +113,24 @@ type PilotList struct {
 }
 
 type PilotSpec struct {
-	Phase         PilotPhase
 	Elasticsearch *PilotElasticsearchSpec
 }
 
 type PilotPhase string
 
 const (
-	PilotPhaseStarted PilotPhase = "Started"
-	PilotPhaseStopped PilotPhase = "Stopped"
+	PilotPhasePreStart  PilotPhase = "PreStart"
+	PilotPhasePostStart PilotPhase = "PostStart"
+	PilotPhasePreStop   PilotPhase = "PreStop"
+	PilotPhasePostStop  PilotPhase = "PostStop"
 )
 
 type PilotElasticsearchSpec struct {
 }
 
 type PilotStatus struct {
-	Conditions []PilotCondition
+	LastCompletedPhase PilotPhase
+	Conditions         []PilotCondition
 }
 
 // PilotCondition contains condition information for a Pilot.

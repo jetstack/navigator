@@ -10,6 +10,7 @@ import (
 
 	clientset "github.com/jetstack/navigator/pkg/client/clientset/versioned"
 	listersv1alpha1 "github.com/jetstack/navigator/pkg/client/listers/navigator/v1alpha1"
+	"github.com/jetstack/navigator/pkg/pilot/genericpilot"
 	"github.com/jetstack/navigator/pkg/pilot/genericpilot/hook"
 )
 
@@ -20,14 +21,19 @@ const (
 type Pilot struct {
 	Options *PilotOptions
 
-	navigatorClient     clientset.Interface
-	pilotLister         listersv1alpha1.PilotLister
-	pilotInformerSynced cache.InformerSynced
+	// navigator clientset
+	navigatorClient clientset.Interface
 
+	pilotLister             listersv1alpha1.PilotLister
+	pilotInformerSynced     cache.InformerSynced
 	esClusterLister         listersv1alpha1.ElasticsearchClusterLister
 	esClusterInformerSynced cache.InformerSynced
 
+	// client for accessing the elasticsearch API locally
 	localESClient *elastic.Client
+
+	// a reference to the GenericPilot for this Pilot
+	genericPilot *genericpilot.GenericPilot
 }
 
 func NewPilot(opts *PilotOptions) (*Pilot, error) {
