@@ -20,14 +20,6 @@ jobs:
       - make BUILD_TAG=latest build e2e-test
 
     - stage: test
-      env:
-      - KUBERNETES_VERSION=v1.7.0
-      before_script:
-      - ./hack/install-e2e-dependencies.sh
-      script:
-      - make BUILD_TAG=latest build e2e-test
-
-    - stage: test
       script:
       - make verify
 
