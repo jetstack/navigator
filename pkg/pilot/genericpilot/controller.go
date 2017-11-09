@@ -201,7 +201,7 @@ func (g *GenericPilot) reconcileProcessState(pilot *v1alpha1.Pilot) error {
 // before passing a pilot to this function.
 func (g *GenericPilot) updatePilotStatus(pilot *v1alpha1.Pilot) error {
 	// Set process started status condition
-	if g.IsRunning() {
+	if !g.IsRunning() {
 		pilot.UpdateStatusCondition(v1alpha1.PilotConditionStarted, v1alpha1.ConditionFalse, "", "")
 	} else {
 		pilot.UpdateStatusCondition(v1alpha1.PilotConditionStarted, v1alpha1.ConditionTrue, ReasonProcessStarted, MessageProcessStarted, g.process.String())
