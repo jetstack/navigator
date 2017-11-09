@@ -127,7 +127,7 @@ function test_logged_errors() {
     then
         fail_test "Unexpected errors in controller logs"
     fi
-    if kubectl logs deployments/nav-e2e-navigator-apiserver \
+    if kubectl logs -c apiserver -l app=navigator,component=apiserver \
             | egrep '^E[0-9]{4} '
     then
         fail_test "Unexpected errors in apiserver logs"
