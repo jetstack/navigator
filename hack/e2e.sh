@@ -22,7 +22,9 @@ kube_delete_namespace_and_wait "${USER_NAMESPACE}"
 echo "Installing navigator..."
 helm install --wait --name "${RELEASE_NAME}" contrib/charts/navigator \
         --set apiserver.image.pullPolicy=Never \
-        --set controller.image.pullPolicy=Never
+        --set apiserver.logLevel=100 \
+        --set controller.image.pullPolicy=Never \
+        --set controller.logLevel=100
 
 # Wait for navigator API to be ready
 function navigator_ready() {
