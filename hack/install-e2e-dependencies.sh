@@ -23,20 +23,28 @@ sudo mv minikube /usr/local/bin/
 
 docker run -v /usr/local/bin:/hostbin quay.io/jetstack/ubuntu-nsenter cp /nsenter /hostbin/nsenter
 
-# Create a cluster. We do this as root as we are using the 'docker' driver.
-# We enable RBAC on the cluster too, to test the RBAC in Navigators chart
-sudo -E CHANGE_MINIKUBE_NONE_USER=true minikube start \
-     -v 100 \
-     --vm-driver=none \
-     --kubernetes-version="$KUBERNETES_VERSION" \
-     --extra-config=apiserver.Authorization.Mode=RBAC
-
-echo "Waiting up to 5 minutes for Kubernetes to be ready..."
-if ! retry TIMEOUT=300 kubectl get nodes; then
+function minikube_start() {
+    # Delete an existing, presumably broken minikube cluster.
+    sudo minikube delete || true
+    # Create a cluster. We do this as root as we are using the 'docker' driver.
+    # We enable RBAC on the cluster too, to test the RBAC in Navigators chart
+    sudo -E CHANGE_MINIKUBE_NONE_USER=true minikube start \
+         --vm-driver=none \
+         --kubernetes-version="$KUBERNETES_VERSION" \
+         --extra-config=apiserver.Authorization.Mode=RBAC
+    echo "Waiting for 1 minute for Kubernetes to be ready..."
+    if ! retry TIMEOUT=60 kubectl get nodes; then
+        minikube logs
+        return 1
+    fi
+    return 0
+}
+if ! retry TIMEOUT=300 minikube_start; then
     minikube logs
-    echo "ERROR: Timeout waiting for Minikube to be ready"
+    echo "ERROR: Timeout waiting for Minikube start successfully"
     exit 1
 fi
+
 
 # Fix kube-dns RBAC issues.
 # Allow kube-dns and other kube-system services full access to the API.
