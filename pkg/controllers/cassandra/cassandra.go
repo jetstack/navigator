@@ -172,16 +172,22 @@ func (e *CassandraController) sync(key string) (err error) {
 func (e *CassandraController) handleObject(obj interface{}) {
 }
 
+func CassandraControllerFromContext(ctx *controllers.Context) *CassandraController {
+	return NewCassandra(
+		ctx.NavigatorClient,
+		ctx.Client,
+		ctx.SharedInformerFactory.Navigator().V1alpha1().CassandraClusters(),
+		ctx.KubeSharedInformerFactory.Core().V1().Services(),
+		ctx.KubeSharedInformerFactory.Apps().V1beta1().StatefulSets(),
+		ctx.Recorder,
+	)
+}
+
 func init() {
-	controllers.Register("Cassandra", func(ctx *controllers.Context) controllers.Interface {
-		e := NewCassandra(
-			ctx.NavigatorClient,
-			ctx.Client,
-			ctx.SharedInformerFactory.Navigator().V1alpha1().CassandraClusters(),
-			ctx.KubeSharedInformerFactory.Core().V1().Services(),
-			ctx.KubeSharedInformerFactory.Apps().V1beta1().StatefulSets(),
-			ctx.Recorder,
-		)
-		return e.Run
-	})
+	controllers.Register(
+		"Cassandra",
+		func(ctx *controllers.Context) controllers.Interface {
+			return CassandraControllerFromContext(ctx).Run
+		},
+	)
 }
