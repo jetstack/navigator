@@ -60,6 +60,8 @@ if ! retry navigator_ready; then
     kubectl get pods --all-namespaces
     kubectl describe deploy
     kubectl describe pod
+    kubectl logs -c apiserver -l app=navigator,component=apiserver
+    kubectl logs -c controller -l app=navigator,component=controller
     echo "ERROR: Timeout waiting for Navigator API"
     exit 1
 fi
