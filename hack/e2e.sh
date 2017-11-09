@@ -111,7 +111,7 @@ function test_elasticsearchcluster() {
 
 test_elasticsearchcluster
 
-function ignore_expected_errors() {
+function ignore_expected_controller_errors() {
     # Ignore the following error types:
     # E1103 14:58:06.819858       1 reflector.go:205] github.com/jetstack/navigator/pkg/client/informers/externalversions/factory.go:68: Failed to list *v1alpha1.Pilot: the server could not find the requested resource (get pilots.navigator.jetstack.io)
     # E1108 14:18:37.610718       1 reflector.go:205] github.com/jetstack/navigator/pkg/client/informers/externalversions/factory.go:68: Failed to list *v1alpha1.Pilot: an error on the server ("Error: 'dial tcp 10.0.0.233:443: getsockopt: connection refused'\nTrying to reach: 'https://10.0.0.233:443/apis/navigator.jetstack.io/v1alpha1/pilots?resourceVersion=0'") has prevented the request from succeeding (get pilots.navigator.jetstack.io)
@@ -121,9 +121,9 @@ function ignore_expected_errors() {
 }
 
 function test_logged_errors() {
-    if kubectl logs deployments/nav-e2e-navigator-controller \
+    if kubectl logs -c controller -l app=navigator,component=controller \
             | egrep '^E[0-9]{4} ' \
-            | ignore_expected_errors
+            | ignore_expected_controller_errors
     then
         fail_test "Unexpected errors in controller logs"
     fi
