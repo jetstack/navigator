@@ -17,7 +17,7 @@ apiserver:
     repository: jetstackexperimental/navigator-apiserver
     tag: latest
     pullPolicy: Always
-
+  logLevel: 100
 controller:
   ## Optional: namespace to watch for resources in. This can be used when RBAC
   ## restricts you to a single namespace.
@@ -28,7 +28,7 @@ controller:
     repository: jetstackexperimental/navigator-controller
     tag: latest
     pullPolicy: Always
-
+  logLevel: 100
 resources:
   requests:
     cpu: 50m

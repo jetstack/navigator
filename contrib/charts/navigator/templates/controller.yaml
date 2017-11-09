@@ -38,7 +38,7 @@ spec:
           - --namespace={{ .Values.controller.namespace }}
           - --leader-election-namespace={{ .Values.controller.namespace }}
 {{- end }}
-          - --v=100
+          - --v={{ .Values.controller.logLevel }}
           imagePullPolicy: {{ .Values.controller.image.pullPolicy }}
           resources:
 {{ toYaml .Values.resources | indent 12 }}
