@@ -29,7 +29,8 @@ sudo -E CHANGE_MINIKUBE_NONE_USER=true minikube start \
      -v 100 \
      --vm-driver=none \
      --kubernetes-version="$KUBERNETES_VERSION" \
-     --extra-config=apiserver.Authorization.Mode=RBAC
+     --extra-config=apiserver.Authorization.Mode=RBAC \
+     --bootstrapper=kubeadm
 
 echo "Waiting up to 5 minutes for Kubernetes to be ready..."
 if ! retry TIMEOUT=300 kubectl get nodes; then
