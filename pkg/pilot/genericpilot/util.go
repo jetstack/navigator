@@ -40,5 +40,8 @@ func (g *GenericPilot) IsPeer(pilot *v1alpha1.Pilot) (bool, error) {
 }
 
 func (g *GenericPilot) IsRunning() bool {
-	return g.process != nil && g.process.State() != nil && g.process.State().Exited() == false
+	if g.process == nil || g.process.State() == nil || g.process.State().Exited() == true {
+		return false
+	}
+	return true
 }
