@@ -1,0 +1,38 @@
+# Default values for navigator.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+createAPIService: true
+
+rbac:
+  enabled: true
+
+apiserver:
+  ## Set to true to skip deploying the apiserver components RBAC policies,
+  ## which require cluster admin access to deploy.
+  rbacDisabled: false
+
+  extraArgs:
+  - --v=100
+
+  ## Optional: if not set, a service account will be automatically created
+  # serviceAccount: "apiserver-svc-acct"
+  image:
+    repository: jetstackexperimental/navigator-apiserver
+    tag: latest
+    pullPolicy: Never
+
+controller:
+  ## Optional: namespace to watch for resources in. This can be used when RBAC
+  ## restricts you to a single namespace.
+  # namespace: default
+  ## Optional: if not set, a service account will be automatically created
+  # serviceAccount: "controller-svc-acct"
+  image:
+    repository: jetstackexperimental/navigator-controller
+    tag: latest
+    pullPolicy: Never
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
