@@ -87,18 +87,7 @@ func (g *GenericPilot) Run() error {
 	glog.V(4).Infof("Shutdown signal received")
 	// set g.shutdown = true to signal preStop hooks to run
 	g.shutdown = true
-	glog.V(4).Infof("Waiting for preStop hooks to execute")
-	// wait until preStop hooks have run
-	wait.Poll(time.Second*1, time.Minute*10, func() (bool, error) {
-		return g.lastCompletedPhase == v1alpha1.PilotPhasePreStop, nil
-	})
-	glog.V(4).Infof("Sending stop signal to process")
-	// shut down the process
-	g.process.Stop()
-	glog.V(4).Infof("Waiting for process to exit")
-	// wait for process to exit
-	g.process.Wait()
-	glog.V(4).Infof("Waiting for postStop hooks to execute")
+	glog.V(4).Infof("Waiting for process exit and hooks to execute")
 	// wait until postStop hooks have run
 	wait.Poll(time.Second*1, time.Minute*10, func() (bool, error) {
 		return g.lastCompletedPhase == v1alpha1.PilotPhasePostStop, nil
