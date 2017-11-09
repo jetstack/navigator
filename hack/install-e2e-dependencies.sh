@@ -25,12 +25,14 @@ docker run -v /usr/local/bin:/hostbin quay.io/jetstack/ubuntu-nsenter cp /nsente
 
 # Create a cluster. We do this as root as we are using the 'docker' driver.
 # We enable RBAC on the cluster too, to test the RBAC in Navigators chart
-sudo -E CHANGE_MINIKUBE_NONE_USER=true minikube start \
+if ! sudo -E CHANGE_MINIKUBE_NONE_USER=true minikube start \
      -v 100 \
      --vm-driver=none \
      --kubernetes-version="$KUBERNETES_VERSION" \
      --extra-config=apiserver.Authorization.Mode=RBAC \
-     --bootstrapper=kubeadm
+     --bootstrapper=kubeadm; then
+     sudo journalctl -xu kubelet.service
+fi
 
 echo "Waiting up to 5 minutes for Kubernetes to be ready..."
 if ! retry TIMEOUT=300 kubectl get nodes; then
