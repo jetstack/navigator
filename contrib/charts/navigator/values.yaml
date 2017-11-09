@@ -11,6 +11,13 @@ apiserver:
   ## which require cluster admin access to deploy.
   rbacDisabled: false
 
+  ## Extra arguments to pass to the navigator-apiserver
+  extraArgs:
+#  - --requestheader-client-ca-file=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+#  - --requestheader-username-headers=X-Remote-User
+#  - --requestheader-group-headers=X-Remote-Group
+#  - --requestheader-extra-headers-prefix=X-Remote-Extra  - --proxy-client-cert-file="${CERT_DIR}/client-auth-proxy.crt"
+
   ## Optional: if not set, a service account will be automatically created
   # serviceAccount: "apiserver-svc-acct"
   image:
