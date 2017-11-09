@@ -22,7 +22,9 @@ type Interface interface {
 	Reload() error
 	// Wait will call Wait on the underlying process
 	Wait() error
-	// State should return the current state of the process.
+	// Running returns true if the process is running
+	Running() bool
+	// State returns the state of an exited process
 	State() *os.ProcessState
 	// String returns a textual represntation of the process
 	String() string
@@ -70,6 +72,13 @@ func (p *Adapter) Reload() error {
 	}
 	p.Cmd.Process.Signal(p.Signals.Reload)
 	return p.Cmd.Wait()
+}
+
+func (p *Adapter) Running() bool {
+	if p.Cmd == nil || p.Cmd.Process == nil || p.Cmd.Process.Pid == 0 || p.State() != nil {
+		return false
+	}
+	return true
 }
 
 func (p *Adapter) State() *os.ProcessState {
