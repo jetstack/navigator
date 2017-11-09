@@ -32,33 +32,6 @@ items:
     kind: ServiceAccount
     name: tiller
     namespace: kube-system
-### Generic ###
-# Create a ClusterRole to work with ElasticsearchCluster resources
-- apiVersion: rbac.authorization.k8s.io/v1beta1
-  kind: ClusterRole
-  metadata:
-    name: navigator:authenticated
-  # this rule defined on the role for specifically the
-  # namespace-lifecycle admission-controller
-  rules:
-  - apiGroups: ["navigator.jetstack.io"]
-    resources: ["elasticsearchclusters", "pilots"]
-    verbs:     ["get", "list", "watch", "create", "update", "delete"]
-- apiVersion: rbac.authorization.k8s.io/v1beta1
-  kind: ClusterRoleBinding
-  metadata:
-    name: "navigator:authenticated"
-  roleRef:
-    apiGroup: rbac.authorization.k8s.io
-    kind: ClusterRole
-    name: navigator:authenticated
-  subjects:
-  - kind: Group
-    name: system:authenticated
-    apiGroup: rbac.authorization.k8s.io
-  - kind: Group
-    name: system:unauthenticated
-    apiGroup: rbac.authorization.k8s.io
 EOF
 helm init --service-account=tiller
 
