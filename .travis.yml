@@ -11,28 +11,6 @@ services:
 
 jobs:
   include:
-    - stage: test
-      env:
-      - KUBERNETES_VERSION=v1.8.0
-      before_script:
-      - ./hack/install-e2e-dependencies.sh
-      script:
-      - export CHART_VALUES=$(pwd)/hack/testdata/values-${KUBERNETES_VERSION}.yaml
-      - make BUILD_TAG=latest build e2e-test
-
-    - stage: test
-      env:
-      - KUBERNETES_VERSION=v1.7.0
-      before_script:
-      - ./hack/install-e2e-dependencies.sh
-      script:
-      - export CHART_VALUES=$(pwd)/hack/testdata/values-${KUBERNETES_VERSION}.yaml
-      - make BUILD_TAG=latest build e2e-test
-
-    - stage: test
-      script:
-      - make verify
-
     - stage: build
       script:
       - make go_build docker_build
