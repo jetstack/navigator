@@ -8,6 +8,7 @@ REGISTRY := jetstackexperimental
 IMAGE_NAME := navigator
 BUILD_TAG := build
 IMAGE_TAGS := canary
+CHART_VALUES := ${HACK_DIR}/testdata/values-${KUBERNETES_VERSION}.yaml
 
 BUILD_IMAGE_DIR := hack/builder
 BUILD_IMAGE_NAME := navigator/builder
@@ -32,11 +33,15 @@ all: verify build docker_build
 
 test: go_test
 
-.hack_e2e:
-	@${HACK_DIR}/prepare-e2e.sh
-	@${HACK_DIR}/e2e.sh
+.run_e2e:
+	export CHART_VALUES=${CHART_VALUES}; \
+	${HACK_DIR}/prepare-e2e.sh; \
+	${HACK_DIR}/e2e.sh
 
-e2e-test: docker_build .hack_e2e
+.e2e_init:
+	${HACK_DIR}/install-e2e-dependencies.sh
+
+e2e-test: .e2e_init build docker_build .run_e2e
 
 build: $(CMDS)
 
