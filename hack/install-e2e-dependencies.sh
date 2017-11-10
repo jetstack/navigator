@@ -12,7 +12,8 @@ minikube start \
      -v 100 \
      --vm-driver=kvm \
      --kubernetes-version="$KUBERNETES_VERSION" \
-     --bootstrapper=kubeadm
+     --bootstrapper=kubeadm \
+     --profile="$HOSTNAME"
      # TODO: re-enable RBAC
      # --extra-config=apiserver.Authorization.Mode=RBAC
 
