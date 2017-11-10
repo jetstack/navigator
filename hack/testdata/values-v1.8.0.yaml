@@ -18,7 +18,7 @@ apiserver:
   # serviceAccount: "apiserver-svc-acct"
   image:
     repository: jetstackexperimental/navigator-apiserver
-    tag: canary
+    tag: build
     pullPolicy: Never
 
 controller:
@@ -29,7 +29,7 @@ controller:
   # serviceAccount: "controller-svc-acct"
   image:
     repository: jetstackexperimental/navigator-controller
-    tag: canary
+    tag: build
     pullPolicy: Never
 
 resources:

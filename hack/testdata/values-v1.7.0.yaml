@@ -12,17 +12,13 @@ apiserver:
   rbacDisabled: false
 
   extraArgs:
-  - --requestheader-client-ca-file=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-  - --requestheader-username-headers=X-Remote-User
-  - --requestheader-group-headers=X-Remote-Group
-  - --requestheader-extra-headers-prefix=X-Remote-Extra
   - --v=100
 
   ## Optional: if not set, a service account will be automatically created
   # serviceAccount: "apiserver-svc-acct"
   image:
     repository: jetstackexperimental/navigator-apiserver
-    tag: canary
+    tag: build
     pullPolicy: Never
 
 controller:
@@ -33,7 +29,7 @@ controller:
   # serviceAccount: "controller-svc-acct"
   image:
     repository: jetstackexperimental/navigator-controller
-    tag: canary
+    tag: build
     pullPolicy: Never
 
 resources:
