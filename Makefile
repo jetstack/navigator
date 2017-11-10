@@ -63,7 +63,7 @@ verify: .hack_verify go_verify
 DOCKER_BUILD_TARGETS = $(addprefix docker_build_, $(CMDS))
 $(DOCKER_BUILD_TARGETS):
 	$(eval DOCKER_BUILD_CMD := $(subst docker_build_,,$@))
-	eval $$(minikube docker-env); \
+	eval $$(minikube docker-env --profile $$HOSTNAME); \
 	docker build -t $(REGISTRY)/$(IMAGE_NAME)-$(DOCKER_BUILD_CMD):$(BUILD_TAG) -f Dockerfile.$(DOCKER_BUILD_CMD) .
 docker_build: $(DOCKER_BUILD_TARGETS)
 
@@ -72,7 +72,7 @@ $(DOCKER_PUSH_TARGETS):
 	$(eval DOCKER_PUSH_CMD := $(subst docker_push_,,$@))
 	set -e; \
 		for tag in $(IMAGE_TAGS); do \
-		eval $$(minikube docker-env); \
+		eval $$(minikube docker-env --profile $$HOSTNAME); \
 		docker tag $(REGISTRY)/$(IMAGE_NAME)-$(DOCKER_PUSH_CMD):$(BUILD_TAG) $(REGISTRY)/$(IMAGE_NAME)-$(DOCKER_PUSH_CMD):$${tag} ; \
 		docker push $(REGISTRY)/$(IMAGE_NAME)-$(DOCKER_PUSH_CMD):$${tag}; \
 	done
