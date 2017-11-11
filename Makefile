@@ -9,7 +9,7 @@ REGISTRY := jetstackexperimental
 IMAGE_NAME := navigator
 BUILD_TAG := build
 IMAGE_TAGS := canary
-CHART_VALUES := ${HACK_DIR}/testdata/values-${KUBERNETES_VERSION}.yaml
+CHART_VALUES := ${HACK_DIR}/testdata/values.yaml
 
 BUILD_IMAGE_DIR := hack/builder
 BUILD_IMAGE_NAME := navigator/builder

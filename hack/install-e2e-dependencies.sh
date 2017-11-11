@@ -7,15 +7,13 @@ SCRIPT_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)"
 source "${SCRIPT_DIR}/libe2e.sh"
 
 # Create a cluster. We do this as root as we are using the 'docker' driver.
-# We enable RBAC on the cluster too, to test the RBAC in Navigators chart
+# The kubeadm bootstrapper enables RBAC by default.
 minikube start \
      -v 100 \
      --vm-driver=kvm \
      --kubernetes-version="$KUBERNETES_VERSION" \
      --bootstrapper=kubeadm \
      --profile="$HOSTNAME"
-     # TODO: re-enable RBAC
-     # --extra-config=apiserver.Authorization.Mode=RBAC
 
 echo "Waiting up to 5 minutes for Kubernetes to be ready..."
 if ! retry TIMEOUT=300 kubectl get nodes; then
