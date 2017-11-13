@@ -27,6 +27,21 @@ fi
 # See:
 # * https://github.com/kubernetes/minikube/issues/1734
 # * https://github.com/kubernetes/minikube/issues/1722
-kubectl create clusterrolebinding cluster-admin:kube-system \
-        --clusterrole=cluster-admin \
-        --serviceaccount=kube-system:default
+# * https://github.com/kubernetes/minikube/pull/1904
+function elevate_kube_system_privileges() {
+    if kubectl get clusterrolebinding minikube-rbac; then
+        return 0
+    fi
+    if kubectl create clusterrolebinding minikube-rbac \
+            --clusterrole=cluster-admin \
+            --serviceaccount=kube-system:default; then
+        return 0
+    fi
+    return 1
+}
+
+if ! retry elevate_kube_system_privileges; then
+    minikube logs
+    echo "ERROR: Timeout waiting for Minikube to accept RBAC fixes"
+    exit 1
+fi
