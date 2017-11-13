@@ -187,6 +187,7 @@ func autoConvert_v1alpha1_CassandraClusterSpec_To_navigator_CassandraClusterSpec
 	if err := Convert_v1alpha1_CassandraImage_To_navigator_CassandraImage(&in.Image, &out.Image, s); err != nil {
 		return err
 	}
+	out.CqlPort = in.CqlPort
 	return nil
 }
 
@@ -201,6 +202,7 @@ func autoConvert_navigator_CassandraClusterSpec_To_v1alpha1_CassandraClusterSpec
 	if err := Convert_navigator_CassandraImage_To_v1alpha1_CassandraImage(&in.Image, &out.Image, s); err != nil {
 		return err
 	}
+	out.CqlPort = in.CqlPort
 	return nil
 }
 
