@@ -11,20 +11,16 @@ apiserver:
   ## which require cluster admin access to deploy.
   rbacDisabled: false
 
-  ## Extra arguments to pass to the navigator-apiserver
   extraArgs:
-#  - --requestheader-client-ca-file=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-#  - --requestheader-username-headers=X-Remote-User
-#  - --requestheader-group-headers=X-Remote-Group
-#  - --requestheader-extra-headers-prefix=X-Remote-Extra  - --proxy-client-cert-file="${CERT_DIR}/client-auth-proxy.crt"
+  - --v=100
 
   ## Optional: if not set, a service account will be automatically created
   # serviceAccount: "apiserver-svc-acct"
   image:
     repository: jetstackexperimental/navigator-apiserver
-    tag: latest
-    pullPolicy: Always
-  logLevel: 2
+    tag: build
+    pullPolicy: Never
+
 controller:
   ## Optional: namespace to watch for resources in. This can be used when RBAC
   ## restricts you to a single namespace.
@@ -33,9 +29,9 @@ controller:
   # serviceAccount: "controller-svc-acct"
   image:
     repository: jetstackexperimental/navigator-controller
-    tag: latest
-    pullPolicy: Always
-  logLevel: 2
+    tag: build
+    pullPolicy: Never
+
 resources:
   requests:
     cpu: 50m

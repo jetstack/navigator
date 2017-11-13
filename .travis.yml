@@ -9,32 +9,12 @@ go_import_path: github.com/jetstack/navigator
 services:
 - docker
 
-jobs:
-  include:
-    - stage: test
-      env:
-      - KUBERNETES_VERSION=v1.8.0
-      before_script:
-      - ./hack/install-e2e-dependencies.sh
-      script:
-      - make BUILD_TAG=latest build e2e-test
+- make docker_build
+- if [ "${TRAVIS_PULL_REQUEST}" = "false" ] && [ "${TRAVIS_BRANCH}" = "master" ]; then
+    mkdir -p ~/.docker && echo "${DOCKER_AUTH_CONFIG}" > ~/.docker/config.json && chmod 600 ~/.docker/config.json;
+    make docker_push IMAGE_TAGS="${TRAVIS_COMMIT} latest";
+  fi
 
-    - stage: test
-      env:
-      - KUBERNETES_VERSION=v1.7.0
-      before_script:
-      - ./hack/install-e2e-dependencies.sh
-      script:
-      - make BUILD_TAG=latest build e2e-test
-
-    - stage: test
-      script:
-      - make verify
-
-    - stage: build
-      script:
-      - make go_build docker_build
-      - if [ "${TRAVIS_PULL_REQUEST}" = "false" ] && [ "${TRAVIS_BRANCH}" = "master" ]; then
-          mkdir -p ~/.docker && echo "${DOCKER_AUTH_CONFIG}" > ~/.docker/config.json && chmod 600 ~/.docker/config.json;
-          make docker_push IMAGE_TAGS="${TRAVIS_COMMIT} latest";
-        fi
+branches:
+  only:
+  - master

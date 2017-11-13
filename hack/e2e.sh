@@ -19,12 +19,14 @@ source "${SCRIPT_DIR}/libe2e.sh"
 helm delete --purge "${RELEASE_NAME}" || true
 kube_delete_namespace_and_wait "${USER_NAMESPACE}"
 
+if [ "${CHART_VALUES}" == "" ]; then
+    echo "CHART_VALUES must be set";
+    exit 1
+fi
+
 echo "Installing navigator..."
 helm install --wait --name "${RELEASE_NAME}" contrib/charts/navigator \
-        --set apiserver.image.pullPolicy=Never \
-        --set apiserver.logLevel=100 \
-        --set controller.image.pullPolicy=Never \
-        --set controller.logLevel=100
+        --values ${CHART_VALUES}
 
 # Wait for navigator API to be ready
 function navigator_ready() {
