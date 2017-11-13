@@ -25,17 +25,17 @@ func roleForCluster(c *v1alpha1.ElasticsearchCluster) *rbacv1beta1.Role {
 			},
 			{
 				APIGroups: []string{navigator.GroupName},
-				Verbs:     []string{"*"},
+				Verbs:     []string{"get", "list", "watch"},
 				Resources: []string{
 					"pilots",
-					"pilots/status",
+					"elasticsearchclusters",
 				},
 			},
 			{
 				APIGroups: []string{navigator.GroupName},
-				Verbs:     []string{"get", "list", "watch"},
+				Verbs:     []string{"update", "patch"},
 				Resources: []string{
-					"elasticsearchclusters",
+					"pilots/status",
 				},
 			},
 		},
