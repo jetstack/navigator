@@ -34,29 +34,31 @@ func (e *GenericPilot) worker() {
 }
 
 func (e *GenericPilot) processNextWorkItem() bool {
-	key, quit := e.queue.Get()
+	obj, quit := e.queue.Get()
 	if quit {
 		return false
 	}
-	defer e.queue.Done(key)
+	defer e.queue.Done(obj)
+
+	var key string
+	var ok bool
+	if key, ok = obj.(string); !ok {
+		glog.Errorf("Unexpected non-string item in work queue: %#v", obj)
+		e.queue.Forget(obj)
+		return true
+	}
 
 	if err := e.sync(key); err != nil {
-		glog.Infof("Error syncing Pilot %v, requeuing: %v", key.(string), err)
+		glog.Infof("Error syncing Pilot %v, requeuing: %v", key, err)
 		e.queue.AddRateLimited(key)
 	} else {
-		e.queue.Forget(key)
+		e.queue.Forget(obj)
 	}
 
 	return true
 }
 
-func (g *GenericPilot) sync(obj interface{}) (err error) {
-	var key string
-	var ok bool
-	if key, ok = obj.(string); !ok {
-		glog.Errorf("Unexpected non-string item passed to sync: %#v", obj)
-		return nil
-	}
+func (g *GenericPilot) sync(key string) (err error) {
 	startTime := time.Now()
 	defer func() {
 		glog.Infof("Finished syncing pilot %q (%v)", key, time.Now().Sub(startTime))
