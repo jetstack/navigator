@@ -148,7 +148,10 @@ func (o *PilotOptions) Run(stopCh <-chan struct{}) error {
 	o.pilot.genericPilot = genericPilot
 
 	// create a new stopCh just for the factory so the factory continues to
-	// receive updates after the process has been signaled to exit
+	// receive updates after the process has been signaled to exit. This allows
+	// the Pilot to properly interact with the apiserver whilst it is shutting
+	// down, and ensures that the shared informers only stop once the process
+	// is ready to exit.
 	stopInformers := make(chan struct{})
 	defer close(stopInformers)
 	// start the shared informer factory
