@@ -29,7 +29,7 @@ func UpdateServiceForCluster(
 	service.Spec.Ports = []apiv1.ServicePort{
 		{
 			Name:       "transport",
-			Port:       int32(9042),
+			Port:       cluster.Spec.CqlPort,
 			TargetPort: intstr.FromInt(9042),
 		},
 	}
