@@ -140,6 +140,7 @@ function test_cassandracluster() {
     fi
 
     helm install \
+         --debug \
          --wait \
          --name "${CHART_NAME}" \
          --namespace "${USER_NAMESPACE}" \
@@ -158,6 +159,21 @@ function test_cassandracluster() {
     kubectl log \
             --namespace "${USER_NAMESPACE}" \
             "statefulset/cass-${CHART_NAME}-cassandra-ringnodes"
+
+    # Increment the replica count
+    helm --debug upgrade \
+         "${CHART_NAME}" \
+         contrib/charts/cassandra \
+         --set replicaCount=2
+
+    if ! retry stdout_equals 2 kubectl \
+         --namespace "${USER_NAMESPACE}" \
+         get statefulsets \
+         "cass-${CHART_NAME}-cassandra-ringnodes" \
+         "-o=go-template={{.spec.replicas}}"
+    then
+        fail_test "Cassandra controller did not update the statefulset replica count"
+    fi
 }
 
 test_cassandracluster
