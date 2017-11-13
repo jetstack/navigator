@@ -3,6 +3,7 @@ kind: CassandraCluster
 metadata:
   name: demo
 spec:
+  cqlPort: 9042
   sysctl:
   - vm.max_map_count=0
   nodePools:

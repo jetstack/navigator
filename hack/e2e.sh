@@ -160,6 +160,20 @@ function test_cassandracluster() {
             --namespace "${USER_NAMESPACE}" \
             "statefulset/cass-${CHART_NAME}-cassandra-ringnodes"
 
+    # Change the CQL port
+    helm --debug upgrade \
+         "${CHART_NAME}" \
+         contrib/charts/cassandra \
+         --set cqlPort=9043
+
+    # Wait 60s for cassandra CQL port to change
+    if ! retry TIMEOUT=60 kube_service_responding \
+         "${USER_NAMESPACE}" \
+         "cass-${CHART_NAME}-cassandra" \
+         9043; then
+        fail_test "Navigator controller failed to update cassandracluster service"
+    fi
+
     # Increment the replica count
     helm --debug upgrade \
          "${CHART_NAME}" \
