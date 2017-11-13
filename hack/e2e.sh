@@ -19,10 +19,14 @@ source "${SCRIPT_DIR}/libe2e.sh"
 helm delete --purge "${RELEASE_NAME}" || true
 kube_delete_namespace_and_wait "${USER_NAMESPACE}"
 
+if [ "${CHART_VALUES}" == "" ]; then
+    echo "CHART_VALUES must be set";
+    exit 1
+fi
+
 echo "Installing navigator..."
 helm install --wait --name "${RELEASE_NAME}" contrib/charts/navigator \
-        --set apiserver.image.pullPolicy=Never \
-        --set controller.image.pullPolicy=Never
+        --values ${CHART_VALUES}
 
 # Wait for navigator API to be ready
 function navigator_ready() {
@@ -109,6 +113,7 @@ function test_elasticsearchcluster() {
 
 test_elasticsearchcluster
 
+
 function test_cassandracluster() {
     echo "Testing CassandraCluster"
     local USER_NAMESPACE="${USER_NAMESPACE}-cassandra"
@@ -134,19 +139,26 @@ function test_cassandracluster() {
 
 test_cassandracluster
 
-function ignore_expected_errors() {
-    # Ignored failures to list navigator API objects when the controller starts
-    # before the API server has started and registered its self. E.g.
+function ignore_expected_controller_errors() {
+    # Ignore the following error types:
     # E1103 14:58:06.819858       1 reflector.go:205] github.com/jetstack/navigator/pkg/client/informers/externalversions/factory.go:68: Failed to list *v1alpha1.Pilot: the server could not find the requested resource (get pilots.navigator.jetstack.io)
-    egrep --invert-match 'Failed to list \*v1alpha1\.\w+:\s+the server could not find the requested resource\s+\(get \w+\.navigator\.jetstack\.io\)$'
+    # E1108 14:18:37.610718       1 reflector.go:205] github.com/jetstack/navigator/pkg/client/informers/externalversions/factory.go:68: Failed to list *v1alpha1.Pilot: an error on the server ("Error: 'dial tcp 10.0.0.233:443: getsockopt: connection refused'\nTrying to reach: 'https://10.0.0.233:443/apis/navigator.jetstack.io/v1alpha1/pilots?resourceVersion=0'") has prevented the request from succeeding (get pilots.navigator.jetstack.io)
+    egrep --invert-match \
+          -e 'Failed to list \*v1alpha1\.\w+:\s+the server could not find the requested resource\s+\(get \w+\.navigator\.jetstack\.io\)$' \
+          -e 'Failed to list \*v1alpha1\.\w+:\s+an error on the server \([^)]+\) has prevented the request from succeeding\s+\(get \w+\.navigator\.jetstack\.io\)$'
 }
 
 function test_logged_errors() {
-    if kubectl logs deployments/nav-e2e-navigator-controller \
-            | egrep '^E' \
-            | ignore_expected_errors
+    if kubectl logs -c controller -l app=navigator,component=controller \
+            | egrep '^E[0-9]{4} ' \
+            | ignore_expected_controller_errors
     then
         fail_test "Unexpected errors in controller logs"
+    fi
+    if kubectl logs -c apiserver -l app=navigator,component=apiserver \
+            | egrep '^E[0-9]{4} '
+    then
+        fail_test "Unexpected errors in apiserver logs"
     fi
 }
 
