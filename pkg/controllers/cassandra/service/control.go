@@ -54,6 +54,6 @@ func (e *defaultCassandraClusterServiceControl) Sync(cluster *v1alpha1.Cassandra
 			svc.Namespace, svc.Name, ownerRef, cluster.Namespace, cluster.Name,
 		)
 	}
-	_, err = client.Update(svc)
+	_, err = client.Update(UpdateServiceForCluster(cluster, existingSvc))
 	return err
 }
