@@ -53,16 +53,7 @@ type Hooks struct {
 	lock sync.Mutex
 }
 
-type Phase string
-
-const (
-	PhasePreStart  Phase = "PreStart"
-	PhasePostStart Phase = "PostStart"
-	PhasePreStop   Phase = "PreStop"
-	PhasePostStop  Phase = "PostStop"
-)
-
-func (h *Hooks) Transition(p Phase, pilot *v1alpha1.Pilot) error {
+func (h *Hooks) Transition(p v1alpha1.PilotPhase, pilot *v1alpha1.Pilot) error {
 	h.lock.Lock()
 	defer h.lock.Unlock()
 	if pilot == nil {
@@ -71,44 +62,44 @@ func (h *Hooks) Transition(p Phase, pilot *v1alpha1.Pilot) error {
 	var hooks []Interface
 	executed := map[string]struct{}{}
 	switch p {
-	case PhasePreStart:
+	case v1alpha1.PilotPhasePreStart:
 		hooks = h.PreStart
 		if h.executedPreStart == nil {
 			h.executedPreStart = executed
 		}
 		executed = h.executedPreStart
-	case PhasePostStart:
+	case v1alpha1.PilotPhasePostStart:
 		hooks = h.PostStart
 		if h.executedPostStart == nil {
 			h.executedPostStart = executed
 		}
 		executed = h.executedPostStart
-	case PhasePreStop:
+	case v1alpha1.PilotPhasePreStop:
 		hooks = h.PreStop
 		if h.executedPreStop == nil {
 			h.executedPreStop = executed
 		}
 		executed = h.executedPreStop
-	case PhasePostStop:
+	case v1alpha1.PilotPhasePostStop:
 		hooks = h.PostStop
 		if h.executedPostStop == nil {
 			h.executedPostStop = executed
 		}
 		executed = h.executedPostStop
 	default:
-		return fmt.Errorf("invalid phase: '%s'", p)
+		return fmt.Errorf("invalid phase: %q", p)
 	}
 	for _, hook := range hooks {
 		if _, ok := executed[hook.Name()]; ok {
-			glog.V(4).Infof("Skipping already executed hook for %s phase '%s'", p, hook.Name())
+			glog.V(4).Infof("Skipping already executed hook for %q in phase %q", hook.Name, p)
 			continue
 		}
 		glog.V(4).Infof("Executing %s hook '%s'", p, hook.Name())
 		if err := hook.Execute(pilot); err != nil {
-			glog.V(4).Infof("Error executing %s hook '%s': %s", p, hook.Name(), err.Error())
-			return fmt.Errorf("error executing %s hook '%s': %s", p, hook.Name(), err.Error())
+			glog.V(4).Infof("Error executing %s hook %q: %s", p, hook.Name(), err.Error())
+			return fmt.Errorf("error executing %s hook %q: %s", p, hook.Name(), err.Error())
 		}
-		glog.V(4).Infof("Executed %s hook '%s'", p, hook.Name())
+		glog.V(4).Infof("Executed %s hook %q", p, hook.Name())
 		executed[hook.Name()] = struct{}{}
 	}
 	return nil

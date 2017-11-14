@@ -17,14 +17,35 @@ source "${SCRIPT_DIR}/libe2e.sh"
 
 helm delete --purge "${RELEASE_NAME}" || true
 
-if [ "${CHART_VALUES}" == "" ]; then
-    echo "CHART_VALUES must be set";
+function debug_navigator_start() {
+    kubectl api-versions
+    kubectl get pods --all-namespaces
+    kubectl describe deploy
+    kubectl describe pod
+}
+
+function helm_install() {
+    if [ "${CHART_VALUES}" == "" ]; then
+        echo "CHART_VALUES must be set";
+        exit 1
+    fi
+    helm delete --purge "${RELEASE_NAME}" || true
+    echo "Installing navigator..."
+    if helm --debug install --wait --name "${RELEASE_NAME}" contrib/charts/navigator \
+         --values ${CHART_VALUES}
+    then
+        return 0
+    fi
+    return 1
+}
+
+# Retry helm install to work around intermittent API server availability.
+# See https://github.com/jetstack/navigator/issues/118
+if ! retry helm_install; then
+    debug_navigator_start
+    echo "ERROR: Failed to install Navigator"
     exit 1
 fi
-
-echo "Installing navigator..."
-helm install --wait --name "${RELEASE_NAME}" contrib/charts/navigator \
-        --values ${CHART_VALUES}
 
 # Wait for navigator API to be ready
 function navigator_ready() {
@@ -58,10 +79,7 @@ function navigator_ready() {
 
 echo "Waiting for Navigator to be ready..."
 if ! retry navigator_ready; then
-    kubectl api-versions
-    kubectl get pods --all-namespaces
-    kubectl describe deploy
-    kubectl describe pod
+    debug_navigator_start
     echo "ERROR: Timeout waiting for Navigator API"
     exit 1
 fi
