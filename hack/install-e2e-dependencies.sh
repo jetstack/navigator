@@ -13,6 +13,7 @@ minikube start \
      --vm-driver=kvm \
      --kubernetes-version="$KUBERNETES_VERSION" \
      --bootstrapper=kubeadm \
+     --memory 4096 \
      --profile="$HOSTNAME"
 
 echo "Waiting up to 5 minutes for Kubernetes to be ready..."
