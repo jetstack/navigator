@@ -38,30 +38,34 @@ type ElasticsearchClusterInformer interface {
 }
 
 type elasticsearchClusterInformer struct {
-	factory internalinterfaces.SharedInformerFactory
-	filter  internalinterfaces.FilterFunc
+	factory          internalinterfaces.SharedInformerFactory
+	tweakListOptions internalinterfaces.TweakListOptionsFunc
+	namespace        string
 }
 
 // NewElasticsearchClusterInformer constructs a new informer for ElasticsearchCluster type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
 func NewElasticsearchClusterInformer(client clientset_internalversion.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	filter := internalinterfaces.NamespaceFilter(namespace)
-	return NewFilteredElasticsearchClusterInformer(client, filter, resyncPeriod, indexers)
+	return NewFilteredElasticsearchClusterInformer(client, namespace, resyncPeriod, indexers, nil)
 }
 
 // NewFilteredElasticsearchClusterInformer constructs a new informer for ElasticsearchCluster type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredElasticsearchClusterInformer(client clientset_internalversion.Interface, filter internalinterfaces.FilterFunc, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+func NewFilteredElasticsearchClusterInformer(client clientset_internalversion.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
-				namespace := filter(&options)
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
 				return client.Navigator().ElasticsearchClusters(namespace).List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
-				namespace := filter(&options)
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
 				return client.Navigator().ElasticsearchClusters(namespace).Watch(options)
 			},
 		},
@@ -72,7 +76,7 @@ func NewFilteredElasticsearchClusterInformer(client clientset_internalversion.In
 }
 
 func (f *elasticsearchClusterInformer) defaultInformer(client clientset_internalversion.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredElasticsearchClusterInformer(client, f.filter, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+	return NewFilteredElasticsearchClusterInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
 func (f *elasticsearchClusterInformer) Informer() cache.SharedIndexInformer {
