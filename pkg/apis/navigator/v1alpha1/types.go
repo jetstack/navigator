@@ -26,6 +26,7 @@ type CassandraClusterSpec struct {
 	Sysctl    []string                   `json:"sysctl"`
 	NodePools []CassandraClusterNodePool `json:"nodePools"`
 	Image     CassandraImage             `json:"image"`
+	CqlPort   int32                      `json:"cqlPort"`
 }
 
 type CassandraImage struct {

@@ -22,6 +22,7 @@ import (
 func ClusterForTest() *v1alpha1.CassandraCluster {
 	c := &v1alpha1.CassandraCluster{
 		Spec: v1alpha1.CassandraClusterSpec{
+			CqlPort: 9042,
 			NodePools: []v1alpha1.CassandraClusterNodePool{
 				v1alpha1.CassandraClusterNodePool{
 					Name:     "RingNodes",

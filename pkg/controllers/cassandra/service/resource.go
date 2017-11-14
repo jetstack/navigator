@@ -11,25 +11,28 @@ import (
 func ServiceForCluster(
 	cluster *v1alpha1.CassandraCluster,
 ) *apiv1.Service {
-	svc := apiv1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:            util.ResourceBaseName(cluster),
-			Namespace:       cluster.Namespace,
-			Labels:          util.ClusterLabels(cluster),
-			Annotations:     make(map[string]string),
-			OwnerReferences: []metav1.OwnerReference{util.NewControllerRef(cluster)},
-		},
-		Spec: apiv1.ServiceSpec{
-			Type: apiv1.ServiceTypeClusterIP,
-			Ports: []apiv1.ServicePort{
-				{
-					Name:       "transport",
-					Port:       int32(9042),
-					TargetPort: intstr.FromInt(9042),
-				},
-			},
-			Selector: util.NodePoolLabels(cluster, ""),
+	return updateServiceForCluster(cluster, &apiv1.Service{})
+}
+
+func updateServiceForCluster(
+	cluster *v1alpha1.CassandraCluster,
+	service *apiv1.Service,
+) *apiv1.Service {
+	service = service.DeepCopy()
+	service.SetName(util.ResourceBaseName(cluster))
+	service.SetNamespace(cluster.Namespace)
+	service.SetLabels(util.ClusterLabels(cluster))
+	service.SetOwnerReferences([]metav1.OwnerReference{
+		util.NewControllerRef(cluster),
+	})
+	service.Spec.Type = apiv1.ServiceTypeClusterIP
+	service.Spec.Ports = []apiv1.ServicePort{
+		{
+			Name:       "transport",
+			Port:       cluster.Spec.CqlPort,
+			TargetPort: intstr.FromInt(9042),
 		},
 	}
-	return &svc
+	service.Spec.Selector = util.NodePoolLabels(cluster, "")
+	return service
 }

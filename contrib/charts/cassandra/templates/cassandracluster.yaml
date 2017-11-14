@@ -8,6 +8,7 @@ metadata:
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 spec:
+  cqlPort: {{ .Values.cqlPort }}
   sysctl:
   - vm.max_map_count=0
   nodePools:

@@ -140,6 +140,7 @@ function test_cassandracluster() {
     fi
 
     helm install \
+         --debug \
          --wait \
          --name "${CHART_NAME}" \
          --namespace "${USER_NAMESPACE}" \
@@ -158,6 +159,35 @@ function test_cassandracluster() {
     kubectl log \
             --namespace "${USER_NAMESPACE}" \
             "statefulset/cass-${CHART_NAME}-cassandra-ringnodes"
+
+    # Change the CQL port
+    helm --debug upgrade \
+         "${CHART_NAME}" \
+         contrib/charts/cassandra \
+         --set cqlPort=9043
+
+    # Wait 60s for cassandra CQL port to change
+    if ! retry TIMEOUT=60 kube_service_responding \
+         "${USER_NAMESPACE}" \
+         "cass-${CHART_NAME}-cassandra" \
+         9043; then
+        fail_test "Navigator controller failed to update cassandracluster service"
+    fi
+
+    # Increment the replica count
+    helm --debug upgrade \
+         "${CHART_NAME}" \
+         contrib/charts/cassandra \
+         --set replicaCount=2
+
+    if ! retry stdout_equals 2 kubectl \
+         --namespace "${USER_NAMESPACE}" \
+         get statefulsets \
+         "cass-${CHART_NAME}-cassandra-ringnodes" \
+         "-o=go-template={{.spec.replicas}}"
+    then
+        fail_test "Cassandra controller did not update the statefulset replica count"
+    fi
 }
 
 test_cassandracluster
@@ -168,7 +198,9 @@ function ignore_expected_controller_errors() {
     # E1108 14:18:37.610718       1 reflector.go:205] github.com/jetstack/navigator/pkg/client/informers/externalversions/factory.go:68: Failed to list *v1alpha1.Pilot: an error on the server ("Error: 'dial tcp 10.0.0.233:443: getsockopt: connection refused'\nTrying to reach: 'https://10.0.0.233:443/apis/navigator.jetstack.io/v1alpha1/pilots?resourceVersion=0'") has prevented the request from succeeding (get pilots.navigator.jetstack.io)
     egrep --invert-match \
           -e 'Failed to list \*v1alpha1\.\w+:\s+the server could not find the requested resource\s+\(get \w+\.navigator\.jetstack\.io\)$' \
-          -e 'Failed to list \*v1alpha1\.\w+:\s+an error on the server \([^)]+\) has prevented the request from succeeding\s+\(get \w+\.navigator\.jetstack\.io\)$'
+          -e 'Failed to list \*v1alpha1\.\w+:\s+an error on the server \([^)]+\) has prevented the request from succeeding\s+\(get \w+\.navigator\.jetstack\.io\)$' \
+          -e 'Failed to update lock: etcdserver: request timed out' \
+          -e 'Failed to update lock: Operation cannot be fulfilled on endpoints "navigator-controller"'
 }
 
 function test_logged_errors() {
