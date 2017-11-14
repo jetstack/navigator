@@ -436,7 +436,6 @@ func Convert_navigator_PilotList_To_v1alpha1_PilotList(in *navigator.PilotList, 
 }
 
 func autoConvert_v1alpha1_PilotSpec_To_navigator_PilotSpec(in *PilotSpec, out *navigator.PilotSpec, s conversion.Scope) error {
-	out.Phase = navigator.PilotPhase(in.Phase)
 	out.Elasticsearch = (*navigator.PilotElasticsearchSpec)(unsafe.Pointer(in.Elasticsearch))
 	return nil
 }
@@ -447,7 +446,6 @@ func Convert_v1alpha1_PilotSpec_To_navigator_PilotSpec(in *PilotSpec, out *navig
 }
 
 func autoConvert_navigator_PilotSpec_To_v1alpha1_PilotSpec(in *navigator.PilotSpec, out *PilotSpec, s conversion.Scope) error {
-	out.Phase = PilotPhase(in.Phase)
 	out.Elasticsearch = (*PilotElasticsearchSpec)(unsafe.Pointer(in.Elasticsearch))
 	return nil
 }
@@ -458,6 +456,7 @@ func Convert_navigator_PilotSpec_To_v1alpha1_PilotSpec(in *navigator.PilotSpec, 
 }
 
 func autoConvert_v1alpha1_PilotStatus_To_navigator_PilotStatus(in *PilotStatus, out *navigator.PilotStatus, s conversion.Scope) error {
+	out.LastCompletedPhase = navigator.PilotPhase(in.LastCompletedPhase)
 	out.Conditions = *(*[]navigator.PilotCondition)(unsafe.Pointer(&in.Conditions))
 	return nil
 }
@@ -468,6 +467,7 @@ func Convert_v1alpha1_PilotStatus_To_navigator_PilotStatus(in *PilotStatus, out 
 }
 
 func autoConvert_navigator_PilotStatus_To_v1alpha1_PilotStatus(in *navigator.PilotStatus, out *PilotStatus, s conversion.Scope) error {
+	out.LastCompletedPhase = PilotPhase(in.LastCompletedPhase)
 	out.Conditions = *(*[]PilotCondition)(unsafe.Pointer(&in.Conditions))
 	return nil
 }

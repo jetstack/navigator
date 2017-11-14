@@ -235,7 +235,6 @@ func newPilotResource(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.Elasticsear
 			OwnerReferences: []metav1.OwnerReference{util.NewControllerRef(c)},
 		},
 		Spec: v1alpha1.PilotSpec{
-			Phase:         v1alpha1.PilotPhaseStarted,
 			Elasticsearch: &v1alpha1.PilotElasticsearchSpec{},
 		},
 	}
