@@ -11,10 +11,10 @@ import (
 func ServiceForCluster(
 	cluster *v1alpha1.CassandraCluster,
 ) *apiv1.Service {
-	return UpdateServiceForCluster(cluster, &apiv1.Service{})
+	return updateServiceForCluster(cluster, &apiv1.Service{})
 }
 
-func UpdateServiceForCluster(
+func updateServiceForCluster(
 	cluster *v1alpha1.CassandraCluster,
 	service *apiv1.Service,
 ) *apiv1.Service {
