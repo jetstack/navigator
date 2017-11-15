@@ -87,9 +87,7 @@ func (g *informerGenerator) GenerateType(c *generator.Context, t *types.Type, w 
 		"clientSetInterface":              clientSetInterface,
 		"group":                           namer.IC(g.groupVersion.Group.NonEmpty()),
 		"informerFor":                     informerFor,
-		"interfacesFilterFunc":            c.Universe.Type(types.Name{Package: g.internalInterfacesPackage, Name: "FilterFunc"}),
-		"interfacesDefaultFilterFunc":     c.Universe.Type(types.Name{Package: g.internalInterfacesPackage, Name: "DefaultFilterFunc"}),
-		"interfacesNamespaceFilter":       c.Universe.Type(types.Name{Package: g.internalInterfacesPackage, Name: "NamespaceFilter"}),
+		"interfacesTweakListOptionsFunc":  c.Universe.Type(types.Name{Package: g.internalInterfacesPackage, Name: "TweakListOptionsFunc"}),
 		"interfacesSharedInformerFactory": c.Universe.Type(types.Name{Package: g.internalInterfacesPackage, Name: "SharedInformerFactory"}),
 		"listOptions":                     c.Universe.Type(listOptions),
 		"lister":                          c.Universe.Type(types.Name{Package: listerPackage, Name: t.Name.Name + "Lister"}),
@@ -127,7 +125,8 @@ type $.type|public$Informer interface {
 var typeInformerStruct = `
 type $.type|private$Informer struct {
 	factory $.interfacesSharedInformerFactory|raw$
-	filter  $.interfacesFilterFunc|raw$
+	tweakListOptions $.interfacesTweakListOptionsFunc|raw$
+	$if .namespaced$namespace string$end$
 }
 `
 
@@ -136,8 +135,7 @@ var typeInformerPublicConstructor = `
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
 func New$.type|public$Informer(client $.clientSetInterface|raw$$if .namespaced$, namespace string$end$, resyncPeriod $.timeDuration|raw$, indexers $.cacheIndexers|raw$) $.cacheSharedIndexInformer|raw$ {
-	filter := $if .namespaced$$.interfacesNamespaceFilter|raw$(namespace)$else$$.interfacesDefaultFilterFunc|raw$$end$
-	return NewFiltered$.type|public$Informer(client, filter, resyncPeriod, indexers)
+	return NewFiltered$.type|public$Informer(client$if .namespaced$, namespace$end$, resyncPeriod, indexers, nil)
 }
 `
 
@@ -145,15 +143,19 @@ var typeFilteredInformerPublicConstructor = `
 // NewFiltered$.type|public$Informer constructs a new informer for $.type|public$ type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFiltered$.type|public$Informer(client $.clientSetInterface|raw$, filter $.interfacesFilterFunc|raw$, resyncPeriod $.timeDuration|raw$, indexers $.cacheIndexers|raw$) $.cacheSharedIndexInformer|raw$ {
+func NewFiltered$.type|public$Informer(client $.clientSetInterface|raw$$if .namespaced$, namespace string$end$, resyncPeriod $.timeDuration|raw$, indexers $.cacheIndexers|raw$, tweakListOptions $.interfacesTweakListOptionsFunc|raw$) $.cacheSharedIndexInformer|raw$ {
 	return $.cacheNewSharedIndexInformer|raw$(
 		&$.cacheListWatch|raw${
 			ListFunc: func(options $.v1ListOptions|raw$) ($.runtimeObject|raw$, error) {
-				$if .namespaced$namespace := $end$filter(&options)
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
 				return client.$.group$$.version$().$.type|publicPlural$($if .namespaced$namespace$end$).List(options)
 			},
 			WatchFunc: func(options $.v1ListOptions|raw$) ($.watchInterface|raw$, error) {
-				$if .namespaced$namespace := $end$filter(&options)
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
 				return client.$.group$$.version$().$.type|publicPlural$($if .namespaced$namespace$end$).Watch(options)
 			},
 		},
@@ -166,7 +168,7 @@ func NewFiltered$.type|public$Informer(client $.clientSetInterface|raw$, filter 
 
 var typeInformerConstructor = `
 func (f *$.type|private$Informer) defaultInformer(client $.clientSetInterface|raw$, resyncPeriod $.timeDuration|raw$) $.cacheSharedIndexInformer|raw$ {
-	return NewFiltered$.type|public$Informer(client, f.filter, resyncPeriod, $.cacheIndexers|raw${$.cacheNamespaceIndex|raw$: $.cacheMetaNamespaceIndexFunc|raw$})
+	return NewFiltered$.type|public$Informer(client$if .namespaced$, f.namespace$end$, resyncPeriod, $.cacheIndexers|raw${$.cacheNamespaceIndex|raw$: $.cacheMetaNamespaceIndexFunc|raw$}, f.tweakListOptions)
 }
 `
 
