@@ -214,11 +214,15 @@ function ignore_expected_controller_errors() {
     # Ignore the following error types:
     # E1103 14:58:06.819858       1 reflector.go:205] github.com/jetstack/navigator/pkg/client/informers/externalversions/factory.go:68: Failed to list *v1alpha1.Pilot: the server could not find the requested resource (get pilots.navigator.jetstack.io)
     # E1108 14:18:37.610718       1 reflector.go:205] github.com/jetstack/navigator/pkg/client/informers/externalversions/factory.go:68: Failed to list *v1alpha1.Pilot: an error on the server ("Error: 'dial tcp 10.0.0.233:443: getsockopt: connection refused'\nTrying to reach: 'https://10.0.0.233:443/apis/navigator.jetstack.io/v1alpha1/pilots?resourceVersion=0'") has prevented the request from succeeding (get pilots.navigator.jetstack.io)
+    # E1114 21:31:46.183817       8 leaderelection.go:258] Failed to update lock: the server was unable to return a response in the time allotted, but may still be processing the request (put endpoints navigator-controller)
+    # E1115 00:09:28.579761       5 leaderelection.go:224] error retrieving resource lock kube-system/navigator-controller: the server was unable to return a response in the time allotted, but may still be processing the request (get endpoints navigator-controller)
     egrep --invert-match \
           -e 'Failed to list \*v1alpha1\.\w+:\s+the server could not find the requested resource\s+\(get \w+\.navigator\.jetstack\.io\)$' \
           -e 'Failed to list \*v1alpha1\.\w+:\s+an error on the server \([^)]+\) has prevented the request from succeeding\s+\(get \w+\.navigator\.jetstack\.io\)$' \
           -e 'Failed to update lock: etcdserver: request timed out' \
-          -e 'Failed to update lock: Operation cannot be fulfilled on endpoints "navigator-controller"'
+          -e 'Failed to update lock: Operation cannot be fulfilled on endpoints "navigator-controller"' \
+          -e 'Failed to update lock: the server was unable to return a response in the time allotted' \
+          -e 'error retrieving resource lock kube-system/navigator-controller'
 }
 
 function test_logged_errors() {
