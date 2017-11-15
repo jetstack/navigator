@@ -108,8 +108,8 @@ func buildControllerContext(opts *options.ControllerOptions) (*controllers.Conte
 	eventBroadcaster.StartRecordingToSink(&corev1.EventSinkImpl{Interface: kubecl.CoreV1().Events("")})
 	recorder := eventBroadcaster.NewRecorder(kubescheme.Scheme, v1.EventSource{Component: controllerAgentName})
 
-	sharedInformerFactory := informers.NewFilteredSharedInformerFactory(cl, time.Second*30, NamespaceFilter(opts.Namespace))
-	kubeSharedInformerFactory := kubeinformers.NewFilteredSharedInformerFactory(kubecl, time.Second*30, NamespaceFilter(opts.Namespace))
+	sharedInformerFactory := informers.NewFilteredSharedInformerFactory(cl, time.Second*30, opts.Namespace, nil)
+	kubeSharedInformerFactory := kubeinformers.NewFilteredSharedInformerFactory(kubecl, time.Second*30, opts.Namespace, nil)
 	return &controllers.Context{
 		Client:                    kubecl,
 		NavigatorClient:           cl,
@@ -181,10 +181,4 @@ func KubeConfig(apiServerHost string) (*rest.Config, error) {
 	}
 
 	return cfg, nil
-}
-
-func NamespaceFilter(namespace string) func(listOptions *metav1.ListOptions) string {
-	return func(*metav1.ListOptions) string {
-		return namespace
-	}
 }

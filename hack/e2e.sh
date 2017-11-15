@@ -250,6 +250,7 @@ if [[ "${FAILURE_COUNT}" -gt 0 ]]; then
     kubectl describe apiservice
     kubectl logs -c apiserver -l app=navigator,component=apiserver
     kubectl logs -c controller -l app=navigator,component=controller
+    kubectl logs -c etcd -l app=navigator,component=apiserver
 fi
 
 exit $FAILURE_COUNT

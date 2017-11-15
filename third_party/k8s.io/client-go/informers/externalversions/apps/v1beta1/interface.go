@@ -33,26 +33,27 @@ type Interface interface {
 }
 
 type version struct {
-	factory internalinterfaces.SharedInformerFactory
-	filter  internalinterfaces.FilterFunc
+	factory          internalinterfaces.SharedInformerFactory
+	namespace        string
+	tweakListOptions internalinterfaces.TweakListOptionsFunc
 }
 
 // New returns a new Interface.
-func New(f internalinterfaces.SharedInformerFactory, filter internalinterfaces.FilterFunc) Interface {
-	return &version{factory: f, filter: filter}
+func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakListOptions internalinterfaces.TweakListOptionsFunc) Interface {
+	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
 // ControllerRevisions returns a ControllerRevisionInformer.
 func (v *version) ControllerRevisions() ControllerRevisionInformer {
-	return &controllerRevisionInformer{factory: v.factory, filter: v.filter}
+	return &controllerRevisionInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // Deployments returns a DeploymentInformer.
 func (v *version) Deployments() DeploymentInformer {
-	return &deploymentInformer{factory: v.factory, filter: v.filter}
+	return &deploymentInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // StatefulSets returns a StatefulSetInformer.
 func (v *version) StatefulSets() StatefulSetInformer {
-	return &statefulSetInformer{factory: v.factory, filter: v.filter}
+	return &statefulSetInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

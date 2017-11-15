@@ -106,7 +106,7 @@ func (o *PilotOptions) Complete() error {
 	if err != nil {
 		return err
 	}
-	o.sharedInformerFactory = informers.NewSharedInformerFactory(o.navigatorClientset, o.ResyncPeriod)
+	o.sharedInformerFactory = informers.NewFilteredSharedInformerFactory(o.navigatorClientset, o.ResyncPeriod, o.GenericPilotOptions.PilotNamespace, nil)
 
 	// NewPilot sets some fields on the GenericControllerOptions
 	if o.pilot, err = NewPilot(o); err != nil {
