@@ -38,30 +38,34 @@ type DeploymentInformer interface {
 }
 
 type deploymentInformer struct {
-	factory internalinterfaces.SharedInformerFactory
-	filter  internalinterfaces.FilterFunc
+	factory          internalinterfaces.SharedInformerFactory
+	tweakListOptions internalinterfaces.TweakListOptionsFunc
+	namespace        string
 }
 
 // NewDeploymentInformer constructs a new informer for Deployment type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
 func NewDeploymentInformer(client kubernetes.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	filter := internalinterfaces.NamespaceFilter(namespace)
-	return NewFilteredDeploymentInformer(client, filter, resyncPeriod, indexers)
+	return NewFilteredDeploymentInformer(client, namespace, resyncPeriod, indexers, nil)
 }
 
 // NewFilteredDeploymentInformer constructs a new informer for Deployment type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredDeploymentInformer(client kubernetes.Interface, filter internalinterfaces.FilterFunc, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+func NewFilteredDeploymentInformer(client kubernetes.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
-				namespace := filter(&options)
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
 				return client.AppsV1beta1().Deployments(namespace).List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
-				namespace := filter(&options)
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
 				return client.AppsV1beta1().Deployments(namespace).Watch(options)
 			},
 		},
@@ -72,7 +76,7 @@ func NewFilteredDeploymentInformer(client kubernetes.Interface, filter internali
 }
 
 func (f *deploymentInformer) defaultInformer(client kubernetes.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredDeploymentInformer(client, f.filter, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+	return NewFilteredDeploymentInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
 func (f *deploymentInformer) Informer() cache.SharedIndexInformer {

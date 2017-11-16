@@ -30,16 +30,17 @@ type Interface interface {
 }
 
 type group struct {
-	factory internalinterfaces.SharedInformerFactory
-	filter  internalinterfaces.FilterFunc
+	factory          internalinterfaces.SharedInformerFactory
+	namespace        string
+	tweakListOptions internalinterfaces.TweakListOptionsFunc
 }
 
 // New returns a new Interface.
-func New(f internalinterfaces.SharedInformerFactory, filter internalinterfaces.FilterFunc) Interface {
-	return &group{factory: f, filter: filter}
+func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakListOptions internalinterfaces.TweakListOptionsFunc) Interface {
+	return &group{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
 // InternalVersion returns a new internalversion.Interface.
 func (g *group) InternalVersion() internalversion.Interface {
-	return internalversion.New(g.factory, g.filter)
+	return internalversion.New(g.factory, g.namespace, g.tweakListOptions)
 }

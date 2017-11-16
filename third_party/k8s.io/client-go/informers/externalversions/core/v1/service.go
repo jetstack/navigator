@@ -38,30 +38,34 @@ type ServiceInformer interface {
 }
 
 type serviceInformer struct {
-	factory internalinterfaces.SharedInformerFactory
-	filter  internalinterfaces.FilterFunc
+	factory          internalinterfaces.SharedInformerFactory
+	tweakListOptions internalinterfaces.TweakListOptionsFunc
+	namespace        string
 }
 
 // NewServiceInformer constructs a new informer for Service type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
 func NewServiceInformer(client kubernetes.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	filter := internalinterfaces.NamespaceFilter(namespace)
-	return NewFilteredServiceInformer(client, filter, resyncPeriod, indexers)
+	return NewFilteredServiceInformer(client, namespace, resyncPeriod, indexers, nil)
 }
 
 // NewFilteredServiceInformer constructs a new informer for Service type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredServiceInformer(client kubernetes.Interface, filter internalinterfaces.FilterFunc, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+func NewFilteredServiceInformer(client kubernetes.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options meta_v1.ListOptions) (runtime.Object, error) {
-				namespace := filter(&options)
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
 				return client.CoreV1().Services(namespace).List(options)
 			},
 			WatchFunc: func(options meta_v1.ListOptions) (watch.Interface, error) {
-				namespace := filter(&options)
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
 				return client.CoreV1().Services(namespace).Watch(options)
 			},
 		},
@@ -72,7 +76,7 @@ func NewFilteredServiceInformer(client kubernetes.Interface, filter internalinte
 }
 
 func (f *serviceInformer) defaultInformer(client kubernetes.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredServiceInformer(client, f.filter, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+	return NewFilteredServiceInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
 func (f *serviceInformer) Informer() cache.SharedIndexInformer {

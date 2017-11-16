@@ -34,14 +34,4 @@ type SharedInformerFactory interface {
 	InformerFor(obj runtime.Object, newFunc NewInformerFunc) cache.SharedIndexInformer
 }
 
-type FilterFunc func(*v1.ListOptions) (namespace string)
-
-func DefaultFilterFunc(*v1.ListOptions) (namespace string) {
-	return v1.NamespaceAll
-}
-
-func NamespaceFilter(namespace string) FilterFunc {
-	return func(*v1.ListOptions) string {
-		return namespace
-	}
-}
+type TweakListOptionsFunc func(*v1.ListOptions)

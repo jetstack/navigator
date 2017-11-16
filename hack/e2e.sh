@@ -17,14 +17,35 @@ source "${SCRIPT_DIR}/libe2e.sh"
 
 helm delete --purge "${RELEASE_NAME}" || true
 
-if [ "${CHART_VALUES}" == "" ]; then
-    echo "CHART_VALUES must be set";
+function debug_navigator_start() {
+    kubectl api-versions
+    kubectl get pods --all-namespaces
+    kubectl describe deploy
+    kubectl describe pod
+}
+
+function helm_install() {
+    if [ "${CHART_VALUES}" == "" ]; then
+        echo "CHART_VALUES must be set";
+        exit 1
+    fi
+    helm delete --purge "${RELEASE_NAME}" || true
+    echo "Installing navigator..."
+    if helm --debug install --wait --name "${RELEASE_NAME}" contrib/charts/navigator \
+         --values ${CHART_VALUES}
+    then
+        return 0
+    fi
+    return 1
+}
+
+# Retry helm install to work around intermittent API server availability.
+# See https://github.com/jetstack/navigator/issues/118
+if ! retry helm_install; then
+    debug_navigator_start
+    echo "ERROR: Failed to install Navigator"
     exit 1
 fi
-
-echo "Installing navigator..."
-helm install --wait --name "${RELEASE_NAME}" contrib/charts/navigator \
-        --values ${CHART_VALUES}
 
 # Wait for navigator API to be ready
 function navigator_ready() {
@@ -58,10 +79,7 @@ function navigator_ready() {
 
 echo "Waiting for Navigator to be ready..."
 if ! retry navigator_ready; then
-    kubectl api-versions
-    kubectl get pods --all-namespaces
-    kubectl describe deploy
-    kubectl describe pod
+    debug_navigator_start
     echo "ERROR: Timeout waiting for Navigator API"
     exit 1
 fi
@@ -196,11 +214,15 @@ function ignore_expected_controller_errors() {
     # Ignore the following error types:
     # E1103 14:58:06.819858       1 reflector.go:205] github.com/jetstack/navigator/pkg/client/informers/externalversions/factory.go:68: Failed to list *v1alpha1.Pilot: the server could not find the requested resource (get pilots.navigator.jetstack.io)
     # E1108 14:18:37.610718       1 reflector.go:205] github.com/jetstack/navigator/pkg/client/informers/externalversions/factory.go:68: Failed to list *v1alpha1.Pilot: an error on the server ("Error: 'dial tcp 10.0.0.233:443: getsockopt: connection refused'\nTrying to reach: 'https://10.0.0.233:443/apis/navigator.jetstack.io/v1alpha1/pilots?resourceVersion=0'") has prevented the request from succeeding (get pilots.navigator.jetstack.io)
+    # E1114 21:31:46.183817       8 leaderelection.go:258] Failed to update lock: the server was unable to return a response in the time allotted, but may still be processing the request (put endpoints navigator-controller)
+    # E1115 00:09:28.579761       5 leaderelection.go:224] error retrieving resource lock kube-system/navigator-controller: the server was unable to return a response in the time allotted, but may still be processing the request (get endpoints navigator-controller)
     egrep --invert-match \
           -e 'Failed to list \*v1alpha1\.\w+:\s+the server could not find the requested resource\s+\(get \w+\.navigator\.jetstack\.io\)$' \
           -e 'Failed to list \*v1alpha1\.\w+:\s+an error on the server \([^)]+\) has prevented the request from succeeding\s+\(get \w+\.navigator\.jetstack\.io\)$' \
           -e 'Failed to update lock: etcdserver: request timed out' \
-          -e 'Failed to update lock: Operation cannot be fulfilled on endpoints "navigator-controller"'
+          -e 'Failed to update lock: Operation cannot be fulfilled on endpoints "navigator-controller"' \
+          -e 'Failed to update lock: the server was unable to return a response in the time allotted' \
+          -e 'error retrieving resource lock kube-system/navigator-controller'
 }
 
 function test_logged_errors() {
@@ -228,6 +250,7 @@ if [[ "${FAILURE_COUNT}" -gt 0 ]]; then
     kubectl describe apiservice
     kubectl logs -c apiserver -l app=navigator,component=apiserver
     kubectl logs -c controller -l app=navigator,component=controller
+    kubectl logs -c etcd -l app=navigator,component=apiserver
 fi
 
 exit $FAILURE_COUNT

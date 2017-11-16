@@ -24,6 +24,7 @@ import (
 	"github.com/jetstack/navigator/pkg/pilot/genericpilot/hook"
 	"github.com/jetstack/navigator/pkg/pilot/genericpilot/probe"
 	"github.com/jetstack/navigator/pkg/pilot/genericpilot/process"
+	"github.com/jetstack/navigator/pkg/pilot/genericpilot/scheduler"
 )
 
 const (
@@ -155,8 +156,6 @@ func (o *Options) Pilot() (*GenericPilot, error) {
 
 	// TODO: use a filtered informer that only watches pilot-namespace
 	pilotInformer := o.SharedInformerFactory.Navigator().V1alpha1().Pilots()
-	pilotInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{})
-
 	genericPilot := &GenericPilot{
 		Options:             *o,
 		client:              o.NavigatorClient,
@@ -165,6 +164,7 @@ func (o *Options) Pilot() (*GenericPilot, error) {
 		queue:               workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "Pilots"),
 		recorder:            recorder,
 	}
+	genericPilot.scheduledWorkQueue = scheduler.NewScheduledWorkQueue(genericPilot.enqueuePilot)
 
 	pilotInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: genericPilot.enqueuePilot,

@@ -106,7 +106,7 @@ func (o *PilotOptions) Complete() error {
 	if err != nil {
 		return err
 	}
-	o.sharedInformerFactory = informers.NewSharedInformerFactory(o.navigatorClientset, o.ResyncPeriod)
+	o.sharedInformerFactory = informers.NewFilteredSharedInformerFactory(o.navigatorClientset, o.ResyncPeriod, o.GenericPilotOptions.PilotNamespace, nil)
 
 	// NewPilot sets some fields on the GenericControllerOptions
 	if o.pilot, err = NewPilot(o); err != nil {
@@ -144,8 +144,18 @@ func (o *PilotOptions) Run(stopCh <-chan struct{}) error {
 		return err
 	}
 
-	// start the shared informer factories
-	go o.sharedInformerFactory.Start(stopCh)
+	// set the genericPilot on
+	o.pilot.genericPilot = genericPilot
+
+	// create a new stopCh just for the factory so the factory continues to
+	// receive updates after the process has been signaled to exit. This allows
+	// the Pilot to properly interact with the apiserver whilst it is shutting
+	// down, and ensures that the shared informers only stop once the process
+	// is ready to exit.
+	stopInformers := make(chan struct{})
+	defer close(stopInformers)
+	// start the shared informer factory
+	go o.sharedInformerFactory.Start(stopInformers)
 
 	if err := o.pilot.WaitForCacheSync(stopCh); err != nil {
 		return err

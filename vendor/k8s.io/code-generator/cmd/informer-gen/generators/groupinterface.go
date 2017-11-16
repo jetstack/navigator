@@ -79,7 +79,7 @@ func (g *groupInterfaceGenerator) GenerateType(c *generator.Context, t *types.Ty
 		})
 	}
 	m := map[string]interface{}{
-		"interfacesFilterFunc":            c.Universe.Type(types.Name{Package: g.internalInterfacesPackage, Name: "FilterFunc"}),
+		"interfacesTweakListOptionsFunc":  c.Universe.Type(types.Name{Package: g.internalInterfacesPackage, Name: "TweakListOptionsFunc"}),
 		"interfacesSharedInformerFactory": c.Universe.Type(types.Name{Package: g.internalInterfacesPackage, Name: "SharedInformerFactory"}),
 		"versions":                        versions,
 	}
@@ -100,18 +100,19 @@ type Interface interface {
 
 type group struct {
 	factory $.interfacesSharedInformerFactory|raw$
-	filter  $.interfacesFilterFunc|raw$
+	namespace string
+	tweakListOptions  $.interfacesTweakListOptionsFunc|raw$
 }
 
 // New returns a new Interface.
-func New(f $.interfacesSharedInformerFactory|raw$, filter $.interfacesFilterFunc|raw$) Interface {
-	return &group{factory: f, filter: filter}
+func New(f $.interfacesSharedInformerFactory|raw$, namespace string, tweakListOptions $.interfacesTweakListOptionsFunc|raw$) Interface {
+	return &group{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
 $range .versions$
 // $.Name$ returns a new $.Interface|raw$.
 func (g *group) $.Name$() $.Interface|raw$ {
-	return $.New|raw$(g.factory, g.filter)
+	return $.New|raw$(g.factory, g.namespace, g.tweakListOptions)
 }
 $end$
 `

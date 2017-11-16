@@ -166,22 +166,31 @@ type PilotList struct {
 }
 
 type PilotSpec struct {
-	Phase         PilotPhase              `json:"phase"`
 	Elasticsearch *PilotElasticsearchSpec `json:"elasticsearch"`
 }
 
 type PilotPhase string
 
 const (
-	PilotPhaseStarted PilotPhase = "Started"
-	PilotPhaseStopped PilotPhase = "Stopped"
+	// PreStart occurs before the Pilot's subprocess has been started.
+	PilotPhasePreStart PilotPhase = "PreStart"
+	// PostStart occurs immediately after the Pilot's subprocess has been
+	// started.
+	PilotPhasePostStart PilotPhase = "PostStart"
+	// PreStop occurs just before the Pilot's subprocess is sent a graceful
+	// termination signal. These hooks will block termination of the process.
+	PilotPhasePreStop PilotPhase = "PreStop"
+	// PostStop occurs after the Pilot's has stopped. These can be used to
+	// clean up, or whatever other action that may need to be performed.
+	PilotPhasePostStop PilotPhase = "PostStop"
 )
 
 type PilotElasticsearchSpec struct {
 }
 
 type PilotStatus struct {
-	Conditions []PilotCondition `json:"conditions"`
+	LastCompletedPhase PilotPhase       `json:"lastCompletedPhase"`
+	Conditions         []PilotCondition `json:"conditions"`
 }
 
 // PilotCondition contains condition information for a Pilot.
