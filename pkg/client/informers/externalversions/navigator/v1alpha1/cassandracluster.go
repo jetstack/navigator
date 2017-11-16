@@ -38,30 +38,34 @@ type CassandraClusterInformer interface {
 }
 
 type cassandraClusterInformer struct {
-	factory internalinterfaces.SharedInformerFactory
-	filter  internalinterfaces.FilterFunc
+	factory          internalinterfaces.SharedInformerFactory
+	tweakListOptions internalinterfaces.TweakListOptionsFunc
+	namespace        string
 }
 
 // NewCassandraClusterInformer constructs a new informer for CassandraCluster type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
 func NewCassandraClusterInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	filter := internalinterfaces.NamespaceFilter(namespace)
-	return NewFilteredCassandraClusterInformer(client, filter, resyncPeriod, indexers)
+	return NewFilteredCassandraClusterInformer(client, namespace, resyncPeriod, indexers, nil)
 }
 
 // NewFilteredCassandraClusterInformer constructs a new informer for CassandraCluster type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredCassandraClusterInformer(client versioned.Interface, filter internalinterfaces.FilterFunc, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+func NewFilteredCassandraClusterInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
-				namespace := filter(&options)
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
 				return client.NavigatorV1alpha1().CassandraClusters(namespace).List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
-				namespace := filter(&options)
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
 				return client.NavigatorV1alpha1().CassandraClusters(namespace).Watch(options)
 			},
 		},
@@ -72,7 +76,7 @@ func NewFilteredCassandraClusterInformer(client versioned.Interface, filter inte
 }
 
 func (f *cassandraClusterInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredCassandraClusterInformer(client, f.filter, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+	return NewFilteredCassandraClusterInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
 func (f *cassandraClusterInformer) Informer() cache.SharedIndexInformer {

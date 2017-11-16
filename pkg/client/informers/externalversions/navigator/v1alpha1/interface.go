@@ -45,7 +45,7 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 
 // CassandraClusters returns a CassandraClusterInformer.
 func (v *version) CassandraClusters() CassandraClusterInformer {
-	return &cassandraClusterInformer{factory: v.factory, filter: v.filter}
+	return &cassandraClusterInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // ElasticsearchClusters returns a ElasticsearchClusterInformer.
