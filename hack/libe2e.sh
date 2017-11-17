@@ -65,3 +65,18 @@ function kube_event_exists() {
     fi
     return 1
 }
+
+function stdout_gt() {
+    local expected="${1}"
+    shift
+    local actual=$("${@}")
+    re='^[0-9]+$'
+    if ! [[ "${actual}" =~ $re ]]; then
+        echo "${actual} is not a number"
+        return 1
+    fi
+    if [[ "${actual}" -gt "${expected}" ]]; then
+        return 0
+    fi
+    return 1
+}

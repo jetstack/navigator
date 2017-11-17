@@ -47,7 +47,6 @@ func NewPilot(opts *PilotOptions) (*Pilot, error) {
 		pilotInformerSynced:     pilotInformer.Informer().HasSynced,
 		esClusterLister:         esClusterInformer.Lister(),
 		esClusterInformerSynced: esClusterInformer.Informer().HasSynced,
-		localESClient:           &elastic.Client{},
 	}
 
 	// Setup a gofunc to keep attempting to create an API client

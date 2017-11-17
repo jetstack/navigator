@@ -1,0 +1,54 @@
+apiVersion: navigator.jetstack.io/v1alpha1
+kind: ElasticsearchCluster
+metadata:
+  name: test
+spec:
+  sysctl:
+  - vm.max_map_count=262144
+
+  pilot:
+    repository: jetstackexperimental/navigator-pilot-elasticsearch
+    tag: build
+    pullPolicy: Never
+
+  image:
+    repository: docker.elastic.co/elasticsearch/elasticsearch
+    tag: 5.6.2
+    pullPolicy: IfNotPresent
+    ## This sets the group of the persistent volume created for
+    ## the data nodes. This must be the same as the user that elasticsearch
+    ## runs as within the container.
+    fsGroup: 1000
+
+  nodePools:
+  - name: mixed
+    replicas: 1
+
+    roles:
+    - master
+    - ingest
+    - data
+
+    config:
+      elasticsearch.yml: |
+        node.data: ${NODE_DATA}
+        node.master: ${NODE_MASTER}
+        node.ingest: ${NODE_INGEST}
+        node.name: ${POD_NAME}
+
+        network.host: 0.0.0.0
+
+        discovery:
+          zen:
+            ping.unicast.hosts: ${DISCOVERY_URL}
+            minimum_master_nodes: 1
+
+        xpack.security.enabled: false
+
+    resources:
+      requests:
+        cpu: '500m'
+        memory: 2Gi
+
+    persistence:
+      enabled: false
