@@ -163,18 +163,8 @@ function test_logged_errors() {
 
 test_logged_errors
 
-if [[ "${FAILURE_COUNT}" -gt 0 ]]; then
-    kubectl get po -o yaml
-    kubectl describe po
-    kubectl get svc -o yaml
-    kubectl describe svc
-    kubectl get apiservice -o yaml
-    kubectl describe apiservice
-    kubectl logs -c apiserver -l app=navigator,component=apiserver
-    kubectl logs -c controller -l app=navigator,component=controller
-    kubectl logs -c etcd -l app=navigator,component=apiserver
-    kubectl logs --namespace "${USER_NAMESPACE}" "es-test-mixed-0" || true
-    kubectl describe pilots --all-namespaces || true
-fi
+kubectl api-versions
+kubectl get apiservice -o yaml
+kubectl cluster-info dump --all-namespaces || true
 
 exit $FAILURE_COUNT
