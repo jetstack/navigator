@@ -16,7 +16,7 @@ func StatefulSetForCluster(
 ) *apps.StatefulSet {
 
 	statefulSetName := util.NodePoolResourceName(cluster, np)
-	serviceName := util.ResourceBaseName(cluster)
+	seedProviderServiceName := util.SeedProviderServiceName(cluster)
 	nodePoolLabels := util.NodePoolLabels(cluster, np.Name)
 	set := &apps.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -28,7 +28,7 @@ func StatefulSetForCluster(
 		},
 		Spec: apps.StatefulSetSpec{
 			Replicas:    util.Int32Ptr(int32(np.Replicas)),
-			ServiceName: serviceName,
+			ServiceName: seedProviderServiceName,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: nodePoolLabels,
 			},
@@ -67,7 +67,7 @@ func StatefulSetForCluster(
 								},
 								{
 									Name:          "cql",
-									ContainerPort: int32(9042),
+									ContainerPort: util.DefaultCqlPort,
 								},
 							},
 							Env: []apiv1.EnvVar{
@@ -84,7 +84,7 @@ func StatefulSetForCluster(
 									Value: fmt.Sprintf(
 										"%s-0.%s.%s.svc.cluster.local",
 										statefulSetName,
-										serviceName,
+										seedProviderServiceName,
 										cluster.Namespace,
 									),
 								},

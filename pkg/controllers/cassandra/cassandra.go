@@ -12,7 +12,8 @@ import (
 	listersv1alpha1 "github.com/jetstack/navigator/pkg/client/listers/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/nodepool"
-	"github.com/jetstack/navigator/pkg/controllers/cassandra/service"
+	servicecql "github.com/jetstack/navigator/pkg/controllers/cassandra/service/cql"
+	serviceseedprovider "github.com/jetstack/navigator/pkg/controllers/cassandra/service/seedprovider"
 	appsinformers "github.com/jetstack/navigator/third_party/k8s.io/client-go/informers/externalversions/apps/v1beta1"
 	coreinformers "github.com/jetstack/navigator/third_party/k8s.io/client-go/informers/externalversions/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -65,7 +66,12 @@ func NewCassandra(
 	cc.serviceListerSynced = services.Informer().HasSynced
 	cc.statefulSetListerSynced = statefulSets.Informer().HasSynced
 	cc.control = NewControl(
-		service.NewControl(
+		serviceseedprovider.NewControl(
+			kubeClient,
+			services.Lister(),
+			recorder,
+		),
+		servicecql.NewControl(
 			kubeClient,
 			services.Lister(),
 			recorder,

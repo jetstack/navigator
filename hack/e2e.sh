@@ -168,7 +168,7 @@ function test_cassandracluster() {
     # Wait 5 minutes for cassandra to start and listen for CQL queries.
     if ! retry TIMEOUT=300 kube_service_responding \
          "${USER_NAMESPACE}" \
-         "cass-${CHART_NAME}-cassandra" \
+         "cass-${CHART_NAME}-cassandra-cql" \
          9042; then
         fail_test "Navigator controller failed to create cassandracluster service"
     fi
@@ -187,7 +187,7 @@ function test_cassandracluster() {
     # Wait 60s for cassandra CQL port to change
     if ! retry TIMEOUT=60 kube_service_responding \
          "${USER_NAMESPACE}" \
-         "cass-${CHART_NAME}-cassandra" \
+         "cass-${CHART_NAME}-cassandra-cql" \
          9043; then
         fail_test "Navigator controller failed to update cassandracluster service"
     fi
@@ -196,6 +196,7 @@ function test_cassandracluster() {
     helm --debug upgrade \
          "${CHART_NAME}" \
          contrib/charts/cassandra \
+         --set cqlPort=9043 \
          --set replicaCount=2
 
     if ! retry stdout_equals 2 kubectl \
@@ -205,6 +206,14 @@ function test_cassandracluster() {
          "-o=go-template={{.spec.replicas}}"
     then
         fail_test "Cassandra controller did not update the statefulset replica count"
+    fi
+
+    # Wait 5min for new cassandra node to respond on the headless service port
+    if ! retry TIMEOUT=300 kube_service_responding \
+         "${USER_NAMESPACE}" \
+         "cass-${CHART_NAME}-cassandra-ringnodes-1.cass-${CHART_NAME}-cassandra-seedprovider" \
+         9042; then
+        fail_test "Navigator controller failed to connect to new cassandra node"
     fi
 }
 

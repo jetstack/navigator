@@ -6,7 +6,8 @@ import (
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/nodepool"
-	"github.com/jetstack/navigator/pkg/controllers/cassandra/service"
+	servicecql "github.com/jetstack/navigator/pkg/controllers/cassandra/service/cql"
+	serviceseedprovider "github.com/jetstack/navigator/pkg/controllers/cassandra/service/seedprovider"
 
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,12 +38,13 @@ func ClusterForTest() *v1alpha1.CassandraCluster {
 }
 
 type Fixture struct {
-	t               *testing.T
-	Cluster         *v1alpha1.CassandraCluster
-	ServiceControl  service.Interface
-	NodepoolControl nodepool.Interface
-	k8sClient       *fake.Clientset
-	k8sObjects      []runtime.Object
+	t                          *testing.T
+	Cluster                    *v1alpha1.CassandraCluster
+	SeedProviderServiceControl serviceseedprovider.Interface
+	CqlServiceControl          servicecql.Interface
+	NodepoolControl            nodepool.Interface
+	k8sClient                  *fake.Clientset
+	k8sObjects                 []runtime.Object
 }
 
 func NewFixture(t *testing.T) *Fixture {
@@ -73,8 +75,11 @@ func (f *Fixture) setupAndSync() error {
 	k8sFactory := informers.NewSharedInformerFactory(f.k8sClient, 0)
 
 	services := k8sFactory.Core().V1().Services().Lister()
-	if f.ServiceControl == nil {
-		f.ServiceControl = service.NewControl(f.k8sClient, services, recorder)
+	if f.SeedProviderServiceControl == nil {
+		f.SeedProviderServiceControl = serviceseedprovider.NewControl(f.k8sClient, services, recorder)
+	}
+	if f.CqlServiceControl == nil {
+		f.CqlServiceControl = servicecql.NewControl(f.k8sClient, services, recorder)
 	}
 
 	statefulSets := k8sFactory.Apps().V1beta1().StatefulSets().Lister()
@@ -87,7 +92,8 @@ func (f *Fixture) setupAndSync() error {
 	}
 
 	c := cassandra.NewControl(
-		f.ServiceControl,
+		f.SeedProviderServiceControl,
+		f.CqlServiceControl,
 		f.NodepoolControl,
 		recorder,
 	)

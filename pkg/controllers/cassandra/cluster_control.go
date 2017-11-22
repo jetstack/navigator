@@ -4,7 +4,8 @@ import (
 	"github.com/golang/glog"
 	v1alpha1 "github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/nodepool"
-	"github.com/jetstack/navigator/pkg/controllers/cassandra/service"
+	servicecql "github.com/jetstack/navigator/pkg/controllers/cassandra/service/cql"
+	serviceseedprovider "github.com/jetstack/navigator/pkg/controllers/cassandra/service/seedprovider"
 	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
 )
@@ -28,26 +29,40 @@ type ControlInterface interface {
 var _ ControlInterface = &defaultCassandraClusterControl{}
 
 type defaultCassandraClusterControl struct {
-	serviceControl  service.Interface
-	nodepoolControl nodepool.Interface
-	recorder        record.EventRecorder
+	seedProviderServiceControl serviceseedprovider.Interface
+	cqlServiceControl          servicecql.Interface
+	nodepoolControl            nodepool.Interface
+	recorder                   record.EventRecorder
 }
 
 func NewControl(
-	serviceControl service.Interface,
+	seedProviderServiceControl serviceseedprovider.Interface,
+	cqlServiceControl servicecql.Interface,
 	nodepoolControl nodepool.Interface,
 	recorder record.EventRecorder,
 ) ControlInterface {
 	return &defaultCassandraClusterControl{
-		serviceControl:  serviceControl,
-		nodepoolControl: nodepoolControl,
-		recorder:        recorder,
+		seedProviderServiceControl: seedProviderServiceControl,
+		cqlServiceControl:          cqlServiceControl,
+		nodepoolControl:            nodepoolControl,
+		recorder:                   recorder,
 	}
 }
 
 func (e *defaultCassandraClusterControl) Sync(c *v1alpha1.CassandraCluster) error {
 	glog.V(4).Infof("defaultCassandraClusterControl.Sync")
-	err := e.serviceControl.Sync(c)
+	err := e.seedProviderServiceControl.Sync(c)
+	if err != nil {
+		e.recorder.Eventf(
+			c,
+			apiv1.EventTypeWarning,
+			ErrorSync,
+			MessageErrorSyncService,
+			err,
+		)
+		return err
+	}
+	err = e.cqlServiceControl.Sync(c)
 	if err != nil {
 		e.recorder.Eventf(
 			c,
