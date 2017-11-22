@@ -102,7 +102,7 @@ function test_elasticsearchcluster() {
     # Create and delete an ElasticSearchCluster
     if ! kubectl create \
             --namespace "${USER_NAMESPACE}" \
-            --filename "${ROOT_DIR}/docs/quick-start/es-cluster-demo.yaml"; then
+            --filename "${SCRIPT_DIR}/testdata/es-cluster-test.yaml"; then
         fail_test "Failed to create elasticsearchcluster"
     fi
     if ! kubectl get \
@@ -112,13 +112,21 @@ function test_elasticsearchcluster() {
     fi
     if ! retry kubectl get \
          --namespace "${USER_NAMESPACE}" \
-         service es-demo; then
+         service es-test; then
         fail_test "Navigator controller failed to create elasticsearchcluster service"
     fi
     if ! retry kube_event_exists "${USER_NAMESPACE}" \
          "navigator-controller:ElasticsearchCluster:Normal:SuccessSync"
     then
         fail_test "Navigator controller failed to create SuccessSync event"
+    fi
+    if ! retry TIMEOUT=300 stdout_gt 0 kubectl \
+         --namespace "${USER_NAMESPACE}" \
+         get pilot \
+         "es-test-mixed-0" \
+         "-o=go-template={{.status.elasticsearch.documents}}"
+    then
+        fail_test "Elasticsearch pilot did not update the document count"
     fi
     if ! kubectl delete \
             --namespace "${USER_NAMESPACE}" \
@@ -250,16 +258,8 @@ function test_logged_errors() {
 
 test_logged_errors
 
-if [[ "${FAILURE_COUNT}" -gt 0 ]]; then
-    kubectl get po -o yaml
-    kubectl describe po
-    kubectl get svc -o yaml
-    kubectl describe svc
-    kubectl get apiservice -o yaml
-    kubectl describe apiservice
-    kubectl logs -c apiserver -l app=navigator,component=apiserver
-    kubectl logs -c controller -l app=navigator,component=controller
-    kubectl logs -c etcd -l app=navigator,component=apiserver
-fi
+kubectl api-versions
+kubectl get apiservice -o yaml
+kubectl cluster-info dump --all-namespaces || true
 
 exit $FAILURE_COUNT

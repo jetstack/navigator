@@ -180,6 +180,15 @@ type PilotElasticsearchSpec struct {
 type PilotStatus struct {
 	LastCompletedPhase PilotPhase
 	Conditions         []PilotCondition
+	// Contains status information specific to Elasticsearch Pilots
+	Elasticsearch *ElasticsearchPilotStatus
+}
+
+type ElasticsearchPilotStatus struct {
+	// Documents is the current number of documents on this node. nil indicates
+	// an unknown number of documents, whereas 0 indicates that the node is
+	// empty
+	Documents *int64
 }
 
 // PilotCondition contains condition information for a Pilot.
