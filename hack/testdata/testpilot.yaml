@@ -1,0 +1,10 @@
+apiVersion: navigator.jetstack.io/v1alpha1
+kind: Pilot
+metadata:
+  name: richards-pilot
+  ownerReferences:
+  - apiVersion: navigator.jetstack.io/v1alpha1
+    kind: Pilot
+    name: richards-pilot
+    uid: 23c88696-cf7b-11e7-9ec9-0a580a200927
+    controller: true
