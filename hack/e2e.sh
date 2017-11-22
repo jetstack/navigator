@@ -141,19 +141,29 @@ function test_elasticsearchcluster() {
 
 test_elasticsearchcluster
 
-function kube_service_responding() {
+function cql_connect() {
     local namespace="${1}"
     local host="${2}"
     local port="${3}"
-    kubectl run \
-            --namespace="${namespace}" \
-            "kube-service-responding-${RANDOM}" \
-            --stdin=true\
-            --rm \
-            --restart=Never \
-            --image alpine \
-            -- \
-            nc -w 5 -v "${host}" "${port}" <<< ping
+    # Attempt to negotiate a CQL connection.
+    # No queries are performed.
+    # stdin=false (the default) ensures that cqlsh does not go into interactive
+    # mode.
+    # XXX: This uses the standard Cassandra Docker image rather than the
+    # gcr.io/google-samples/cassandra image used in the Cassandra chart, becasue
+    # cqlsh is missing some dependencies in that image.
+    kubectl \
+        run \
+        "cql-responding-${RANDOM}" \
+        --namespace="${USER_NAMESPACE}" \
+        --command=true \
+        --image=cassandra:latest \
+        --restart=Never \
+        --rm \
+        --stdin=false \
+        --attach=true \
+        -- \
+        /usr/bin/cqlsh --debug "${host}" "${port}"
 }
 
 function test_cassandracluster() {
@@ -177,7 +187,7 @@ function test_cassandracluster() {
          --set replicaCount=1 \
 
     # Wait 5 minutes for cassandra to start and listen for CQL queries.
-    if ! retry TIMEOUT=300 kube_service_responding \
+    if ! retry TIMEOUT=300 cql_connect \
          "${USER_NAMESPACE}" \
          "cass-${CHART_NAME}-cassandra-cql" \
          9042; then
@@ -196,7 +206,7 @@ function test_cassandracluster() {
          --set cqlPort=9043
 
     # Wait 60s for cassandra CQL port to change
-    if ! retry TIMEOUT=60 kube_service_responding \
+    if ! retry TIMEOUT=60 cql_connect \
          "${USER_NAMESPACE}" \
          "cass-${CHART_NAME}-cassandra-cql" \
          9043; then
@@ -220,11 +230,23 @@ function test_cassandracluster() {
     fi
 
     # Wait 5min for new cassandra node to respond on the headless service port
-    if ! retry TIMEOUT=300 kube_service_responding \
+    if ! retry TIMEOUT=300 cql_connect \
          "${USER_NAMESPACE}" \
          "cass-${CHART_NAME}-cassandra-ringnodes-1.cass-${CHART_NAME}-cassandra-seedprovider" \
          9042; then
         fail_test "Navigator controller failed to connect to new cassandra node"
+    fi
+
+    kube_simulate_unresponsive_process \
+        "${USER_NAMESPACE}" \
+        "cass-${CHART_NAME}-cassandra-ringnodes-0" \
+        "cassandra"
+
+    if ! retry cql_connect \
+         "${USER_NAMESPACE}" \
+         "cass-${CHART_NAME}-cassandra-cql" \
+         9043; then
+        fail_test "Cassandra readiness probe failed to bypass dead node"
     fi
 }
 
