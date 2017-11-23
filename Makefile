@@ -39,10 +39,7 @@ test: go_test
 	${HACK_DIR}/prepare-e2e.sh; \
 	${HACK_DIR}/e2e.sh
 
-.e2e_init:
-	${HACK_DIR}/install-e2e-dependencies.sh
-
-e2e-test: .e2e_init build docker_build .run_e2e
+e2e-test: build docker_build .run_e2e
 
 build: $(CMDS)
 

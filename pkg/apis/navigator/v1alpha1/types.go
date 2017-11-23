@@ -191,6 +191,15 @@ type PilotElasticsearchSpec struct {
 type PilotStatus struct {
 	LastCompletedPhase PilotPhase       `json:"lastCompletedPhase"`
 	Conditions         []PilotCondition `json:"conditions"`
+	// Contains status information specific to Elasticsearch Pilots
+	Elasticsearch *ElasticsearchPilotStatus `json:"elasticsearch,omitempty"`
+}
+
+type ElasticsearchPilotStatus struct {
+	// Documents is the current number of documents on this node. nil indicates
+	// an unknown number of documents, whereas 0 indicates that the node is
+	// empty
+	Documents *int64 `json:"documents,omitempty"`
 }
 
 // PilotCondition contains condition information for a Pilot.
