@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/golang/glog"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
@@ -21,7 +22,7 @@ func (g *GenericPilot) isThisPilot(name, namespace string) bool {
 
 func (g *GenericPilot) IsPeer(pilot *v1alpha1.Pilot) (bool, error) {
 	// get a reference to 'this' pilot
-	thisPilot, err := g.pilotLister.Pilots(g.Options.PilotNamespace).Get(g.Options.PilotName)
+	thisPilot, err := g.ThisPilot()
 	if err != nil {
 		return false, err
 	}
@@ -48,4 +49,21 @@ func (g *GenericPilot) IsRunning() bool {
 		return false
 	}
 	return true
+}
+
+// ThisPilot will return a reference to 'this' Pilot resource. The returned
+// resource may or may not be up to date, and it may or may not still exist in
+// the target API server.
+func (g *GenericPilot) ThisPilot() (*v1alpha1.Pilot, error) {
+	// get a reference to 'this' pilot
+	thisPilot, err := g.pilotLister.Pilots(g.Options.PilotNamespace).Get(g.Options.PilotName)
+	if apierrors.IsNotFound(err) {
+		if g.cachedThisPilot != nil {
+			return g.cachedThisPilot, nil
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	return thisPilot, nil
 }
