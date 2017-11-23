@@ -26,6 +26,8 @@ type scheduledWorkQueue struct {
 	workLock    sync.Mutex
 }
 
+var _ ScheduledWorkQueue = &scheduledWorkQueue{}
+
 // NewScheduledWorkQueue will create a new workqueue with the given processFunc
 func NewScheduledWorkQueue(processFunc ProcessFunc) ScheduledWorkQueue {
 	return &scheduledWorkQueue{processFunc, make(map[interface{}]*time.Timer), sync.Mutex{}}

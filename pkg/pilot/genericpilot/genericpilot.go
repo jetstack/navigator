@@ -37,17 +37,20 @@ type GenericPilot struct {
 	// process is a reference to a process manager for the application this
 	// Pilot manages
 	process process.Interface
-	// phase is the current phase of this Pilot. This is used as a source of
-	// truth within Pilots, as we cannot rely on the pilot.status block being
-	// up to date
+	// lastCompletedPhase is the last completed phase of this Pilot. This is
+	// used as a source of  truth within Pilots, as we cannot rely on the
+	// pilot.status block being up to date
 	lastCompletedPhase v1alpha1.PilotPhase
 	// shutdown is true when the process has been told to gracefully exit. This
 	// is used to signal preStop hooks to run
 	shutdown bool
 	// lock is used internally to coordinate updates to fields on the
-	// GenericPilot structure
+	// GenericPilot structure.
+	// This is acquired during reconcileHooks and reconcileProcessState.
+	// TODO: we should be able to remove this, as only one instance of 'this'
+	// Pilot should ever be processed at a time anyway
 	lock sync.Mutex
-	// scheduledWorkQueue is used to periodically re-sync 'this' Pilot resource.
+	// scheduledWorkQueue is used to periodically re-sync Pilot resources.
 	scheduledWorkQueue scheduler.ScheduledWorkQueue
 	// cachedThisPilot is a reference to a Pilot resource for 'this' Pilot.
 	// It may be out of date, and it should *never* be manipulated.
@@ -59,6 +62,9 @@ type GenericPilot struct {
 }
 
 // only run one worker to prevent threading issues when dealing with processes
+// TODO: increase this so multiple Pilots can be processed at a time by the
+// a leader elected Pilot. We will need to ensure there's no races *anywhere*
+// in genericpilot, or in it's downstream consumers
 const workers = 1
 
 func (g *GenericPilot) enqueuePilot(obj interface{}) {
@@ -70,6 +76,7 @@ func (g *GenericPilot) enqueuePilot(obj interface{}) {
 	g.queue.AddRateLimited(key)
 }
 
+// Wait for the shared informer factory caches to sync with the apiserver
 func (g *GenericPilot) WaitForCacheSync(stopCh <-chan struct{}) error {
 	if !cache.WaitForCacheSync(stopCh, g.pilotInformerSynced) {
 		return fmt.Errorf("timed out waiting for caches to sync")
