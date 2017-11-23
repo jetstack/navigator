@@ -72,7 +72,13 @@ func (g *GenericPilot) sync(key string) (err error) {
 	pilot, err := g.pilotLister.Pilots(namespace).Get(name)
 	if apierrors.IsNotFound(err) {
 		glog.Infof("Pilot %q has been deleted", key)
-		return nil
+		if !g.isThisPilot(name, namespace) || g.cachedThisPilot == nil {
+			return nil
+		}
+		glog.Infof("Using cached pilot resource for %q", key)
+		pilot = g.cachedThisPilot
+		// set err to nil so the following block does not return err
+		err = nil
 	}
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("unable to retrieve Pilot %v from store: %v", key, err))
@@ -106,6 +112,9 @@ func (g *GenericPilot) syncPilot(pilot *v1alpha1.Pilot) (err error) {
 	if !g.IsThisPilot(pilot) {
 		return g.Options.SyncFunc(pilot)
 	}
+
+	// store the most up to date copy of this pilot resource
+	g.cachedThisPilot = pilot
 
 	// we defer this to the end of execution to ensure it is run even if a part
 	// of the sync errors

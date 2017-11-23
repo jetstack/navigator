@@ -12,7 +12,11 @@ import (
 // IsThisPilot will return true if 'pilot' corresponds to the Pilot resource
 // for this pilot.
 func (g *GenericPilot) IsThisPilot(pilot *v1alpha1.Pilot) bool {
-	return pilot.Name == g.Options.PilotName && pilot.Namespace == g.Options.PilotNamespace
+	return g.isThisPilot(pilot.Name, pilot.Namespace)
+}
+
+func (g *GenericPilot) isThisPilot(name, namespace string) bool {
+	return name == g.Options.PilotName && namespace == g.Options.PilotNamespace
 }
 
 func (g *GenericPilot) IsPeer(pilot *v1alpha1.Pilot) (bool, error) {

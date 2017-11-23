@@ -49,6 +49,13 @@ type GenericPilot struct {
 	lock sync.Mutex
 	// scheduledWorkQueue is used to periodically re-sync 'this' Pilot resource.
 	scheduledWorkQueue scheduler.ScheduledWorkQueue
+	// cachedThisPilot is a reference to a Pilot resource for 'this' Pilot.
+	// It may be out of date, and it should *never* be manipulated.
+	// This is especially useful for circumstances where the Pilot resource is
+	// no longer available, either due to a network outage, the namespace
+	// containing the Pilot resource being deleted, or any other circumstance
+	// leading to the Pilot lister to not contain a reference to 'this' pilot.
+	cachedThisPilot *v1alpha1.Pilot
 }
 
 // only run one worker to prevent threading issues when dealing with processes
