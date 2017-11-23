@@ -134,6 +134,9 @@ function test_elasticsearchcluster() {
             --all; then
         fail_test "Failed to delete elasticsearchcluster"
     fi
+    if ! kube_delete_namespace_and_wait "${USER_NAMESPACE}"; then
+        fail_test "Failed to delete test namespace"
+    fi
 }
 
 test_elasticsearchcluster
