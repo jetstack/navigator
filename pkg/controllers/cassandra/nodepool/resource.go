@@ -52,6 +52,48 @@ func StatefulSetForCluster(
 							ImagePullPolicy: apiv1.PullPolicy(
 								cluster.Spec.Image.PullPolicy,
 							),
+							ReadinessProbe: &apiv1.Probe{
+								Handler: apiv1.Handler{
+									Exec: &apiv1.ExecAction{
+										// XXX The ready-probe.sh script is only
+										// available in the
+										// gcr.io/google-samples/cassandra image.
+										// Replace this when we have a Cassandra pilot.
+										// It can perform similar ready probe.
+										Command: []string{
+											"/usr/bin/timeout",
+											"5",
+											"/ready-probe.sh",
+										},
+									},
+								},
+								InitialDelaySeconds: 15,
+								// XXX Kubernetes ignores the TimeoutSeconds for Exec probes.
+								// See https://github.com/kubernetes/kubernetes/issues/26895
+								TimeoutSeconds: 5,
+							},
+							// XXX: You might imagine that LivenessProbes begin
+							// only after a successful ReadinessProbe,
+							// but in fact they start at the same time.
+							// Set a large initial delay to avoid declaring
+							// the database dead before it has had a chance to
+							// initialise.
+							// See: https://github.com/kubernetes/kubernetes/issues/27114
+							LivenessProbe: &apiv1.Probe{
+								Handler: apiv1.Handler{
+									Exec: &apiv1.ExecAction{
+										Command: []string{
+											"/usr/bin/timeout",
+											"5",
+											"/ready-probe.sh",
+										},
+									},
+								},
+								InitialDelaySeconds: 60,
+								// XXX Kubernetes ignores the TimeoutSeconds for Exec probes.
+								// See https://github.com/kubernetes/kubernetes/issues/26895
+								TimeoutSeconds: 5,
+							},
 							Ports: []apiv1.ContainerPort{
 								{
 									Name:          "intra-node",

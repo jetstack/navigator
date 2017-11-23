@@ -66,6 +66,18 @@ function kube_event_exists() {
     return 1
 }
 
+function kube_simulate_unresponsive_process() {
+    local namespace=$1
+    local pod=$2
+    local container=$3
+    # Send STOP signal to all processes in the root process group
+    # https://unix.stackexchange.com/a/149756
+    kubectl \
+        --namespace="${namespace}" \
+        exec "${pod}" --container="${container}" -- \
+        kill -SIGSTOP --  -1
+}
+
 function stdout_equals() {
     local expected="${1}"
     shift
