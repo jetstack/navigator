@@ -36,7 +36,9 @@ spec:
           args:
           - navigator-apiserver
           - --etcd-servers=http://localhost:2379
-{{ toYaml .Values.apiserver.extraArgs | indent 10 }}
+{{- range .Values.apiserver.extraArgs }}
+          - {{ . }}
+{{- end }}
           resources:
 {{ toYaml .Values.resources | indent 12 }}
         - name: etcd
