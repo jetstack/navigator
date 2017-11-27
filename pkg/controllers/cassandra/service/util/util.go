@@ -1,8 +1,6 @@
 package util
 
 import (
-	"fmt"
-
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	corelisters "k8s.io/client-go/listers/core/v1"
 
@@ -46,13 +44,9 @@ func SyncService(
 	if err != nil {
 		return err
 	}
-	if !metav1.IsControlledBy(existingSvc, cluster) {
-		ownerRef := metav1.GetControllerOf(existingSvc)
-		return fmt.Errorf(
-			"A service with name '%s/%s' already exists, "+
-				"but it is controlled by '%v', not '%s/%s'.",
-			svc.Namespace, svc.Name, ownerRef, cluster.Namespace, cluster.Name,
-		)
+	err = util.OwnerCheck(existingSvc, cluster)
+	if err != nil {
+		return err
 	}
 	updatedService := updateService(cluster, existingSvc)
 	_, err = client.Update(updatedService)

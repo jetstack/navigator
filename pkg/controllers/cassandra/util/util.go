@@ -77,3 +77,20 @@ func NodePoolLabels(
 func Int32Ptr(i int32) *int32 {
 	return &i
 }
+
+func OwnerCheck(
+	obj metav1.Object,
+	owner metav1.Object,
+) error {
+	if !metav1.IsControlledBy(obj, owner) {
+		ownerRef := metav1.GetControllerOf(obj)
+		return fmt.Errorf(
+			"'%s/%s' is foreign owned: "+
+				"it is owned by '%v', not '%s/%s'.",
+			obj.GetNamespace(), obj.GetName(),
+			ownerRef,
+			owner.GetNamespace(), owner.GetName(),
+		)
+	}
+	return nil
+}
