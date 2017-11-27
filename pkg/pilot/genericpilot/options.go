@@ -164,7 +164,7 @@ func (o *Options) Pilot() (*GenericPilot, error) {
 		queue:               workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "Pilots"),
 		recorder:            recorder,
 	}
-	genericPilot.scheduledWorkQueue = scheduler.NewScheduledWorkQueue(genericPilot.enqueuePilot)
+	genericPilot.scheduledWorkQueue = scheduler.NewScheduledWorkQueue(genericPilot.queue.AddRateLimited)
 
 	pilotInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: genericPilot.enqueuePilot,

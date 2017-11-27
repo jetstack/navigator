@@ -84,7 +84,7 @@ $(CMDS):
 go_build: $(CMDS)
 
 go_test:
-	go test $$(go list ./... | grep -v '/vendor/')
+	go test -race $$(go list ./... | grep -v '/vendor/')
 
 go_fmt:
 	@set -e; \

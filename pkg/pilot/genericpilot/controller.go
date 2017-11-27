@@ -101,7 +101,7 @@ func (g *GenericPilot) sync(key string) (err error) {
 
 	// TODO: make 10 seconds configurable
 	// we should resync all peers every 10s
-	defer g.scheduledWorkQueue.Add(pilot, time.Second*10)
+	defer g.scheduledWorkQueue.Add(key, time.Second*10)
 	err = g.syncPilot(pilot)
 	if err != nil {
 		return err

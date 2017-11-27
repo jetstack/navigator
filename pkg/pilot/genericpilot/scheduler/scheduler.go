@@ -26,6 +26,8 @@ type scheduledWorkQueue struct {
 	workLock    sync.Mutex
 }
 
+var _ ScheduledWorkQueue = &scheduledWorkQueue{}
+
 // NewScheduledWorkQueue will create a new workqueue with the given processFunc
 func NewScheduledWorkQueue(processFunc ProcessFunc) ScheduledWorkQueue {
 	return &scheduledWorkQueue{processFunc, make(map[interface{}]*time.Timer), sync.Mutex{}}
@@ -35,19 +37,18 @@ func NewScheduledWorkQueue(processFunc ProcessFunc) ScheduledWorkQueue {
 // Duration has come (since the time Add was called). If an existing Timer for
 // obj already exists, the previous timer will be cancelled.
 func (s *scheduledWorkQueue) Add(obj interface{}, duration time.Duration) {
-	s.clearTimer(obj)
+	// we call Forget before acquiring the workLock in order to avoid deadlock
+	s.Forget(obj)
+	s.workLock.Lock()
+	defer s.workLock.Unlock()
 	s.work[obj] = time.AfterFunc(duration, func() {
-		defer s.clearTimer(obj)
+		defer s.Forget(obj)
 		s.processFunc(obj)
 	})
 }
 
 // Forget will cancel the timer for the given object, if the timer exists.
 func (s *scheduledWorkQueue) Forget(obj interface{}) {
-	s.clearTimer(obj)
-}
-
-func (s *scheduledWorkQueue) clearTimer(obj interface{}) {
 	s.workLock.Lock()
 	defer s.workLock.Unlock()
 	if timer, ok := s.work[obj]; ok {
