@@ -62,7 +62,7 @@ func StatefulSetForCluster(
 										// It can perform similar ready probe.
 										Command: []string{
 											"/usr/bin/timeout",
-											"5",
+											"10",
 											"/ready-probe.sh",
 										},
 									},
@@ -70,7 +70,7 @@ func StatefulSetForCluster(
 								InitialDelaySeconds: 15,
 								// XXX Kubernetes ignores the TimeoutSeconds for Exec probes.
 								// See https://github.com/kubernetes/kubernetes/issues/26895
-								TimeoutSeconds: 5,
+								TimeoutSeconds: 10,
 							},
 							// XXX: You might imagine that LivenessProbes begin
 							// only after a successful ReadinessProbe,
@@ -84,7 +84,7 @@ func StatefulSetForCluster(
 									Exec: &apiv1.ExecAction{
 										Command: []string{
 											"/usr/bin/timeout",
-											"5",
+											"10",
 											"/ready-probe.sh",
 										},
 									},
@@ -92,7 +92,7 @@ func StatefulSetForCluster(
 								InitialDelaySeconds: 60,
 								// XXX Kubernetes ignores the TimeoutSeconds for Exec probes.
 								// See https://github.com/kubernetes/kubernetes/issues/26895
-								TimeoutSeconds: 5,
+								TimeoutSeconds: 10,
 							},
 							Ports: []apiv1.ContainerPort{
 								{
