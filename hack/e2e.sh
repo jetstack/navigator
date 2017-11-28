@@ -145,7 +145,7 @@ function cql_connect() {
     local namespace="${1}"
     local host="${2}"
     local port="${3}"
-    # Attempt to negotiate a CQL connection.
+    # Attempt to negotiate a CQL connection for up to 1 minute
     # No queries are performed.
     # stdin=false (the default) ensures that cqlsh does not go into interactive
     # mode.
@@ -162,8 +162,11 @@ function cql_connect() {
         --rm \
         --stdin=false \
         --attach=true \
+        --env="CQL_HOST=${host}" \
+        --env="CQL_PORT=${port}" \
         -- \
-        /usr/bin/cqlsh --debug "${host}" "${port}"
+        timeout 60 \
+        bash -c 'while ! /usr/bin/cqlsh --debug "${CQL_HOST}" "${CQL_PORT}"; do sleep 10; done'
 }
 
 function test_cassandracluster() {
