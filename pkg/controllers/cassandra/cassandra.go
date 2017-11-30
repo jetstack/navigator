@@ -237,7 +237,7 @@ func (e *CassandraController) handleObject(obj interface{}) {
 	e.enqueueCassandraCluster(cluster)
 }
 
-// getPodOwner will return the owning ElasticsearchCluster for a pod by
+// getPodOwner will return the owning CassandraCluster for a pod by
 // first looking up it's owning StatefulSet, and then finding the
 // CassandraCluster that owns that StatefulSet. If the pod is not managed
 // by a StatefulSet/CassandraCluster, it will do nothing.
@@ -251,13 +251,18 @@ func (e *CassandraController) handlePodObject(obj interface{}) {
 	glog.V(4).Infof("Processing object: %s", object.GetName())
 	ownerRef := metav1.GetControllerOf(object)
 	if ownerRef == nil || ownerRef.Kind != "StatefulSet" {
+		glog.V(4).Infof(
+			"ignoring pod with non-statefulset owner. ownerRef: %#v",
+			ownerRef,
+		)
 		return
 	}
+	<-time.After(time.Second)
 	ss, err := e.statefulSetLister.StatefulSets(object.GetNamespace()).Get(ownerRef.Name)
 	if err != nil {
 		glog.V(4).Infof(
-			"ignoring orphaned object '%s' of statefulset '%s'",
-			object.GetSelfLink(), ownerRef.Name,
+			"ignoring orphaned object '%s' of statefulset '%s', '%s'",
+			object.GetSelfLink(), ownerRef.Name, err,
 		)
 		return
 	}

@@ -5,6 +5,7 @@ import (
 
 	navinformers "github.com/jetstack/navigator/pkg/client/informers/externalversions"
 
+	"github.com/jetstack/navigator/pkg/apis/navigator"
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/nodepool"
@@ -14,6 +15,7 @@ import (
 
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 
 	navigatorfake "github.com/jetstack/navigator/pkg/client/clientset/versioned/fake"
 	apps "k8s.io/api/apps/v1beta1"
@@ -26,6 +28,15 @@ import (
 
 func ClusterForTest() *v1alpha1.CassandraCluster {
 	c := &v1alpha1.CassandraCluster{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "CassandraCluster",
+			APIVersion: navigator.SchemeGroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "cassandra-1",
+			Namespace: "app-1",
+			UID:       types.UID("test"),
+		},
 		Spec: v1alpha1.CassandraClusterSpec{
 			CqlPort: 9042,
 			NodePools: []v1alpha1.CassandraClusterNodePool{
@@ -36,8 +47,6 @@ func ClusterForTest() *v1alpha1.CassandraCluster {
 			},
 		},
 	}
-	c.SetName("cassandra-1")
-	c.SetNamespace("app-1")
 	return c
 }
 

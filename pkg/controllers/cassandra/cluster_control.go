@@ -55,7 +55,6 @@ func NewControl(
 }
 
 func (e *defaultCassandraClusterControl) Sync(c *v1alpha1.CassandraCluster) error {
-	glog.V(4).Infof("defaultCassandraClusterControl.Sync")
 	err := e.seedProviderServiceControl.Sync(c)
 	if err != nil {
 		e.recorder.Eventf(
@@ -67,6 +66,8 @@ func (e *defaultCassandraClusterControl) Sync(c *v1alpha1.CassandraCluster) erro
 		)
 		return err
 	}
+	glog.V(4).Infof("Synced seed service")
+
 	err = e.cqlServiceControl.Sync(c)
 	if err != nil {
 		e.recorder.Eventf(
@@ -78,6 +79,8 @@ func (e *defaultCassandraClusterControl) Sync(c *v1alpha1.CassandraCluster) erro
 		)
 		return err
 	}
+	glog.V(4).Infof("Synced CQL service")
+
 	err = e.nodepoolControl.Sync(c)
 	if err != nil {
 		e.recorder.Eventf(
@@ -89,6 +92,8 @@ func (e *defaultCassandraClusterControl) Sync(c *v1alpha1.CassandraCluster) erro
 		)
 		return err
 	}
+	glog.V(4).Infof("Synced statefulsets")
+
 	err = e.pilotControl.Sync(c)
 	if err != nil {
 		e.recorder.Eventf(
@@ -100,6 +105,8 @@ func (e *defaultCassandraClusterControl) Sync(c *v1alpha1.CassandraCluster) erro
 		)
 		return err
 	}
+	glog.V(4).Infof("Synced pilots")
+
 	e.recorder.Event(
 		c,
 		apiv1.EventTypeNormal,
