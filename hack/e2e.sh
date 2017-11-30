@@ -172,11 +172,6 @@ function test_cassandracluster() {
     local USER_NAMESPACE="test-cassandracluster-${TEST_ID}"
     local CHART_NAME="cassandra-${TEST_ID}"
     kubectl create namespace "${USER_NAMESPACE}"
-    # XXX Temporary work around until cassandra controller manages RBAC
-    kubectl create --namespace "${USER_NAMESPACE}" \
-            rolebinding "${USER_NAMESPACE}-binding" \
-            --clusterrole=cluster-admin \
-            --serviceaccount="${USER_NAMESPACE}:default"
 
     if ! kubectl get \
          --namespace "${USER_NAMESPACE}" \

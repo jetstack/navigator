@@ -31,8 +31,9 @@ type CassandraClusterSpec struct {
 }
 
 type CassandraClusterNodePool struct {
-	Name     string
-	Replicas int64
+	Name           string
+	Replicas       int64
+	ServiceAccount string
 }
 
 type CassandraClusterStatus struct {

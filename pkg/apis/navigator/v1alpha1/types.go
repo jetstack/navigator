@@ -32,8 +32,9 @@ type CassandraClusterSpec struct {
 
 // CassandraClusterNodePool describes a node pool within a CassandraCluster.
 type CassandraClusterNodePool struct {
-	Name     string `json:"name"`
-	Replicas int64  `json:"replicas"`
+	Name           string `json:"name"`
+	Replicas       int64  `json:"replicas"`
+	ServiceAccount string `json:"serviceAccount"`
 }
 
 type CassandraClusterStatus struct {

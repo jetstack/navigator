@@ -142,6 +142,7 @@ func Convert_navigator_CassandraClusterList_To_v1alpha1_CassandraClusterList(in 
 func autoConvert_v1alpha1_CassandraClusterNodePool_To_navigator_CassandraClusterNodePool(in *CassandraClusterNodePool, out *navigator.CassandraClusterNodePool, s conversion.Scope) error {
 	out.Name = in.Name
 	out.Replicas = in.Replicas
+	out.ServiceAccount = in.ServiceAccount
 	return nil
 }
 
@@ -153,6 +154,7 @@ func Convert_v1alpha1_CassandraClusterNodePool_To_navigator_CassandraClusterNode
 func autoConvert_navigator_CassandraClusterNodePool_To_v1alpha1_CassandraClusterNodePool(in *navigator.CassandraClusterNodePool, out *CassandraClusterNodePool, s conversion.Scope) error {
 	out.Name = in.Name
 	out.Replicas = in.Replicas
+	out.ServiceAccount = in.ServiceAccount
 	return nil
 }
 
