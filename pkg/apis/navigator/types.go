@@ -23,14 +23,11 @@ type CassandraCluster struct {
 }
 
 type CassandraClusterSpec struct {
-	Sysctl    []string
-	NodePools []CassandraClusterNodePool
-	Image     CassandraImage
-	CqlPort   int32
-}
-
-type CassandraImage struct {
-	ImageSpec
+	Sysctl     []string
+	NodePools  []CassandraClusterNodePool
+	Image      ImageSpec
+	PilotImage ImageSpec
+	CqlPort    int32
 }
 
 type CassandraClusterNodePool struct {
