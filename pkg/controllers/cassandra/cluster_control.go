@@ -4,6 +4,7 @@ import (
 	"github.com/golang/glog"
 	v1alpha1 "github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/nodepool"
+	"github.com/jetstack/navigator/pkg/controllers/cassandra/pilot"
 	servicecql "github.com/jetstack/navigator/pkg/controllers/cassandra/service/cql"
 	serviceseedprovider "github.com/jetstack/navigator/pkg/controllers/cassandra/service/seedprovider"
 	apiv1 "k8s.io/api/core/v1"
@@ -19,6 +20,7 @@ const (
 	MessageErrorSyncConfigMap      = "Error syncing config map: %s"
 	MessageErrorSyncService        = "Error syncing service: %s"
 	MessageErrorSyncNodePools      = "Error syncing node pools: %s"
+	MessageErrorSyncPilots         = "Error syncing pilots: %s"
 	MessageSuccessSync             = "Successfully synced CassandraCluster"
 )
 
@@ -32,6 +34,7 @@ type defaultCassandraClusterControl struct {
 	seedProviderServiceControl serviceseedprovider.Interface
 	cqlServiceControl          servicecql.Interface
 	nodepoolControl            nodepool.Interface
+	pilotControl               pilot.Interface
 	recorder                   record.EventRecorder
 }
 
@@ -39,12 +42,14 @@ func NewControl(
 	seedProviderServiceControl serviceseedprovider.Interface,
 	cqlServiceControl servicecql.Interface,
 	nodepoolControl nodepool.Interface,
+	pilotControl pilot.Interface,
 	recorder record.EventRecorder,
 ) ControlInterface {
 	return &defaultCassandraClusterControl{
 		seedProviderServiceControl: seedProviderServiceControl,
 		cqlServiceControl:          cqlServiceControl,
 		nodepoolControl:            nodepoolControl,
+		pilotControl:               pilotControl,
 		recorder:                   recorder,
 	}
 }
@@ -80,6 +85,17 @@ func (e *defaultCassandraClusterControl) Sync(c *v1alpha1.CassandraCluster) erro
 			apiv1.EventTypeWarning,
 			ErrorSync,
 			MessageErrorSyncNodePools,
+			err,
+		)
+		return err
+	}
+	err = e.pilotControl.Sync(c)
+	if err != nil {
+		e.recorder.Eventf(
+			c,
+			apiv1.EventTypeWarning,
+			ErrorSync,
+			MessageErrorSyncPilots,
 			err,
 		)
 		return err

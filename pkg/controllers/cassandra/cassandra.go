@@ -12,6 +12,7 @@ import (
 	listersv1alpha1 "github.com/jetstack/navigator/pkg/client/listers/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/nodepool"
+	"github.com/jetstack/navigator/pkg/controllers/cassandra/pilot"
 	servicecql "github.com/jetstack/navigator/pkg/controllers/cassandra/service/cql"
 	serviceseedprovider "github.com/jetstack/navigator/pkg/controllers/cassandra/service/seedprovider"
 	appsinformers "github.com/jetstack/navigator/third_party/k8s.io/client-go/informers/externalversions/apps/v1beta1"
@@ -37,6 +38,8 @@ type CassandraController struct {
 	cassListerSynced        cache.InformerSynced
 	serviceListerSynced     cache.InformerSynced
 	statefulSetListerSynced cache.InformerSynced
+	pilotsListerSynced      cache.InformerSynced
+	podsListerSynced        cache.InformerSynced
 	queue                   workqueue.RateLimitingInterface
 	recorder                record.EventRecorder
 }
@@ -47,6 +50,8 @@ func NewCassandra(
 	cassClusters navigatorinformers.CassandraClusterInformer,
 	services coreinformers.ServiceInformer,
 	statefulSets appsinformers.StatefulSetInformer,
+	pilots navigatorinformers.PilotInformer,
+	pods coreinformers.PodInformer,
 	recorder record.EventRecorder,
 ) *CassandraController {
 	queue := workqueue.NewNamedRateLimitingQueue(
@@ -65,6 +70,8 @@ func NewCassandra(
 	cc.cassListerSynced = cassClusters.Informer().HasSynced
 	cc.serviceListerSynced = services.Informer().HasSynced
 	cc.statefulSetListerSynced = statefulSets.Informer().HasSynced
+	cc.pilotsListerSynced = pilots.Informer().HasSynced
+	cc.podsListerSynced = pods.Informer().HasSynced
 	cc.control = NewControl(
 		serviceseedprovider.NewControl(
 			kubeClient,
@@ -78,6 +85,13 @@ func NewCassandra(
 		),
 		nodepool.NewControl(
 			kubeClient,
+			statefulSets.Lister(),
+			recorder,
+		),
+		pilot.NewControl(
+			naviClient,
+			pilots.Lister(),
+			pods.Lister(),
 			statefulSets.Lister(),
 			recorder,
 		),
@@ -185,6 +199,8 @@ func CassandraControllerFromContext(ctx *controllers.Context) *CassandraControll
 		ctx.SharedInformerFactory.Navigator().V1alpha1().CassandraClusters(),
 		ctx.KubeSharedInformerFactory.Core().V1().Services(),
 		ctx.KubeSharedInformerFactory.Apps().V1beta1().StatefulSets(),
+		ctx.SharedInformerFactory.Navigator().V1alpha1().Pilots(),
+		ctx.KubeSharedInformerFactory.Core().V1().Pods(),
 		ctx.Recorder,
 	)
 }

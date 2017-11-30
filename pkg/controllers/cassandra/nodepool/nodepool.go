@@ -1,13 +1,9 @@
 package nodepool
 
 import (
-	"fmt"
-
 	v1alpha1 "github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/util"
-	apps "k8s.io/api/apps/v1beta1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	appslisters "k8s.io/client-go/listers/apps/v1beta1"
 	"k8s.io/client-go/tools/record"
@@ -37,23 +33,6 @@ func NewControl(
 	}
 }
 
-func ownerCheck(
-	set *apps.StatefulSet,
-	cluster *v1alpha1.CassandraCluster,
-) error {
-	if !metav1.IsControlledBy(set, cluster) {
-		ownerRef := metav1.GetControllerOf(set)
-		return fmt.Errorf(
-			"Foreign owned StatefulSet: "+
-				"A StatefulSet with name '%s/%s' already exists, "+
-				"but it is controlled by '%v', not '%s/%s'.",
-			set.Namespace, set.Name, ownerRef,
-			cluster.Namespace, cluster.Name,
-		)
-	}
-	return nil
-}
-
 func (e *defaultCassandraClusterNodepoolControl) removeUnusedStatefulSets(
 	cluster *v1alpha1.CassandraCluster,
 ) error {
@@ -73,7 +52,7 @@ func (e *defaultCassandraClusterNodepoolControl) removeUnusedStatefulSets(
 		return err
 	}
 	for _, set := range existingSets {
-		err := ownerCheck(set, cluster)
+		err := util.OwnerCheck(set, cluster)
 		if err != nil {
 			return err
 		}
@@ -103,7 +82,7 @@ func (e *defaultCassandraClusterNodepoolControl) createOrUpdateStatefulSet(
 	if err != nil {
 		return err
 	}
-	err = ownerCheck(existingSet, cluster)
+	err = util.OwnerCheck(existingSet, cluster)
 	if err != nil {
 		return err
 	}
