@@ -80,16 +80,15 @@ function kube_event_exists() {
     return 1
 }
 
-function kube_simulate_unresponsive_process() {
+function simulate_unresponsive_cassandra_process() {
     local namespace=$1
     local pod=$2
     local container=$3
-    # Send STOP signal to all processes in the root process group
-    # https://unix.stackexchange.com/a/149756
+    # Send STOP signal to all the cassandra user's processes
     kubectl \
         --namespace="${namespace}" \
         exec "${pod}" --container="${container}" -- \
-        kill -SIGSTOP --  -1
+        bash -c 'kill -SIGSTOP -- $(ps -u cassandra -o pid=) && ps faux'
 }
 
 function stdout_equals() {
