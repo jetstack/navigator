@@ -6,6 +6,8 @@ import (
 	"time"
 
 	navigatorinformers "github.com/jetstack/navigator/pkg/client/informers/externalversions/navigator/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	appslisters "k8s.io/client-go/listers/apps/v1beta1"
 
 	"github.com/golang/glog"
 	navigatorclientset "github.com/jetstack/navigator/pkg/client/clientset/versioned"
@@ -35,6 +37,7 @@ import (
 type CassandraController struct {
 	control                 ControlInterface
 	cassLister              listersv1alpha1.CassandraClusterLister
+	statefulSetLister       appslisters.StatefulSetLister
 	cassListerSynced        cache.InformerSynced
 	serviceListerSynced     cache.InformerSynced
 	statefulSetListerSynced cache.InformerSynced
@@ -66,7 +69,14 @@ func NewCassandra(
 	cassClusters.Informer().AddEventHandler(
 		&controllers.QueuingEventHandler{Queue: queue},
 	)
+	// add an event handler to the Pod informer
+	pods.Informer().AddEventHandler(
+		&controllers.BlockingEventHandler{
+			WorkFunc: cc.handlePodObject,
+		},
+	)
 	cc.cassLister = cassClusters.Lister()
+	cc.statefulSetLister = statefulSets.Lister()
 	cc.cassListerSynced = cassClusters.Informer().HasSynced
 	cc.serviceListerSynced = services.Informer().HasSynced
 	cc.statefulSetListerSynced = statefulSets.Informer().HasSynced
@@ -109,6 +119,9 @@ func (e *CassandraController) Run(workers int, stopCh <-chan struct{}) error {
 		stopCh,
 		e.cassListerSynced,
 		e.serviceListerSynced,
+		e.statefulSetListerSynced,
+		e.pilotsListerSynced,
+		e.podsListerSynced,
 	) {
 		return fmt.Errorf("timed out waiting for caches to sync")
 	}
@@ -189,7 +202,67 @@ func (e *CassandraController) sync(key string) (err error) {
 	return e.control.Sync(cass.DeepCopy())
 }
 
+func (e *CassandraController) enqueueCassandraCluster(obj interface{}) {
+	key, err := controllers.KeyFunc(obj)
+	if err != nil {
+		glog.Errorf("Couldn't get key for object %+v: %v", obj, err)
+		return
+	}
+	glog.V(4).Infof("Adding Cassandra Cluster '%s' to queue", key)
+	e.queue.AddRateLimited(key)
+}
+
 func (e *CassandraController) handleObject(obj interface{}) {
+	var object metav1.Object
+	var ok bool
+	if object, ok = obj.(metav1.Object); !ok {
+		glog.Errorf("error decoding object, invalid type")
+		return
+	}
+	glog.V(4).Infof("Processing object: %s", object.GetName())
+	ownerRef := metav1.GetControllerOf(object)
+	if ownerRef == nil || ownerRef.Kind != "CassandraCluster" {
+		return
+	}
+
+	cluster, err := e.cassLister.CassandraClusters(object.GetNamespace()).Get(ownerRef.Name)
+	if err != nil {
+		glog.V(4).Infof(
+			"ignoring orphaned object '%s' of cassandracluster '%s'",
+			object.GetSelfLink(), ownerRef.Name,
+		)
+		return
+	}
+
+	e.enqueueCassandraCluster(cluster)
+}
+
+// getPodOwner will return the owning ElasticsearchCluster for a pod by
+// first looking up it's owning StatefulSet, and then finding the
+// CassandraCluster that owns that StatefulSet. If the pod is not managed
+// by a StatefulSet/CassandraCluster, it will do nothing.
+func (e *CassandraController) handlePodObject(obj interface{}) {
+	var object metav1.Object
+	var ok bool
+	if object, ok = obj.(metav1.Object); !ok {
+		glog.Errorf("error decoding object, invalid type")
+		return
+	}
+	glog.V(4).Infof("Processing object: %s", object.GetName())
+	ownerRef := metav1.GetControllerOf(object)
+	if ownerRef == nil || ownerRef.Kind != "StatefulSet" {
+		return
+	}
+	ss, err := e.statefulSetLister.StatefulSets(object.GetNamespace()).Get(ownerRef.Name)
+	if err != nil {
+		glog.V(4).Infof(
+			"ignoring orphaned object '%s' of statefulset '%s'",
+			object.GetSelfLink(), ownerRef.Name,
+		)
+		return
+	}
+
+	e.handleObject(ss)
 }
 
 func CassandraControllerFromContext(ctx *controllers.Context) *CassandraController {

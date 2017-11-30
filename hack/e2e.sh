@@ -15,6 +15,10 @@ mkdir -p $TEST_DIR
 
 source "${SCRIPT_DIR}/libe2e.sh"
 
+# Mandatory environment variables
+: ${CHART_VALUES:?}
+: ${CHART_VALUES_CASSANDRA:?}
+
 helm delete --purge "${RELEASE_NAME}" || true
 
 function debug_navigator_start() {
@@ -25,10 +29,6 @@ function debug_navigator_start() {
 }
 
 function helm_install() {
-    if [ "${CHART_VALUES}" == "" ]; then
-        echo "CHART_VALUES must be set";
-        exit 1
-    fi
     helm delete --purge "${RELEASE_NAME}" || true
     echo "Installing navigator..."
     if helm --debug install --wait --name "${RELEASE_NAME}" contrib/charts/navigator \
@@ -172,6 +172,11 @@ function test_cassandracluster() {
     local USER_NAMESPACE="test-cassandracluster-${TEST_ID}"
     local CHART_NAME="cassandra-${TEST_ID}"
     kubectl create namespace "${USER_NAMESPACE}"
+    # XXX Temporary work around until cassandra controller manages RBAC
+    kubectl create --namespace "${USER_NAMESPACE}" \
+            rolebinding "${USER_NAMESPACE}-binding" \
+            --clusterrole=cluster-admin \
+            --serviceaccount="${USER_NAMESPACE}:default"
 
     if ! kubectl get \
          --namespace "${USER_NAMESPACE}" \
@@ -185,6 +190,7 @@ function test_cassandracluster() {
          --name "${CHART_NAME}" \
          --namespace "${USER_NAMESPACE}" \
          contrib/charts/cassandra \
+         --values "${CHART_VALUES_CASSANDRA}" \
          --set replicaCount=1
 
     # Wait 5 minutes for cassandra to start and listen for CQL queries.
@@ -204,6 +210,8 @@ function test_cassandracluster() {
     helm --debug upgrade \
          "${CHART_NAME}" \
          contrib/charts/cassandra \
+         --values "${CHART_VALUES_CASSANDRA}" \
+         --set replicaCount=1 \
          --set cqlPort=9043
 
     # Wait 60s for cassandra CQL port to change
@@ -218,6 +226,7 @@ function test_cassandracluster() {
     helm --debug upgrade \
          "${CHART_NAME}" \
          contrib/charts/cassandra \
+         --values "${CHART_VALUES_CASSANDRA}" \
          --set cqlPort=9043 \
          --set replicaCount=2
 

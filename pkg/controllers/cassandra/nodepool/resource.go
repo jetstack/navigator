@@ -7,7 +7,13 @@ import (
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/util"
 	apps "k8s.io/api/apps/v1beta1"
 	apiv1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+const (
+	sharedVolumeName      = "shared"
+	sharedVolumeMountPath = "/shared"
 )
 
 func StatefulSetForCluster(
@@ -41,9 +47,29 @@ func StatefulSetForCluster(
 					Labels: nodePoolLabels,
 				},
 				Spec: apiv1.PodSpec{
+					Volumes: []apiv1.Volume{
+						apiv1.Volume{
+							Name: sharedVolumeName,
+							VolumeSource: apiv1.VolumeSource{
+								EmptyDir: &apiv1.EmptyDirVolumeSource{},
+							},
+						},
+					},
+					InitContainers: []apiv1.Container{
+						pilotInstallationContainer(&cluster.Spec.PilotImage),
+					},
 					Containers: []apiv1.Container{
 						{
 							Name: "cassandra",
+							Command: []string{
+								fmt.Sprintf("%s/pilot", sharedVolumeMountPath),
+							},
+							Args: []string{
+								"--v=4",
+								"--logtostderr",
+								"--pilot-name=$(POD_NAME)",
+								"--pilot-namespace=$(POD_NAMESPACE)",
+							},
 							Image: fmt.Sprintf(
 								"%s:%s",
 								cluster.Spec.Image.Repository,
@@ -123,6 +149,13 @@ func StatefulSetForCluster(
 									ContainerPort: util.DefaultCqlPort,
 								},
 							},
+							VolumeMounts: []apiv1.VolumeMount{
+								{
+									Name:      sharedVolumeName,
+									MountPath: sharedVolumeMountPath,
+									ReadOnly:  false,
+								},
+							},
 							Env: []apiv1.EnvVar{
 								{
 									Name:  "MAX_HEAP_SIZE",
@@ -165,6 +198,22 @@ func StatefulSetForCluster(
 										},
 									},
 								},
+								apiv1.EnvVar{
+									Name: "POD_NAME",
+									ValueFrom: &apiv1.EnvVarSource{
+										FieldRef: &apiv1.ObjectFieldSelector{
+											FieldPath: "metadata.name",
+										},
+									},
+								},
+								apiv1.EnvVar{
+									Name: "POD_NAMESPACE",
+									ValueFrom: &apiv1.EnvVarSource{
+										FieldRef: &apiv1.ObjectFieldSelector{
+											FieldPath: "metadata.namespace",
+										},
+									},
+								},
 							},
 						},
 					},
@@ -173,4 +222,32 @@ func StatefulSetForCluster(
 		},
 	}
 	return set
+}
+
+func pilotInstallationContainer(
+	image *v1alpha1.ImageSpec,
+) apiv1.Container {
+	return apiv1.Container{
+		Name: "install-pilot",
+		Image: fmt.Sprintf(
+			"%s:%s",
+			image.Repository, image.Tag),
+		ImagePullPolicy: apiv1.PullPolicy(image.PullPolicy),
+		Command: []string{
+			"cp", "/pilot", fmt.Sprintf("%s/pilot", sharedVolumeMountPath),
+		},
+		VolumeMounts: []apiv1.VolumeMount{
+			{
+				Name:      sharedVolumeName,
+				MountPath: sharedVolumeMountPath,
+				ReadOnly:  false,
+			},
+		},
+		Resources: apiv1.ResourceRequirements{
+			Requests: apiv1.ResourceList{
+				apiv1.ResourceCPU:    resource.MustParse("10m"),
+				apiv1.ResourceMemory: resource.MustParse("8Mi"),
+			},
+		},
+	}
 }
