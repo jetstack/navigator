@@ -128,6 +128,7 @@ function test_elasticsearchcluster() {
     then
         fail_test "Elasticsearch pilot did not update the document count"
     fi
+    kubectl cluster-info dump --namespaces "${USER_NAMESPACE}" || true
     if ! kubectl delete \
             --namespace "${USER_NAMESPACE}" \
             ElasticSearchClusters \
