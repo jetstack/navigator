@@ -58,6 +58,29 @@ func StatefulSetForCluster(
 					},
 					InitContainers: []apiv1.Container{
 						pilotInstallationContainer(&cluster.Spec.PilotImage),
+						apiv1.Container{
+							Name:            "install-jolokia",
+							Image:           "quay.io/wallrj/java-jolokia:latest",
+							ImagePullPolicy: apiv1.PullIfNotPresent,
+							Command: []string{
+								"cp",
+								"/opt/jolokia/jolokia.jar",
+								fmt.Sprintf("%s/jolokia.jar", sharedVolumeMountPath),
+							},
+							Resources: apiv1.ResourceRequirements{
+								Requests: apiv1.ResourceList{
+									apiv1.ResourceCPU:    resource.MustParse("10m"),
+									apiv1.ResourceMemory: resource.MustParse("8Mi"),
+								},
+							},
+							VolumeMounts: []apiv1.VolumeMount{
+								{
+									Name:      sharedVolumeName,
+									MountPath: sharedVolumeMountPath,
+									ReadOnly:  false,
+								},
+							},
+						},
 					},
 					Containers: []apiv1.Container{
 						{
@@ -190,6 +213,13 @@ func StatefulSetForCluster(
 								{
 									Name:  "CASSANDRA_AUTO_BOOTSTRAP",
 									Value: "false",
+								},
+								{
+									Name: "JVM_OPTS",
+									Value: fmt.Sprintf(
+										"-javaagent:%s/jolokia.jar",
+										sharedVolumeMountPath,
+									),
 								},
 								{
 									Name: "POD_IP",
