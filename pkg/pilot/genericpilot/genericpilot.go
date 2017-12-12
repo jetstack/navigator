@@ -96,8 +96,8 @@ func (g *GenericPilot) Run() error {
 	g.shutdown = true
 	glog.V(4).Infof("Waiting for process exit and hooks to execute")
 	// wait until postStop hooks have run
-	wait.Poll(time.Second*1, time.Minute*10, func() (bool, error) {
-		return g.lastCompletedPhase == v1alpha1.PilotPhasePostStop, nil
+	wait.Poll(time.Second*1, time.Second*5, func() (bool, error) {
+		return g.process == nil || g.lastCompletedPhase == v1alpha1.PilotPhasePostStop, nil
 	})
 	glog.V(4).Infof("Shutting down workqueue")
 	// shutdown the worker queue

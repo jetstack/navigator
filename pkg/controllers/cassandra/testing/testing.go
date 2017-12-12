@@ -3,15 +3,19 @@ package testing
 import (
 	"testing"
 
+	navinformers "github.com/jetstack/navigator/pkg/client/informers/externalversions"
+
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/nodepool"
+	"github.com/jetstack/navigator/pkg/controllers/cassandra/pilot"
 	servicecql "github.com/jetstack/navigator/pkg/controllers/cassandra/service/cql"
 	serviceseedprovider "github.com/jetstack/navigator/pkg/controllers/cassandra/service/seedprovider"
 
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	navigatorfake "github.com/jetstack/navigator/pkg/client/clientset/versioned/fake"
 	apps "k8s.io/api/apps/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/informers"
@@ -43,8 +47,11 @@ type Fixture struct {
 	SeedProviderServiceControl serviceseedprovider.Interface
 	CqlServiceControl          servicecql.Interface
 	NodepoolControl            nodepool.Interface
+	PilotControl               pilot.Interface
 	k8sClient                  *fake.Clientset
 	k8sObjects                 []runtime.Object
+	naviClient                 *navigatorfake.Clientset
+	naviObjects                []runtime.Object
 }
 
 func NewFixture(t *testing.T) *Fixture {
@@ -56,6 +63,10 @@ func NewFixture(t *testing.T) *Fixture {
 
 func (f *Fixture) AddObjectK(o runtime.Object) {
 	f.k8sObjects = append(f.k8sObjects, o)
+}
+
+func (f *Fixture) AddObjectN(o runtime.Object) {
+	f.naviObjects = append(f.naviObjects, o)
 }
 
 func (f *Fixture) setupAndSync() error {
@@ -90,20 +101,37 @@ func (f *Fixture) setupAndSync() error {
 			recorder,
 		)
 	}
+	f.naviClient = navigatorfake.NewSimpleClientset(f.naviObjects...)
+	naviFactory := navinformers.NewSharedInformerFactory(f.naviClient, 0)
+	pilots := naviFactory.Navigator().V1alpha1().Pilots().Lister()
+	pods := k8sFactory.Core().V1().Pods().Lister()
+	if f.PilotControl == nil {
+		f.PilotControl = pilot.NewControl(
+			f.naviClient,
+			pilots,
+			pods,
+			statefulSets,
+			recorder,
+		)
+	}
 
 	c := cassandra.NewControl(
 		f.SeedProviderServiceControl,
 		f.CqlServiceControl,
 		f.NodepoolControl,
+		f.PilotControl,
 		recorder,
 	)
 	stopCh := make(chan struct{})
 	defer close(stopCh)
 	k8sFactory.Start(stopCh)
+	naviFactory.Start(stopCh)
 	if !cache.WaitForCacheSync(
 		stopCh,
+		k8sFactory.Core().V1().Pods().Informer().HasSynced,
 		k8sFactory.Core().V1().Services().Informer().HasSynced,
 		k8sFactory.Apps().V1beta1().StatefulSets().Informer().HasSynced,
+		naviFactory.Navigator().V1alpha1().Pilots().Informer().HasSynced,
 	) {
 		f.t.Fatal("WaitForCacheSync failure")
 	}
@@ -164,6 +192,28 @@ func (f *Fixture) AssertStatefulSetsLength(l int) {
 		f.t.Log(sets)
 		f.t.Errorf(
 			"Incorrect number of StatefulSets: %#v", setsLength,
+		)
+	}
+}
+
+func (f *Fixture) Pilots() *v1alpha1.PilotList {
+	pilots, err := f.naviClient.
+		NavigatorV1alpha1().
+		Pilots(f.Cluster.Namespace).
+		List(metav1.ListOptions{})
+	if err != nil {
+		f.t.Fatal(err)
+	}
+	return pilots
+}
+
+func (f *Fixture) AssertPilotsLength(l int) {
+	sets := f.Pilots()
+	setsLength := len(sets.Items)
+	if setsLength != l {
+		f.t.Log(sets)
+		f.t.Errorf(
+			"Incorrect number of Pilots: %#v", setsLength,
 		)
 	}
 }

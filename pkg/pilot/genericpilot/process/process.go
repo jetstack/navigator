@@ -1,9 +1,11 @@
 package process
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"os/exec"
+	"sync"
 
 	"github.com/golang/glog"
 )
@@ -33,20 +35,64 @@ type Interface interface {
 type Adapter struct {
 	Signals Signals
 	Cmd     *exec.Cmd
+	wg      sync.WaitGroup
 }
 
 var _ Interface = &Adapter{}
 
+func (p *Adapter) startCommandOutputLoggers() error {
+	stdout, err := p.Cmd.StdoutPipe()
+	if err != nil {
+		return err
+	}
+	p.wg.Add(1)
+	go func() {
+		defer p.wg.Done()
+		in := bufio.NewScanner(stdout)
+		for in.Scan() {
+			glog.Infoln(in.Text())
+		}
+		err := in.Err()
+		if err != nil {
+			glog.Error(err)
+		}
+	}()
+
+	stderr, err := p.Cmd.StderrPipe()
+	if err != nil {
+		return err
+	}
+	p.wg.Add(1)
+	go func() {
+		defer p.wg.Done()
+		in := bufio.NewScanner(stderr)
+		for in.Scan() {
+			glog.Infoln(in.Text())
+		}
+		err := in.Err()
+		if err != nil {
+			glog.Error(err)
+		}
+	}()
+	return nil
+}
+
 func (p *Adapter) Start() error {
 	glog.V(2).Infof("Starting process: %v", p.Cmd.Args)
 
-	if err := p.Cmd.Start(); err != nil {
+	err := p.startCommandOutputLoggers()
+	if err != nil {
+		return err
+	}
+
+	if err = p.Cmd.Start(); err != nil {
 		return fmt.Errorf("error starting process: %s", err.Error())
 	}
 	return nil
 }
 
 func (p *Adapter) Wait() error {
+	defer p.wg.Wait()
 	return p.Cmd.Wait()
 }
 
