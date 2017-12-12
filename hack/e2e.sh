@@ -166,6 +166,23 @@ function test_logged_errors() {
 
 test_logged_errors
 
+# TODO Run integration tests in a separate script
+function test_integration() {
+    if ! go test \
+         -timeout 60s \
+         -v \
+         ./test/integration/... \
+         -args \
+         -v 6 \
+         -alsologtostderr \
+         -logtostderr
+    then
+        fail_test "Integration test failure"
+    fi
+}
+
+test_integration
+
 kubectl api-versions
 kubectl get apiservice -o yaml
 kubectl cluster-info dump --all-namespaces || true

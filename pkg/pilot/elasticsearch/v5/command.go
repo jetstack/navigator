@@ -1,14 +1,14 @@
-package main
+package v5
 
 import (
-	"github.com/jetstack/navigator/pkg/pilot/elasticsearch/v5"
-	"github.com/spf13/cobra"
 	"io"
+
+	"github.com/spf13/cobra"
 )
 
 // NewCommandStartPilot provides a CLI handler for the pilot
 func NewCommandStartPilot(out, errOut io.Writer, stopCh <-chan struct{}) *cobra.Command {
-	o := v5.NewOptions(out, errOut)
+	o := NewOptions(out, errOut)
 
 	cmd := &cobra.Command{
 		Short: "Launch an Elasticsearch Pilot",
