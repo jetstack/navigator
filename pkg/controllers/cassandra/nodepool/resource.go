@@ -62,15 +62,20 @@ func StatefulSetForCluster(
 										// It can perform similar ready probe.
 										Command: []string{
 											"/usr/bin/timeout",
-											"5",
+											"10",
 											"/ready-probe.sh",
 										},
 									},
 								},
-								InitialDelaySeconds: 15,
+								// Test logs show that Cassandra begins
+								// listening for CQL connections ~45s after startup.
+								InitialDelaySeconds: 60,
 								// XXX Kubernetes ignores the TimeoutSeconds for Exec probes.
 								// See https://github.com/kubernetes/kubernetes/issues/26895
-								TimeoutSeconds: 5,
+								TimeoutSeconds:   10,
+								PeriodSeconds:    15,
+								SuccessThreshold: 3,
+								FailureThreshold: 1,
 							},
 							// XXX: You might imagine that LivenessProbes begin
 							// only after a successful ReadinessProbe,
@@ -84,15 +89,21 @@ func StatefulSetForCluster(
 									Exec: &apiv1.ExecAction{
 										Command: []string{
 											"/usr/bin/timeout",
-											"5",
+											"10",
 											"/ready-probe.sh",
 										},
 									},
 								},
-								InitialDelaySeconds: 60,
+								// Don't start performing liveness probes until
+								// readiness probe has had a chance to succeed
+								// at least 3 times.
+								InitialDelaySeconds: 90,
 								// XXX Kubernetes ignores the TimeoutSeconds for Exec probes.
 								// See https://github.com/kubernetes/kubernetes/issues/26895
-								TimeoutSeconds: 5,
+								TimeoutSeconds:   10,
+								PeriodSeconds:    30,
+								SuccessThreshold: 1,
+								FailureThreshold: 6,
 							},
 							Ports: []apiv1.ContainerPort{
 								{
