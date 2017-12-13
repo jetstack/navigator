@@ -47,9 +47,30 @@ function retry() {
 
 function kube_delete_namespace_and_wait() {
     local namespace=$1
+    # Delete all the resources in the namespace
+    # This is a work around for Kubernetes 1.7 which doesn't support garbage
+    # collection of resources owned by third party resources.
+    # See https://github.com/kubernetes/kubernetes/issues/44507
+    if ! retry kubectl --namespace "${namespace}" \
+         delete \
+         services,serviceaccounts,roles,rolebindings,statefulsets,pods \
+         --now \
+         --all
+    then
+        # If multiple attempts to delete resources fails, display the remaining
+        # resources.
+        kubectl cluster-info dump --namespaces "${namespace}" || true
+        return 1
+    fi
     # Delete any previous namespace and wait for Kubernetes to finish deleting.
-    kubectl delete namespace "${namespace}" || true
-    retry TIMEOUT=300 not kubectl get namespace ${namespace}
+    kubectl delete --now namespace "${namespace}" || true
+    if ! retry TIMEOUT=300 not kubectl get namespace ${namespace}; then
+        # If the namespace doesn't delete in time, display the remaining
+        # resources.
+        kubectl cluster-info dump --namespaces "${namespace}" || true
+        return 1
+    fi
+    return 0
 }
 
 function kube_event_exists() {

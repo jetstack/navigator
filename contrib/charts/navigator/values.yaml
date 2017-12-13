@@ -12,7 +12,7 @@ apiserver:
   rbacDisabled: false
 
   ## Extra arguments to pass to the navigator-apiserver
-  extraArgs:
+  extraArgs: []
 #  - --requestheader-client-ca-file=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
 #  - --requestheader-username-headers=X-Remote-User
 #  - --requestheader-group-headers=X-Remote-Group

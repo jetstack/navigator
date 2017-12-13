@@ -9,7 +9,8 @@ go_import_path: github.com/jetstack/navigator
 services:
 - docker
 
-- make docker_build
+script:
+- make build docker_build
 - if [ "${TRAVIS_PULL_REQUEST}" = "false" ] && [ "${TRAVIS_BRANCH}" = "master" ]; then
     mkdir -p ~/.docker && echo "${DOCKER_AUTH_CONFIG}" > ~/.docker/config.json && chmod 600 ~/.docker/config.json;
     make docker_push IMAGE_TAGS="${TRAVIS_COMMIT} latest";
