@@ -45,7 +45,7 @@ build: $(CMDS)
 
 generate: .generate_files
 
-verify: .hack_verify go_verify
+verify: .hack_verify go_verify helm_verify
 
 .hack_verify:
 	@echo Running repo-infra verify scripts
@@ -101,3 +101,7 @@ go_fmt:
 .generate_files: $(TYPES_FILES)
 	# generate all pkg/client contents
 	$(HACK_DIR)/update-client-gen.sh
+
+# Helm targets
+helm_verify:
+	helm lint contrib/charts/*
