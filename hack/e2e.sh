@@ -184,7 +184,7 @@ function test_cassandracluster() {
          --name "${CHART_NAME}" \
          --namespace "${USER_NAMESPACE}" \
          contrib/charts/cassandra \
-         --set replicaCount=1 \
+         --set replicaCount=1
 
     # Wait 5 minutes for cassandra to start and listen for CQL queries.
     if ! retry TIMEOUT=300 cql_connect \
@@ -220,24 +220,16 @@ function test_cassandracluster() {
          --set cqlPort=9043 \
          --set replicaCount=2
 
-    if ! retry stdout_equals 2 kubectl \
+    if ! retry TIMEOUT=300 stdout_equals 2 kubectl \
          --namespace "${USER_NAMESPACE}" \
          get statefulsets \
          "cass-${CHART_NAME}-cassandra-ringnodes" \
-         "-o=go-template={{.spec.replicas}}"
+         "-o=go-template={{.status.readyReplicas}}"
     then
-        fail_test "Cassandra controller did not update the statefulset replica count"
+        fail_test "Second cassandra node did not become ready"
     fi
 
-    # Wait 5min for new cassandra node to respond on the headless service port
-    if ! retry TIMEOUT=300 cql_connect \
-         "${USER_NAMESPACE}" \
-         "cass-${CHART_NAME}-cassandra-ringnodes-1.cass-${CHART_NAME}-cassandra-seedprovider" \
-         9042; then
-        fail_test "Navigator controller failed to connect to new cassandra node"
-    fi
-
-    kube_simulate_unresponsive_process \
+    simulate_unresponsive_cassandra_process \
         "${USER_NAMESPACE}" \
         "cass-${CHART_NAME}-cassandra-ringnodes-0" \
         "cassandra"
