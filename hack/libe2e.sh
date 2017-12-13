@@ -59,7 +59,6 @@ function kube_delete_namespace_and_wait() {
     then
         # If multiple attempts to delete resources fails, display the remaining
         # resources.
-        kubectl cluster-info dump --namespaces "${namespace}" || true
         return 1
     fi
     # Delete any previous namespace and wait for Kubernetes to finish deleting.
@@ -67,7 +66,6 @@ function kube_delete_namespace_and_wait() {
     if ! retry TIMEOUT=300 not kubectl get namespace ${namespace}; then
         # If the namespace doesn't delete in time, display the remaining
         # resources.
-        kubectl cluster-info dump --namespaces "${namespace}" || true
         return 1
     fi
     return 0
@@ -121,4 +119,24 @@ function stdout_gt() {
         return 0
     fi
     return 1
+}
+
+function dump_debug_logs() {
+    local namespace="${1}"
+    local output_dir="$(pwd)/_artifacts/${namespace}"
+    echo "Dumping cluster state to ${output_dir}"
+    mkdir -p "${output_dir}"
+    kubectl cluster-info dump --namespaces "${namespace}" > "${output_dir}/dump.txt" || true
+}
+
+function fail_and_exit() {
+    local namespace="${1}"
+    test_logged_errors "${namespace}"
+
+    kubectl api-versions
+    kubectl get apiservice -o yaml
+
+    dump_debug_logs "${namespace}"
+
+    exit 1
 }
