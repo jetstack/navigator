@@ -87,6 +87,27 @@ function kube_event_exists() {
     return 1
 }
 
+function simulate_unresponsive_cassandra_process() {
+    local namespace=$1
+    local pod=$2
+    local container=$3
+    # Send STOP signal to all the cassandra user's processes
+    kubectl \
+        --namespace="${namespace}" \
+        exec "${pod}" --container="${container}" -- \
+        bash -c 'kill -SIGSTOP -- $(ps -u cassandra -o pid=) && ps faux'
+}
+
+function stdout_equals() {
+    local expected="${1}"
+    shift
+    local actual=$("${@}")
+    if [[ "${expected}" == "${actual}" ]]; then
+        return 0
+    fi
+    return 1
+}
+
 function stdout_gt() {
     local expected="${1}"
     shift

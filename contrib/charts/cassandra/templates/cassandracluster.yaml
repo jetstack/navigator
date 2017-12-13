@@ -1,0 +1,20 @@
+apiVersion: navigator.jetstack.io/v1alpha1
+kind: CassandraCluster
+metadata:
+  name: {{ template "fullname" . }}
+  labels:
+    app: {{ template "name"  . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  cqlPort: {{ .Values.cqlPort }}
+  sysctl:
+  - vm.max_map_count=0
+  nodePools:
+  - name: ringnodes
+    replicas: {{ .Values.replicaCount }}
+  image:
+    repository: {{ .Values.image.repository }}
+    tag: {{ .Values.image.tag }}
+    pullPolicy: {{ .Values.image.pullPolicy }}

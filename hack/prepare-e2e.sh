@@ -32,7 +32,6 @@ items:
     kind: ServiceAccount
     name: tiller
     namespace: kube-system
-
 EOF
 helm init --service-account=tiller
 

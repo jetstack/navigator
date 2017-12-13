@@ -25,6 +25,10 @@ type FakeNavigator struct {
 	*testing.Fake
 }
 
+func (c *FakeNavigator) CassandraClusters(namespace string) internalversion.CassandraClusterInterface {
+	return &FakeCassandraClusters{c, namespace}
+}
+
 func (c *FakeNavigator) ElasticsearchClusters(namespace string) internalversion.ElasticsearchClusterInterface {
 	return &FakeElasticsearchClusters{c, namespace}
 }

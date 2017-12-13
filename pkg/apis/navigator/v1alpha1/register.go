@@ -49,6 +49,8 @@ func init() {
 // Adds the list of known types to api.Scheme.
 func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
+		&CassandraCluster{},
+		&CassandraClusterList{},
 		&ElasticsearchCluster{},
 		&ElasticsearchClusterList{},
 		&Pilot{},

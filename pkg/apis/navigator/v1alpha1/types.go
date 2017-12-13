@@ -12,6 +12,56 @@ import (
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
+// CassandraCluster describes a specification for an Cassandra cluster
+type CassandraCluster struct {
+	// we embed these types so the CassandraCluster implements runtime.Object
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata"`
+
+	Spec   CassandraClusterSpec   `json:"spec"`
+	Status CassandraClusterStatus `json:"status"`
+}
+
+type CassandraClusterSpec struct {
+	Sysctl    []string                   `json:"sysctl"`
+	NodePools []CassandraClusterNodePool `json:"nodePools"`
+	Image     CassandraImage             `json:"image"`
+	CqlPort   int32                      `json:"cqlPort"`
+}
+
+type CassandraImage struct {
+	ImageSpec `json:",inline"`
+}
+
+// CassandraClusterNodePool describes a node pool within a CassandraCluster.
+type CassandraClusterNodePool struct {
+	Name     string `json:"name"`
+	Replicas int64  `json:"replicas"`
+}
+
+type CassandraClusterStatus struct {
+	NodePools map[string]CassandraClusterNodePoolStatus `json:"nodePools"`
+}
+
+type CassandraClusterNodePoolStatus struct {
+	ReadyReplicas int64 `json:"readyReplicas"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// CassandraClusterList defines a List type for our custom CassandraCluster type.
+// This is needed in order to make List operations work.
+type CassandraClusterList struct {
+	// we embed these types so that CassandraClusterList implements runtime.Object and List interfaces
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+
+	Items []CassandraCluster `json:"items"`
+}
+
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // ElasticsearchCluster describes a specification for an Elasticsearch cluster
 type ElasticsearchCluster struct {
 	// we embed these types so the ElasticsearchCluster implements runtime.Object

@@ -2,7 +2,6 @@
 set -eux
 
 NAVIGATOR_NAMESPACE="navigator"
-USER_NAMESPACE="navigator-e2e-database1"
 RELEASE_NAME="nav-e2e"
 
 ROOT_DIR="$(git rev-parse --show-toplevel)"
@@ -16,7 +15,7 @@ mkdir -p $TEST_DIR
 
 source "${SCRIPT_DIR}/libe2e.sh"
 
-kube_delete_namespace_and_wait "${USER_NAMESPACE}"
+helm delete --purge "${RELEASE_NAME}" || true
 
 function debug_navigator_start() {
     kubectl api-versions
@@ -85,9 +84,8 @@ if ! retry navigator_ready; then
     exit 1
 fi
 
-kubectl create namespace "${USER_NAMESPACE}"
-
 FAILURE_COUNT=0
+TEST_ID="$(date +%s)-${RANDOM}"
 
 function fail_test() {
     FAILURE_COUNT=$(($FAILURE_COUNT+1))
@@ -96,6 +94,8 @@ function fail_test() {
 
 function test_elasticsearchcluster() {
     echo "Testing ElasticsearchCluster"
+    local USER_NAMESPACE="test-elasticsearchcluster-${TEST_ID}"
+    kubectl create namespace "${USER_NAMESPACE}"
     if ! kubectl get esc; then
         fail_test "Failed to use shortname to get ElasticsearchClusters"
     fi
@@ -141,13 +141,122 @@ function test_elasticsearchcluster() {
 
 test_elasticsearchcluster
 
+function cql_connect() {
+    local namespace="${1}"
+    local host="${2}"
+    local port="${3}"
+    # Attempt to negotiate a CQL connection.
+    # No queries are performed.
+    # stdin=false (the default) ensures that cqlsh does not go into interactive
+    # mode.
+    # XXX: This uses the standard Cassandra Docker image rather than the
+    # gcr.io/google-samples/cassandra image used in the Cassandra chart, becasue
+    # cqlsh is missing some dependencies in that image.
+    kubectl \
+        run \
+        "cql-responding-${RANDOM}" \
+        --namespace="${USER_NAMESPACE}" \
+        --command=true \
+        --image=cassandra:latest \
+        --restart=Never \
+        --rm \
+        --stdin=false \
+        --attach=true \
+        -- \
+        /usr/bin/cqlsh --debug "${host}" "${port}"
+}
+
+function test_cassandracluster() {
+    echo "Testing CassandraCluster"
+    local USER_NAMESPACE="test-cassandracluster-${TEST_ID}"
+    local CHART_NAME="cassandra-${TEST_ID}"
+    kubectl create namespace "${USER_NAMESPACE}"
+
+    if ! kubectl get \
+         --namespace "${USER_NAMESPACE}" \
+         CassandraClusters; then
+        fail_test "Failed to get cassandraclusters"
+    fi
+
+    helm install \
+         --debug \
+         --wait \
+         --name "${CHART_NAME}" \
+         --namespace "${USER_NAMESPACE}" \
+         contrib/charts/cassandra \
+         --set replicaCount=1
+
+    # Wait 5 minutes for cassandra to start and listen for CQL queries.
+    if ! retry TIMEOUT=300 cql_connect \
+         "${USER_NAMESPACE}" \
+         "cass-${CHART_NAME}-cassandra-cql" \
+         9042; then
+        fail_test "Navigator controller failed to create cassandracluster service"
+    fi
+
+    # TODO Fail test if there are unexpected cassandra errors.
+    kubectl log \
+            --namespace "${USER_NAMESPACE}" \
+            "statefulset/cass-${CHART_NAME}-cassandra-ringnodes"
+
+    # Change the CQL port
+    helm --debug upgrade \
+         "${CHART_NAME}" \
+         contrib/charts/cassandra \
+         --set cqlPort=9043
+
+    # Wait 60s for cassandra CQL port to change
+    if ! retry TIMEOUT=60 cql_connect \
+         "${USER_NAMESPACE}" \
+         "cass-${CHART_NAME}-cassandra-cql" \
+         9043; then
+        fail_test "Navigator controller failed to update cassandracluster service"
+    fi
+
+    # Increment the replica count
+    helm --debug upgrade \
+         "${CHART_NAME}" \
+         contrib/charts/cassandra \
+         --set cqlPort=9043 \
+         --set replicaCount=2
+
+    if ! retry TIMEOUT=300 stdout_equals 2 kubectl \
+         --namespace "${USER_NAMESPACE}" \
+         get statefulsets \
+         "cass-${CHART_NAME}-cassandra-ringnodes" \
+         "-o=go-template={{.status.readyReplicas}}"
+    then
+        fail_test "Second cassandra node did not become ready"
+    fi
+
+    simulate_unresponsive_cassandra_process \
+        "${USER_NAMESPACE}" \
+        "cass-${CHART_NAME}-cassandra-ringnodes-0" \
+        "cassandra"
+
+    if ! retry cql_connect \
+         "${USER_NAMESPACE}" \
+         "cass-${CHART_NAME}-cassandra-cql" \
+         9043; then
+        fail_test "Cassandra readiness probe failed to bypass dead node"
+    fi
+}
+
+test_cassandracluster
+
 function ignore_expected_controller_errors() {
     # Ignore the following error types:
     # E1103 14:58:06.819858       1 reflector.go:205] github.com/jetstack/navigator/pkg/client/informers/externalversions/factory.go:68: Failed to list *v1alpha1.Pilot: the server could not find the requested resource (get pilots.navigator.jetstack.io)
     # E1108 14:18:37.610718       1 reflector.go:205] github.com/jetstack/navigator/pkg/client/informers/externalversions/factory.go:68: Failed to list *v1alpha1.Pilot: an error on the server ("Error: 'dial tcp 10.0.0.233:443: getsockopt: connection refused'\nTrying to reach: 'https://10.0.0.233:443/apis/navigator.jetstack.io/v1alpha1/pilots?resourceVersion=0'") has prevented the request from succeeding (get pilots.navigator.jetstack.io)
+    # E1114 21:31:46.183817       8 leaderelection.go:258] Failed to update lock: the server was unable to return a response in the time allotted, but may still be processing the request (put endpoints navigator-controller)
+    # E1115 00:09:28.579761       5 leaderelection.go:224] error retrieving resource lock kube-system/navigator-controller: the server was unable to return a response in the time allotted, but may still be processing the request (get endpoints navigator-controller)
     egrep --invert-match \
           -e 'Failed to list \*v1alpha1\.\w+:\s+the server could not find the requested resource\s+\(get \w+\.navigator\.jetstack\.io\)$' \
-          -e 'Failed to list \*v1alpha1\.\w+:\s+an error on the server \([^)]+\) has prevented the request from succeeding\s+\(get \w+\.navigator\.jetstack\.io\)$'
+          -e 'Failed to list \*v1alpha1\.\w+:\s+an error on the server \([^)]+\) has prevented the request from succeeding\s+\(get \w+\.navigator\.jetstack\.io\)$' \
+          -e 'Failed to update lock: etcdserver: request timed out' \
+          -e 'Failed to update lock: Operation cannot be fulfilled on endpoints "navigator-controller"' \
+          -e 'Failed to update lock: the server was unable to return a response in the time allotted' \
+          -e 'error retrieving resource lock kube-system/navigator-controller'
 }
 
 function test_logged_errors() {
