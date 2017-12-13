@@ -11,6 +11,10 @@ labels:
   color: 0052cc
 - name: area/apiserver
   color: 0052cc
+- name: area/cassandra
+  color: 0052cc
+- name: area/elasticsearch
+  color: 0052cc
 - name: area/controller-manager
   color: 0052cc
 - name: area/logging
