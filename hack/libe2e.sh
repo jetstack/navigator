@@ -131,7 +131,6 @@ function dump_debug_logs() {
 
 function fail_and_exit() {
     local namespace="${1}"
-    test_logged_errors "${namespace}"
 
     kubectl api-versions
     kubectl get apiservice -o yaml
