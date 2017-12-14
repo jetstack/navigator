@@ -22,6 +22,7 @@ import (
 	"k8s.io/apiserver/pkg/util/logs"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	"github.com/jetstack/navigator/pkg/pilot/elasticsearch/v5"
 	"github.com/jetstack/navigator/pkg/pilot/genericpilot"
 )
 
@@ -34,7 +35,7 @@ func main() {
 	}
 
 	stopCh := genericpilot.SetupSignalHandler()
-	cmd := NewCommandStartPilot(os.Stdout, os.Stderr, stopCh)
+	cmd := v5.NewCommandStartPilot(os.Stdout, os.Stderr, stopCh)
 	cmd.Flags().AddGoFlagSet(flag.CommandLine)
 	flag.CommandLine.Parse([]string{})
 
