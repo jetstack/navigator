@@ -7,13 +7,11 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 
 	"github.com/jetstack-experimental/navigator/pkg/apis/navigator/v1alpha1"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/record"
 )
 
 type defaultCouchbaseClusterControl struct {
-	kubeClient *kubernetes.Clientset
-	recorder   record.EventRecorder
+	recorder record.EventRecorder
 }
 
 var _ CouchbaseClusterControl = &defaultCouchbaseClusterControl{}

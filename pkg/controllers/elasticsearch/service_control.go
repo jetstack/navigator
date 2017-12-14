@@ -24,7 +24,7 @@ type ServiceControlConfig struct {
 }
 
 type defaultElasticsearchClusterServiceControl struct {
-	kubeClient *kubernetes.Clientset
+	kubeClient kubernetes.Interface
 
 	config ServiceControlConfig
 
@@ -34,7 +34,7 @@ type defaultElasticsearchClusterServiceControl struct {
 var _ ElasticsearchClusterServiceControl = &defaultElasticsearchClusterServiceControl{}
 
 func NewElasticsearchClusterServiceControl(
-	kubeClient *kubernetes.Clientset,
+	kubeClient kubernetes.Interface,
 	recorder record.EventRecorder,
 	config ServiceControlConfig,
 ) ElasticsearchClusterServiceControl {
