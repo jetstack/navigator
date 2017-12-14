@@ -59,6 +59,33 @@ eval $(minikube docker-env)
 make BUILD_TAG=latest e2e-test
 ```
 
+## Pilot Testing
+
+```
+kubectl proxy --address 192.168.129.43 --accept-hosts='^.*$' -v 100
+
+kubectl create ns foo
+
+kubectl --namespace foo create -f hack/testpilot.yaml
+
+sudo sysctl -w vm.max_map_count=262144
+
+docker run \
+    --name pes \
+    --rm \
+    --volume $PWD/hack/testdata/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro pes  \
+    --master http://192.168.129.43:8001 \
+    --elasticsearch-master-url http://172.17.0.2:9200 \
+    --pilot-namespace foo -v 100 \
+    --pilot-name bar \
+    --elasticsearch-roles master,ingest,data \
+    --logtostderr
+
+docker exec -it pes curl http://localhost:9200
+
+docker stop pes -t 60
+```
+
 ## Credits
 
 An open-source project by [Jetstack.io](https://www.jetstack.io/).
