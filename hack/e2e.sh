@@ -1,6 +1,8 @@
 #!/bin/bash
 set -eux
 
+: ${TEST_PREFIX:=""}
+
 NAVIGATOR_NAMESPACE="navigator"
 RELEASE_NAME="nav-e2e"
 
@@ -130,12 +132,14 @@ function test_elasticsearchcluster() {
     fi
 }
 
-ES_TEST_NS="test-elasticsearchcluster-${TEST_ID}"
-test_elasticsearchcluster "${ES_TEST_NS}"
-if [ "${FAILURE_COUNT}" -gt "0" ]; then
-    fail_and_exit "${ES_TEST_NS}"
+if [[ "test_elasticsearchcluster" = "${TEST_PREFIX}"* ]]; then
+    ES_TEST_NS="test-elasticsearchcluster-${TEST_ID}"
+    test_elasticsearchcluster "${ES_TEST_NS}"
+    if [ "${FAILURE_COUNT}" -gt "0" ]; then
+        fail_and_exit "${ES_TEST_NS}"
+    fi
+    kube_delete_namespace_and_wait "${ES_TEST_NS}"
 fi
-kube_delete_namespace_and_wait "${ES_TEST_NS}"
 
 function cql_connect() {
     local namespace="${1}"
@@ -238,9 +242,11 @@ function test_cassandracluster() {
     fi
 }
 
-CASS_TEST_NS="test-cassandra-${TEST_ID}"
-test_cassandracluster "${CASS_TEST_NS}"
-if [ "${FAILURE_COUNT}" -gt "0" ]; then
-    fail_and_exit "${CASS_TEST_NS}"
+if [[ "test_cassandracluster" = "${TEST_PREFIX}"* ]]; then
+    CASS_TEST_NS="test-cassandra-${TEST_ID}"
+    test_cassandracluster "${CASS_TEST_NS}"
+    if [ "${FAILURE_COUNT}" -gt "0" ]; then
+        fail_and_exit "${CASS_TEST_NS}"
+    fi
+    kube_delete_namespace_and_wait "${CASS_TEST_NS}"
 fi
-kube_delete_namespace_and_wait "${CASS_TEST_NS}"
