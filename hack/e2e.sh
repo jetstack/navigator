@@ -93,53 +93,49 @@ function fail_test() {
 }
 
 function test_elasticsearchcluster() {
+    local namespace="${1}"
     echo "Testing ElasticsearchCluster"
-    local USER_NAMESPACE="test-elasticsearchcluster-${TEST_ID}"
-    kubectl create namespace "${USER_NAMESPACE}"
+    kubectl create namespace "${namespace}"
     if ! kubectl get esc; then
         fail_test "Failed to use shortname to get ElasticsearchClusters"
     fi
     # Create and delete an ElasticSearchCluster
     if ! kubectl create \
-            --namespace "${USER_NAMESPACE}" \
+            --namespace "${namespace}" \
             --filename "${SCRIPT_DIR}/testdata/es-cluster-test.yaml"; then
         fail_test "Failed to create elasticsearchcluster"
     fi
     if ! kubectl get \
-            --namespace "${USER_NAMESPACE}" \
+            --namespace "${namespace}" \
             ElasticSearchClusters; then
         fail_test "Failed to get elasticsearchclusters"
     fi
     if ! retry kubectl get \
-         --namespace "${USER_NAMESPACE}" \
+         --namespace "${namespace}" \
          service es-test; then
         fail_test "Navigator controller failed to create elasticsearchcluster service"
     fi
-    if ! retry kube_event_exists "${USER_NAMESPACE}" \
+    if ! retry kube_event_exists "${namespace}" \
          "navigator-controller:ElasticsearchCluster:Normal:SuccessSync"
     then
         fail_test "Navigator controller failed to create SuccessSync event"
     fi
     if ! retry TIMEOUT=300 stdout_gt 0 kubectl \
-         --namespace "${USER_NAMESPACE}" \
+         --namespace "${namespace}" \
          get pilot \
          "es-test-mixed-0" \
          "-o=go-template={{.status.elasticsearch.documents}}"
     then
         fail_test "Elasticsearch pilot did not update the document count"
     fi
-    if ! kubectl delete \
-            --namespace "${USER_NAMESPACE}" \
-            ElasticSearchClusters \
-            --all; then
-        fail_test "Failed to delete elasticsearchcluster"
-    fi
-    if ! kube_delete_namespace_and_wait "${USER_NAMESPACE}"; then
-        fail_test "Failed to delete test namespace"
-    fi
 }
 
-test_elasticsearchcluster
+ES_TEST_NS="test-elasticsearchcluster-${TEST_ID}"
+test_elasticsearchcluster "${ES_TEST_NS}"
+if [ "${FAILURE_COUNT}" -gt "0" ]; then
+    fail_and_exit "${ES_TEST_NS}"
+fi
+kube_delete_namespace_and_wait "${ES_TEST_NS}"
 
 function cql_connect() {
     local namespace="${1}"
@@ -155,7 +151,7 @@ function cql_connect() {
     kubectl \
         run \
         "cql-responding-${RANDOM}" \
-        --namespace="${USER_NAMESPACE}" \
+        --namespace="${namespace}" \
         --command=true \
         --image=cassandra:latest \
         --restart=Never \
@@ -168,12 +164,12 @@ function cql_connect() {
 
 function test_cassandracluster() {
     echo "Testing CassandraCluster"
-    local USER_NAMESPACE="test-cassandracluster-${TEST_ID}"
+    local namespace="${1}"
     local CHART_NAME="cassandra-${TEST_ID}"
-    kubectl create namespace "${USER_NAMESPACE}"
+    kubectl create namespace "${namespace}"
 
     if ! kubectl get \
-         --namespace "${USER_NAMESPACE}" \
+         --namespace "${namespace}" \
          CassandraClusters; then
         fail_test "Failed to get cassandraclusters"
     fi
@@ -182,13 +178,13 @@ function test_cassandracluster() {
          --debug \
          --wait \
          --name "${CHART_NAME}" \
-         --namespace "${USER_NAMESPACE}" \
+         --namespace "${namespace}" \
          contrib/charts/cassandra \
          --set replicaCount=1
 
     # Wait 5 minutes for cassandra to start and listen for CQL queries.
     if ! retry TIMEOUT=300 cql_connect \
-         "${USER_NAMESPACE}" \
+         "${namespace}" \
          "cass-${CHART_NAME}-cassandra-cql" \
          9042; then
         fail_test "Navigator controller failed to create cassandracluster service"
@@ -196,7 +192,7 @@ function test_cassandracluster() {
 
     # TODO Fail test if there are unexpected cassandra errors.
     kubectl log \
-            --namespace "${USER_NAMESPACE}" \
+            --namespace "${namespace}" \
             "statefulset/cass-${CHART_NAME}-cassandra-ringnodes"
 
     # Change the CQL port
@@ -207,7 +203,7 @@ function test_cassandracluster() {
 
     # Wait 60s for cassandra CQL port to change
     if ! retry TIMEOUT=60 cql_connect \
-         "${USER_NAMESPACE}" \
+         "${namespace}" \
          "cass-${CHART_NAME}-cassandra-cql" \
          9043; then
         fail_test "Navigator controller failed to update cassandracluster service"
@@ -221,7 +217,7 @@ function test_cassandracluster() {
          --set replicaCount=2
 
     if ! retry TIMEOUT=300 stdout_equals 2 kubectl \
-         --namespace "${USER_NAMESPACE}" \
+         --namespace "${namespace}" \
          get statefulsets \
          "cass-${CHART_NAME}-cassandra-ringnodes" \
          "-o=go-template={{.status.readyReplicas}}"
@@ -230,53 +226,21 @@ function test_cassandracluster() {
     fi
 
     simulate_unresponsive_cassandra_process \
-        "${USER_NAMESPACE}" \
+        "${namespace}" \
         "cass-${CHART_NAME}-cassandra-ringnodes-0" \
         "cassandra"
 
     if ! retry cql_connect \
-         "${USER_NAMESPACE}" \
+         "${namespace}" \
          "cass-${CHART_NAME}-cassandra-cql" \
          9043; then
         fail_test "Cassandra readiness probe failed to bypass dead node"
     fi
 }
 
-test_cassandracluster
-
-function ignore_expected_controller_errors() {
-    # Ignore the following error types:
-    # E1103 14:58:06.819858       1 reflector.go:205] github.com/jetstack/navigator/pkg/client/informers/externalversions/factory.go:68: Failed to list *v1alpha1.Pilot: the server could not find the requested resource (get pilots.navigator.jetstack.io)
-    # E1108 14:18:37.610718       1 reflector.go:205] github.com/jetstack/navigator/pkg/client/informers/externalversions/factory.go:68: Failed to list *v1alpha1.Pilot: an error on the server ("Error: 'dial tcp 10.0.0.233:443: getsockopt: connection refused'\nTrying to reach: 'https://10.0.0.233:443/apis/navigator.jetstack.io/v1alpha1/pilots?resourceVersion=0'") has prevented the request from succeeding (get pilots.navigator.jetstack.io)
-    # E1114 21:31:46.183817       8 leaderelection.go:258] Failed to update lock: the server was unable to return a response in the time allotted, but may still be processing the request (put endpoints navigator-controller)
-    # E1115 00:09:28.579761       5 leaderelection.go:224] error retrieving resource lock kube-system/navigator-controller: the server was unable to return a response in the time allotted, but may still be processing the request (get endpoints navigator-controller)
-    egrep --invert-match \
-          -e 'Failed to list \*v1alpha1\.\w+:\s+the server could not find the requested resource\s+\(get \w+\.navigator\.jetstack\.io\)$' \
-          -e 'Failed to list \*v1alpha1\.\w+:\s+an error on the server \([^)]+\) has prevented the request from succeeding\s+\(get \w+\.navigator\.jetstack\.io\)$' \
-          -e 'Failed to update lock: etcdserver: request timed out' \
-          -e 'Failed to update lock: Operation cannot be fulfilled on endpoints "navigator-controller"' \
-          -e 'Failed to update lock: the server was unable to return a response in the time allotted' \
-          -e 'error retrieving resource lock kube-system/navigator-controller'
-}
-
-function test_logged_errors() {
-    if kubectl logs -c controller -l app=navigator,component=controller \
-            | egrep '^E[0-9]{4} ' \
-            | ignore_expected_controller_errors
-    then
-        fail_test "Unexpected errors in controller logs"
-    fi
-    if kubectl logs -c apiserver -l app=navigator,component=apiserver \
-            | egrep '^E[0-9]{4} '
-    then
-        fail_test "Unexpected errors in apiserver logs"
-    fi
-}
-
-test_logged_errors
-
-kubectl api-versions
-kubectl get apiservice -o yaml
-kubectl cluster-info dump --all-namespaces || true
-
-exit $FAILURE_COUNT
+CASS_TEST_NS="test-cassandra-${TEST_ID}"
+test_cassandracluster "${CASS_TEST_NS}"
+if [ "${FAILURE_COUNT}" -gt "0" ]; then
+    fail_and_exit "${CASS_TEST_NS}"
+fi
+kube_delete_namespace_and_wait "${CASS_TEST_NS}"
