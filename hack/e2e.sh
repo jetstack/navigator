@@ -1,7 +1,17 @@
 #!/bin/bash
 set -eux
 
+
 : ${TEST_PREFIX:=""}
+
+: ${NAVIGATOR_IMAGE_REPOSITORY:="jetstackexperimental"}
+: ${NAVIGATOR_IMAGE_TAG:="build"}
+: ${NAVIGATOR_IMAGE_PULLPOLICY:="Never"}
+
+export \
+    NAVIGATOR_IMAGE_REPOSITORY \
+    NAVIGATOR_IMAGE_TAG \
+    NAVIGATOR_IMAGE_PULLPOLICY
 
 NAVIGATOR_NAMESPACE="navigator"
 RELEASE_NAME="nav-e2e"
@@ -104,7 +114,11 @@ function test_elasticsearchcluster() {
     # Create and delete an ElasticSearchCluster
     if ! kubectl create \
             --namespace "${namespace}" \
-            --filename "${SCRIPT_DIR}/testdata/es-cluster-test.yaml"; then
+            --filename \
+            <(envsubst \
+                  '$NAVIGATOR_IMAGE_REPOSITORY:$NAVIGATOR_IMAGE_TAG:$NAVIGATOR_IMAGE_PULLPOLICY' \
+                  < "${SCRIPT_DIR}/testdata/es-cluster-test.template.yaml")
+    then
         fail_test "Failed to create elasticsearchcluster"
     fi
     if ! kubectl get \
