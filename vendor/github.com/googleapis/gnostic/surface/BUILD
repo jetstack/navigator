@@ -1,0 +1,26 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+filegroup(
+    name = "go_default_library_protos",
+    srcs = ["surface.proto"],
+    visibility = ["//visibility:public"],
+)
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "field.go",
+        "model.go",
+        "model_openapiv2.go",
+        "model_openapiv3.go",
+        "surface.pb.go",
+        "type.go",
+    ],
+    importpath = "github.com/googleapis/gnostic/surface",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/github.com/golang/protobuf/proto:go_default_library",
+        "//vendor/github.com/googleapis/gnostic/OpenAPIv2:go_default_library",
+        "//vendor/github.com/googleapis/gnostic/OpenAPIv3:go_default_library",
+    ],
+)
