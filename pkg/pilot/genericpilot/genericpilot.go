@@ -2,6 +2,7 @@ package genericpilot
 
 import (
 	"sync"
+	"time"
 
 	"github.com/golang/glog"
 	"k8s.io/client-go/kubernetes"
@@ -41,16 +42,45 @@ func (g *GenericPilot) Run() error {
 
 	// setup healthz handlers
 	g.serveHealthz()
+
 	ctrlStopCh := make(chan struct{})
 	defer close(ctrlStopCh)
 	go g.controller.Run(ctrlStopCh)
 
 	// block until told to shutdown
-	<-g.Options.StopCh
+	select {
+	case <-g.Options.StopCh:
+	case <-g.processExitChan():
+		if !g.process.State().Success() {
+			glog.V(4).Infof("Underlying process failed")
+		} else {
+			glog.V(4).Infof("Underlying process unexpectedly exited")
+		}
+	}
+
 	glog.V(4).Infof("Shutdown signal received")
 	thisPilot, err := g.controller.ThisPilot()
 	if err != nil {
 		return err
 	}
 	return g.stop(thisPilot)
+}
+
+func (g *GenericPilot) processExitChan() <-chan struct{} {
+	out := make(chan struct{})
+	go func() {
+		defer close(out)
+		// don't call wait until the process is actually created
+		for {
+			// wait until the proces is running before calling Wait
+			if g.process != nil && g.process.Running() {
+				break
+			}
+			time.Sleep(2)
+		}
+		// we must call Wait else process.ProcessState won't be populated with
+		// exit code/details of the process.
+		g.process.Wait()
+	}()
+	return out
 }
