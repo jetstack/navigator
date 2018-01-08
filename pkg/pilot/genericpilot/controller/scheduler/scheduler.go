@@ -16,6 +16,11 @@ type ScheduledWorkQueue interface {
 	// Duration has come (since the time Add was called). If an existing Timer
 	// for obj already exists, the previous timer will be cancelled.
 	Add(interface{}, time.Duration)
+	// AddWithKey will add an item to this queue, executing the ProcessFunc
+	// after the Duration has come (since the time Add was called). If an
+	// existing Timer for key already exists, the previous timer will be
+	// cancelled.
+	AddWithKey(interface{}, interface{}, time.Duration)
 	// Forget will cancel the timer for the given object, if the timer exists.
 	Forget(interface{})
 }
@@ -35,9 +40,19 @@ func NewScheduledWorkQueue(processFunc ProcessFunc) ScheduledWorkQueue {
 // Duration has come (since the time Add was called). If an existing Timer for
 // obj already exists, the previous timer will be cancelled.
 func (s *scheduledWorkQueue) Add(obj interface{}, duration time.Duration) {
-	s.clearTimer(obj)
-	s.work[obj] = time.AfterFunc(duration, func() {
-		defer s.clearTimer(obj)
+	s.AddWithKey(obj, obj, duration)
+}
+
+// AddWithKey will add an item to this queue with the given key, executing the
+// ProcessFunc after the Duration has come (since the time Add was called). If
+// an existing Timer for obj already exists, the previous timer will be
+// cancelled.
+func (s *scheduledWorkQueue) AddWithKey(key interface{}, obj interface{}, duration time.Duration) {
+	s.clearTimer(key)
+	s.workLock.Lock()
+	defer s.workLock.Unlock()
+	s.work[key] = time.AfterFunc(duration, func() {
+		defer s.clearTimer(key)
 		s.processFunc(obj)
 	})
 }
