@@ -7,9 +7,9 @@ spec:
   - vm.max_map_count=262144
 
   pilot:
-    repository: jetstackexperimental/navigator-pilot-elasticsearch
-    tag: build
-    pullPolicy: Never
+    repository: ${NAVIGATOR_IMAGE_REPOSITORY}/navigator-pilot-elasticsearch
+    tag: ${NAVIGATOR_IMAGE_TAG}
+    pullPolicy: ${NAVIGATOR_IMAGE_PULLPOLICY}
 
   image:
     repository: docker.elastic.co/elasticsearch/elasticsearch
