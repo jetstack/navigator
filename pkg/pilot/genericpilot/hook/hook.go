@@ -1,10 +1,14 @@
+// package hook is used to ensure execution of a set of pre-start, post-start,
+// pre-stop and post-stop hooks. The transitioning between states is gated by
+// the consumer of the package, through use of the Hooks.Transition function.
 package hook
 
 import (
 	"fmt"
+	"sync"
+
 	"github.com/golang/glog"
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
-	"sync"
 )
 
 type Interface interface {

@@ -1,4 +1,4 @@
-package process
+package processmanager
 
 import (
 	"fmt"
@@ -6,6 +6,8 @@ import (
 	"os/exec"
 
 	"github.com/golang/glog"
+
+	"github.com/jetstack/navigator/pkg/pilot/genericpilot/hook"
 )
 
 type Interface interface {
@@ -33,6 +35,7 @@ type Interface interface {
 type Adapter struct {
 	Signals Signals
 	Cmd     *exec.Cmd
+	Hooks   hook.Interface
 }
 
 var _ Interface = &Adapter{}

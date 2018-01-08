@@ -1,3 +1,5 @@
+// +build !windows
+
 /*
 Copyright 2017 The Kubernetes Authors.
 
@@ -14,10 +16,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package genericpilot
+package signals
 
 import (
 	"os"
+	"syscall"
 )
 
-var shutdownSignals = []os.Signal{os.Interrupt}
+var shutdownSignals = []os.Signal{os.Interrupt, syscall.SIGTERM}

@@ -1,23 +1,19 @@
 package genericpilot
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
 	"github.com/golang/glog"
-	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/client-go/util/workqueue"
 
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	clientset "github.com/jetstack/navigator/pkg/client/clientset/versioned"
 	listersv1alpha1 "github.com/jetstack/navigator/pkg/client/listers/navigator/v1alpha1"
-	"github.com/jetstack/navigator/pkg/pilot/genericpilot/process"
-	"github.com/jetstack/navigator/pkg/pilot/genericpilot/scheduler"
+	"github.com/jetstack/navigator/pkg/pilot/genericpilot/controller"
+	"github.com/jetstack/navigator/pkg/pilot/genericpilot/processmanager"
 )
 
 type GenericPilot struct {
@@ -28,15 +24,14 @@ type GenericPilot struct {
 	kubeClientset kubernetes.Interface
 	client        clientset.Interface
 
-	pilotLister         listersv1alpha1.PilotLister
-	pilotInformerSynced cache.InformerSynced
+	pilotLister listersv1alpha1.PilotLister
 
-	queue    workqueue.RateLimitingInterface
 	recorder record.EventRecorder
 
+	controller *controller.Controller
 	// process is a reference to a process manager for the application this
 	// Pilot manages
-	process process.Interface
+	process processmanager.Interface
 	// phase is the current phase of this Pilot. This is used as a source of
 	// truth within Pilots, as we cannot rely on the pilot.status block being
 	// up to date
@@ -47,34 +42,6 @@ type GenericPilot struct {
 	// lock is used internally to coordinate updates to fields on the
 	// GenericPilot structure
 	lock sync.Mutex
-	// scheduledWorkQueue is used to periodically re-sync 'this' Pilot resource.
-	scheduledWorkQueue scheduler.ScheduledWorkQueue
-	// cachedThisPilot is a reference to a Pilot resource for 'this' Pilot.
-	// It may be out of date, and it should *never* be manipulated.
-	// This is especially useful for circumstances where the Pilot resource is
-	// no longer available, either due to a network outage, the namespace
-	// containing the Pilot resource being deleted, or any other circumstance
-	// leading to the Pilot lister to not contain a reference to 'this' pilot.
-	cachedThisPilot *v1alpha1.Pilot
-}
-
-// only run one worker to prevent threading issues when dealing with processes
-const workers = 1
-
-func (g *GenericPilot) enqueuePilot(obj interface{}) {
-	key, err := cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
-	if err != nil {
-		runtime.HandleError(err)
-		return
-	}
-	g.queue.AddRateLimited(key)
-}
-
-func (g *GenericPilot) WaitForCacheSync(stopCh <-chan struct{}) error {
-	if !cache.WaitForCacheSync(stopCh, g.pilotInformerSynced) {
-		return fmt.Errorf("timed out waiting for caches to sync")
-	}
-	return nil
 }
 
 func (g *GenericPilot) Run() error {
@@ -82,14 +49,9 @@ func (g *GenericPilot) Run() error {
 
 	// setup healthz handlers
 	g.serveHealthz()
-
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		wait.Until(g.worker, time.Second, g.Options.StopCh)
-	}()
-
+	ctrlStopCh := make(chan struct{})
+	defer close(ctrlStopCh)
+	go g.controller.Run(ctrlStopCh)
 	<-g.Options.StopCh
 	glog.V(4).Infof("Shutdown signal received")
 	// set g.shutdown = true to signal preStop hooks to run
@@ -99,12 +61,12 @@ func (g *GenericPilot) Run() error {
 	wait.Poll(time.Second*1, time.Minute*10, func() (bool, error) {
 		return g.lastCompletedPhase == v1alpha1.PilotPhasePostStop, nil
 	})
-	glog.V(4).Infof("Shutting down workqueue")
-	// shutdown the worker queue
-	g.queue.ShutDown()
-	glog.V(4).Infof("Shutting down generic pilot controller workers")
-	// wait for workers to exit
-	wg.Wait()
-	glog.V(4).Infof("Generic pilot controller workers stopped")
 	return nil
+}
+
+func (g *GenericPilot) IsRunning() bool {
+	if g.process == nil || !g.process.Running() {
+		return false
+	}
+	return true
 }
