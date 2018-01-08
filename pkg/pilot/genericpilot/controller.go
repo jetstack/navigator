@@ -108,7 +108,7 @@ func (g *GenericPilot) updatePilotStatus(pilot *v1alpha1.Pilot) error {
 		pilot.UpdateStatusCondition(v1alpha1.PilotConditionStarted, v1alpha1.ConditionTrue, ReasonProcessStarted, MessageProcessStarted, g.process.String())
 	}
 
-	pilot.Status.LastCompletedPhase = g.lastCompletedPhase
+	pilot.Status.LastCompletedPhase = g.Options.Hooks.CurrentPhase()
 
 	// perform update in API
 	_, err := g.client.NavigatorV1alpha1().Pilots(pilot.Namespace).UpdateStatus(pilot)

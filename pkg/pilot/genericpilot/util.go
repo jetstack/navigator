@@ -11,3 +11,10 @@ func (g *GenericPilot) IsThisPilot(pilot *v1alpha1.Pilot) bool {
 func (g *GenericPilot) isThisPilot(name, namespace string) bool {
 	return name == g.Options.PilotName && namespace == g.Options.PilotNamespace
 }
+
+func (g *GenericPilot) IsRunning() bool {
+	if g.process == nil || !g.process.Running() {
+		return false
+	}
+	return true
+}

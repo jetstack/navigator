@@ -7,7 +7,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/record"
 
-	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	clientset "github.com/jetstack/navigator/pkg/client/clientset/versioned"
 	listersv1alpha1 "github.com/jetstack/navigator/pkg/client/listers/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/pilot/genericpilot/controller"
@@ -30,12 +29,7 @@ type GenericPilot struct {
 	// process is a reference to a process manager for the application this
 	// Pilot manages
 	process processmanager.Interface
-	// phase is the current phase of this Pilot. This is used as a source of
-	// truth within Pilots, as we cannot rely on the pilot.status block being
-	// up to date
-	lastCompletedPhase v1alpha1.PilotPhase
-	// shutdown is true when the process has been told to gracefully exit. This
-	// is used to signal preStop hooks to run
+	// shutdown is true when the process has been told to gracefully exit
 	shutdown bool
 	// lock is used internally to coordinate updates to fields on the
 	// GenericPilot structure
@@ -59,11 +53,4 @@ func (g *GenericPilot) Run() error {
 		return err
 	}
 	return g.stop(thisPilot)
-}
-
-func (g *GenericPilot) IsRunning() bool {
-	if g.process == nil || !g.process.Running() {
-		return false
-	}
-	return true
 }

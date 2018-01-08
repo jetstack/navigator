@@ -57,6 +57,22 @@ type Hooks struct {
 	lock sync.Mutex
 }
 
+// CurrentPhase returns the current phase
+func (h *Hooks) CurrentPhase() v1alpha1.PilotPhase {
+	switch {
+	case len(h.executedPostStop) == len(h.PostStop):
+		return v1alpha1.PilotPhasePostStop
+	case len(h.executedPreStop) == len(h.PreStop):
+		return v1alpha1.PilotPhasePreStop
+	case len(h.executedPostStart) == len(h.PostStart):
+		return v1alpha1.PilotPhasePostStart
+	case len(h.executedPreStart) == len(h.PreStart):
+		return v1alpha1.PilotPhasePreStart
+	default:
+		return ""
+	}
+}
+
 func (h *Hooks) Transition(p v1alpha1.PilotPhase, pilot *v1alpha1.Pilot) error {
 	h.lock.Lock()
 	defer h.lock.Unlock()
