@@ -34,85 +34,66 @@ func (g *GenericPilot) syncPilot(pilot *v1alpha1.Pilot) (err error) {
 		err = utilerrors.NewAggregate(errs)
 	}()
 
-	err = g.reconcileHooks(pilot)
-	if err != nil {
-		return
-	}
-
-	err = g.reconcileProcessState(pilot)
-	if err != nil {
-		return
-	}
-
-	err = g.Options.SyncFunc(pilot)
-	if err != nil {
-		return
-	}
-
-	return
-}
-
-func (g *GenericPilot) reconcileHooks(pilot *v1alpha1.Pilot) error {
 	g.lock.Lock()
 	defer g.lock.Unlock()
-	var phaseToExecute v1alpha1.PilotPhase
-	switch g.lastCompletedPhase {
-	case "":
-		phaseToExecute = v1alpha1.PilotPhasePreStart
-	case v1alpha1.PilotPhasePreStart:
-		if !g.IsRunning() {
-			glog.V(4).Infof("Not running post-start hooks as process has not started")
-			return nil
-		}
-		phaseToExecute = v1alpha1.PilotPhasePostStart
-	case v1alpha1.PilotPhasePostStart:
-		if !g.shutdown {
-			return nil
-		}
-		phaseToExecute = v1alpha1.PilotPhasePreStop
-	case v1alpha1.PilotPhasePreStop:
-		if g.IsRunning() {
-			glog.V(4).Infof("Not running post-stop hooks as process is still running")
-			return nil
-		}
-		phaseToExecute = v1alpha1.PilotPhasePostStop
-	}
-	if phaseToExecute == "" {
-		glog.V(4).Infof("No phase hooks to execute")
-		return nil
-	}
 
-	err := g.Options.Hooks.Transition(phaseToExecute, pilot)
+	err = g.Options.Hooks.Transition(v1alpha1.PilotPhasePreStart, pilot)
 	if err != nil {
-		g.recorder.Eventf(pilot, corev1.EventTypeWarning, ErrExecHook, MessageErrExecHook, err.Error())
+		g.recorder.Eventf(pilot, corev1.EventTypeWarning, ErrExecHook, MessageErrExecHook, err)
 		return err
 	}
 
-	g.recorder.Eventf(pilot, corev1.EventTypeNormal, ReasonPhaseComplete, MessagePhaseComplete, phaseToExecute)
-	g.lastCompletedPhase = phaseToExecute
-	return nil
-}
-
-func (g *GenericPilot) reconcileProcessState(pilot *v1alpha1.Pilot) error {
-	g.lock.Lock()
-	defer g.lock.Unlock()
 	if g.process == nil {
 		err := g.constructProcess(pilot)
 		if err != nil {
 			return err
 		}
 	}
-	switch {
-	case !g.IsRunning() && g.lastCompletedPhase == v1alpha1.PilotPhasePreStart:
+
+	if !g.IsRunning() && !g.shutdown {
 		err := g.process.Start()
 		if err != nil {
 			return err
 		}
 		g.recorder.Eventf(pilot, corev1.EventTypeNormal, ReasonProcessStarted, MessageProcessStarted, g.process.String())
-	case g.IsRunning() && g.lastCompletedPhase == v1alpha1.PilotPhasePreStop:
-		err := g.process.Stop()
+	}
+
+	// TODO: do we need to check if process is running here, or wait at all? What if the process is running and then exits quickly?
+	err = g.Options.Hooks.Transition(v1alpha1.PilotPhasePostStart, pilot)
+	if err != nil {
+		g.recorder.Eventf(pilot, corev1.EventTypeWarning, ErrExecHook, MessageErrExecHook, err)
 		return err
 	}
+
+	return g.Options.SyncFunc(pilot)
+}
+
+func (g *GenericPilot) stop(pilot *v1alpha1.Pilot) error {
+	// set g.shutdown = true to signal preStop hooks to run
+	g.shutdown = true
+	glog.V(4).Infof("Waiting for process exit and hooks to execute")
+
+	if !g.IsRunning() {
+		return nil
+	}
+
+	err := g.Options.Hooks.Transition(v1alpha1.PilotPhasePreStop, pilot)
+	if err != nil {
+		g.recorder.Eventf(pilot, corev1.EventTypeWarning, ErrExecHook, MessageErrExecHook, err)
+		return err
+	}
+
+	err = g.process.Stop()
+	if err != nil {
+		return err
+	}
+
+	err = g.Options.Hooks.Transition(v1alpha1.PilotPhasePostStop, pilot)
+	if err != nil {
+		g.recorder.Eventf(pilot, corev1.EventTypeWarning, ErrExecHook, MessageErrExecHook, err)
+		return err
+	}
+
 	return nil
 }
 

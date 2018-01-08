@@ -2,10 +2,8 @@ package genericpilot
 
 import (
 	"sync"
-	"time"
 
 	"github.com/golang/glog"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/record"
 
@@ -52,16 +50,15 @@ func (g *GenericPilot) Run() error {
 	ctrlStopCh := make(chan struct{})
 	defer close(ctrlStopCh)
 	go g.controller.Run(ctrlStopCh)
+
+	// block until told to shutdown
 	<-g.Options.StopCh
 	glog.V(4).Infof("Shutdown signal received")
-	// set g.shutdown = true to signal preStop hooks to run
-	g.shutdown = true
-	glog.V(4).Infof("Waiting for process exit and hooks to execute")
-	// wait until postStop hooks have run
-	wait.Poll(time.Second*1, time.Minute*10, func() (bool, error) {
-		return g.lastCompletedPhase == v1alpha1.PilotPhasePostStop, nil
-	})
-	return nil
+	thisPilot, err := g.controller.ThisPilot()
+	if err != nil {
+		return err
+	}
+	return g.stop(thisPilot)
 }
 
 func (g *GenericPilot) IsRunning() bool {
