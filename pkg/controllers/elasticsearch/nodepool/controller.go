@@ -19,6 +19,7 @@ import (
 	v1alpha1 "github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	clientset "github.com/jetstack/navigator/pkg/client/clientset/versioned"
 	listersv1alpha1 "github.com/jetstack/navigator/pkg/client/listers/navigator/v1alpha1"
+	"github.com/jetstack/navigator/pkg/controllers"
 	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/util"
 )
 
@@ -87,7 +88,7 @@ func (e *statefulControl) syncNodePool(c *v1alpha1.ElasticsearchCluster, np *v1a
 	// if multiple exist, exit with an error
 	// if one exists:
 	//		- generate the expected StatefulSet manifest
-	// 		- compare the expected hashes
+	//		- compare the expected hashes
 	//		- if they differ, we perform an update of the StatefulSet
 	//		- otherwise, we check if any additional fields (e.g. image)
 	//		  have changed
@@ -179,8 +180,7 @@ func (e *statefulControl) syncPilotResources(c *v1alpha1.ElasticsearchCluster, n
 		return err
 	}
 	for _, pod := range allPods {
-		isMember, err := util.PodControlledByCluster(c, pod, e.statefulSetLister)
-
+		isMember, err := controllers.PodControlledByCluster(c, pod, e.statefulSetLister)
 		if err != nil {
 			return fmt.Errorf("error checking if pod is controller by elasticsearch cluster: %s", err.Error())
 		}
