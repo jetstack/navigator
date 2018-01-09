@@ -118,6 +118,7 @@ func (o *PilotOptions) Complete() error {
 	o.GenericPilotOptions.SharedInformerFactory = o.sharedInformerFactory
 	o.GenericPilotOptions.CmdFunc = o.pilot.CmdFunc
 	o.GenericPilotOptions.SyncFunc = o.pilot.syncFunc
+	o.GenericPilotOptions.LeaderElectedSyncFunc = o.pilot.leaderElectedSyncFunc
 	o.GenericPilotOptions.Hooks = o.pilot.Hooks()
 	o.GenericPilotOptions.ReadinessProbe = o.pilot.ReadinessCheck()
 	o.GenericPilotOptions.LivenessProbe = o.pilot.LivenessCheck()

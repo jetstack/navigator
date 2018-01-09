@@ -11,6 +11,7 @@ import (
 	clientset "github.com/jetstack/navigator/pkg/client/clientset/versioned"
 	listersv1alpha1 "github.com/jetstack/navigator/pkg/client/listers/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/pilot/genericpilot/controller"
+	"github.com/jetstack/navigator/pkg/pilot/genericpilot/leaderelection"
 	"github.com/jetstack/navigator/pkg/pilot/genericpilot/processmanager"
 )
 
@@ -34,7 +35,8 @@ type GenericPilot struct {
 	shutdown bool
 	// lock is used internally to coordinate updates to fields on the
 	// GenericPilot structure
-	lock sync.Mutex
+	lock    sync.Mutex
+	elector leaderelection.Interface
 }
 
 func (g *GenericPilot) Run() error {
@@ -61,6 +63,12 @@ func (g *GenericPilot) Run() error {
 			glog.V(4).Infof("Control loop failed with error: %s", err)
 		} else {
 			glog.V(4).Infof("Control loop unexpectedly exited")
+		}
+	case err = <-g.runElector(ctrlStopCh):
+		if err != nil {
+			glog.V(4).Infof("Leader elector failed with error: %s", err)
+		} else {
+			glog.V(4).Infof("Leader elector unexpectedly exited")
 		}
 	}
 
@@ -95,8 +103,20 @@ func (g *GenericPilot) runController(stopCh <-chan struct{}) <-chan error {
 	out := make(chan error, 1)
 	go func() {
 		defer close(out)
-		res := g.controller.Run(stopCh)
-		out <- res
+		out <- g.controller.Run(stopCh)
 	}()
 	return out
+}
+
+func (g *GenericPilot) runElector(stopCh <-chan struct{}) <-chan error {
+	out := make(chan error, 1)
+	go func() {
+		defer close(out)
+		out <- g.elector.Run()
+	}()
+	return out
+}
+
+func (g *GenericPilot) Elector() leaderelection.Interface {
+	return g.elector
 }
