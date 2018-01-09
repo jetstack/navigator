@@ -4,96 +4,102 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-
-	"github.com/golang/glog"
-
-	"github.com/jetstack/navigator/pkg/pilot/genericpilot/hook"
 )
 
 type Interface interface {
-	// Start starts the underlying process.
+	// Start will start the underlying subprocess
 	Start() error
-	// Stop should request the process stop. It should not return until the
-	// the process has exited.
+	// Stop will stop the underlying subprocess gracefully and wait for it
+	// to exit
 	Stop() error
-	// Terminate should terminate the currently running process immediately,
-	// usually by sending a SIGKILL signal.
-	Terminate() error
-	// Reload should request the process reload it's configuration. This
-	// should not trigger the process itself to exit or interrupt a Run() call.
-	Reload() error
-	// Wait will call Wait on the underlying process
-	Wait() error
-	// Running returns true if the process is running
+	// Wait will return a channel that closes upon the subprocess exiting.
+	// If the subprocess has not been started yet, the returned chan will
+	// not close until the subprocess has been started and then stopped.
+	Wait() <-chan struct{}
+	// Running returns true if the subprocess is currently running
 	Running() bool
-	// State returns the state of an exited process
-	State() *os.ProcessState
-	// String returns a textual represntation of the process
+	// String returns a string representation of this process
 	String() string
+	// Error returns the error returned from Wait() (or nil if there was no
+	// error). If the process has not been started or is still running, nil
+	// will be returned.
+	Error() error
 }
 
-type Adapter struct {
-	Signals Signals
-	Cmd     *exec.Cmd
-	Hooks   hook.Interface
+func New(cmd *exec.Cmd, signals Signals) Interface {
+	return &adapter{
+		cmd:     cmd,
+		signals: signals,
+		doneCh:  make(chan struct{}),
+	}
 }
 
-var _ Interface = &Adapter{}
+// Adapter makes it easy to create managed subprocesses
+type adapter struct {
+	signals Signals
+	cmd     *exec.Cmd
 
-func (p *Adapter) Start() error {
-	glog.V(2).Infof("Starting process: %v", p.Cmd.Args)
+	doneCh  chan struct{}
+	doneErr error
+}
 
-	if err := p.Cmd.Start(); err != nil {
+var _ Interface = &adapter{}
+
+// Start will start the underlying subprocess
+func (p *adapter) Start() error {
+	if err := p.cmd.Start(); err != nil {
 		return fmt.Errorf("error starting process: %s", err.Error())
 	}
+	go p.startWait()
 	return nil
 }
 
-func (p *Adapter) Wait() error {
-	return p.Cmd.Wait()
-}
-
-func (p *Adapter) Stop() error {
-	if p.Cmd == nil {
-		return fmt.Errorf("must call Run() before Stop()")
+// Stop will stop the underlying subprocess gracefully and wait for it to
+// exit. It returns the error returned from calling Wait(), or no error if the
+// process has not been started.
+func (p *adapter) Stop() error {
+	if p.Running() {
+		p.cmd.Process.Signal(p.signals.Stop)
+		<-p.Wait()
 	}
-	p.Cmd.Process.Signal(p.Signals.Stop)
-	return p.Cmd.Wait()
+	return p.Error()
 }
 
-func (p *Adapter) Terminate() error {
-	if p.Cmd == nil {
-		return fmt.Errorf("must call Run() before Terminate()")
-	}
-	p.Cmd.Process.Signal(p.Signals.Terminate)
-	return p.Cmd.Wait()
+// Wait will return a channel that closes upon the subprocess exiting.
+// If the subprocess has not been started yet, the returned chan will
+// not close until the subprocess has been started and then stopped.
+func (p *adapter) Wait() <-chan struct{} {
+	return p.doneCh
 }
 
-func (p *Adapter) Reload() error {
-	if p.Cmd == nil {
-		return fmt.Errorf("must call Run() before Reload()")
-	}
-	p.Cmd.Process.Signal(p.Signals.Reload)
-	return p.Cmd.Wait()
-}
-
-func (p *Adapter) Running() bool {
-	if p.Cmd == nil || p.Cmd.Process == nil || p.Cmd.Process.Pid == 0 || p.State() != nil {
+// Running returns true if the subprocess is currently running
+func (p *adapter) Running() bool {
+	if p.cmd == nil || p.cmd.Process == nil || p.cmd.Process.Pid == 0 || p.state() != nil {
 		return false
 	}
 	return true
 }
 
-func (p *Adapter) State() *os.ProcessState {
-	if p.Cmd == nil {
-		return nil
-	}
-	return p.Cmd.ProcessState
-}
-
-func (p *Adapter) String() string {
-	if p.Cmd == nil || p.Cmd.Process == nil {
+// String returns a string representation of this process
+func (p *adapter) String() string {
+	if !p.Running() {
 		return fmt.Sprintf("inactive")
 	}
-	return fmt.Sprintf("%d", p.Cmd.Process.Pid)
+	return fmt.Sprintf("%d", p.cmd.Process.Pid)
+}
+
+func (p *adapter) Error() error {
+	return p.doneErr
+}
+
+func (p *adapter) state() *os.ProcessState {
+	if p.cmd == nil {
+		return nil
+	}
+	return p.cmd.ProcessState
+}
+
+func (p *adapter) startWait() {
+	p.doneErr = p.cmd.Wait()
+	close(p.doneCh)
 }

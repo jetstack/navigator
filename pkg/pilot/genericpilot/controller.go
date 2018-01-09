@@ -83,6 +83,7 @@ func (g *GenericPilot) stop(pilot *v1alpha1.Pilot) error {
 		return err
 	}
 
+	// TODO: fire postStop hooks even if the subprocess failed
 	err = g.process.Stop()
 	if err != nil {
 		return err
@@ -120,9 +121,6 @@ func (g *GenericPilot) constructProcess(pilot *v1alpha1.Pilot) error {
 	if err != nil {
 		return err
 	}
-	g.process = &processmanager.Adapter{
-		Signals: g.Options.Signals,
-		Cmd:     cmd,
-	}
+	g.process = processmanager.New(cmd, g.Options.Signals)
 	return nil
 }

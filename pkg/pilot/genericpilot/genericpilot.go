@@ -47,11 +47,12 @@ func (g *GenericPilot) Run() error {
 	defer close(ctrlStopCh)
 	go g.controller.Run(ctrlStopCh)
 
+	var err error
 	// block until told to shutdown
 	select {
 	case <-g.Options.StopCh:
-	case <-g.processExitChan():
-		if !g.process.State().Success() {
+	case <-g.waitForProcess():
+		if err = g.process.Error(); err != nil {
 			glog.V(4).Infof("Underlying process failed")
 		} else {
 			glog.V(4).Infof("Underlying process unexpectedly exited")
@@ -66,21 +67,21 @@ func (g *GenericPilot) Run() error {
 	return g.stop(thisPilot)
 }
 
-func (g *GenericPilot) processExitChan() <-chan struct{} {
+// waitForProcess will return a chan that will be closed once the underlying
+// subprocess exits. This function exists to 'mask' the fact the process may
+// not ever exist/be started (as starting the process relies on the Pilot
+// resource existing in the API).
+func (g *GenericPilot) waitForProcess() <-chan struct{} {
 	out := make(chan struct{})
 	go func() {
 		defer close(out)
-		// don't call wait until the process is actually created
 		for {
-			// wait until the proces is running before calling Wait
-			if g.process != nil && g.process.Running() {
+			if g.process != nil {
 				break
 			}
 			time.Sleep(2)
 		}
-		// we must call Wait else process.ProcessState won't be populated with
-		// exit code/details of the process.
-		g.process.Wait()
+		<-g.process.Wait()
 	}()
 	return out
 }

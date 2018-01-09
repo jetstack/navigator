@@ -65,9 +65,7 @@ type Options struct {
 func NewDefaultOptions() *Options {
 	return &Options{
 		Signals: processmanager.Signals{
-			Stop:      syscall.SIGTERM,
-			Terminate: syscall.SIGKILL,
-			Reload:    syscall.SIGHUP,
+			Stop: syscall.SIGTERM,
 		},
 		Stdout: os.Stdout,
 		Stderr: os.Stderr,
@@ -93,12 +91,6 @@ func (o *Options) Complete() error {
 	}
 	if o.Signals.Stop == nil {
 		o.Signals.Stop = syscall.SIGTERM
-	}
-	if o.Signals.Terminate == nil {
-		o.Signals.Stop = syscall.SIGKILL
-	}
-	if o.Signals.Reload == nil {
-		o.Signals.Stop = syscall.SIGHUP
 	}
 	if o.Hooks == nil {
 		o.Hooks = &hook.Hooks{}
