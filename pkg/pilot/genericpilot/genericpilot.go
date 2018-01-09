@@ -45,7 +45,6 @@ func (g *GenericPilot) Run() error {
 
 	ctrlStopCh := make(chan struct{})
 	defer close(ctrlStopCh)
-	go g.controller.Run(ctrlStopCh)
 
 	var err error
 	// block until told to shutdown
@@ -53,9 +52,15 @@ func (g *GenericPilot) Run() error {
 	case <-g.Options.StopCh:
 	case <-g.waitForProcess():
 		if err = g.process.Error(); err != nil {
-			glog.V(4).Infof("Underlying process failed")
+			glog.V(4).Infof("Underlying process failed with error: %s", err)
 		} else {
 			glog.V(4).Infof("Underlying process unexpectedly exited")
+		}
+	case err = <-g.runController(ctrlStopCh):
+		if err != nil {
+			glog.V(4).Infof("Control loop failed with error: %s", err)
+		} else {
+			glog.V(4).Infof("Control loop unexpectedly exited")
 		}
 	}
 
@@ -82,6 +87,16 @@ func (g *GenericPilot) waitForProcess() <-chan struct{} {
 			time.Sleep(2)
 		}
 		<-g.process.Wait()
+	}()
+	return out
+}
+
+func (g *GenericPilot) runController(stopCh <-chan struct{}) <-chan error {
+	out := make(chan error, 1)
+	go func() {
+		defer close(out)
+		res := g.controller.Run(stopCh)
+		out <- res
 	}()
 	return out
 }

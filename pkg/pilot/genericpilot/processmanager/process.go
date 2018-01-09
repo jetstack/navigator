@@ -59,7 +59,9 @@ func (p *adapter) Start() error {
 // process has not been started.
 func (p *adapter) Stop() error {
 	if p.Running() {
-		p.cmd.Process.Signal(p.signals.Stop)
+		if err := p.cmd.Process.Signal(p.signals.Stop); err != nil {
+			return err
+		}
 		<-p.Wait()
 	}
 	return p.Error()
