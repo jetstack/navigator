@@ -160,9 +160,6 @@ func (o *PilotOptions) Run(stopCh <-chan struct{}) error {
 	if err := o.pilot.WaitForCacheSync(stopCh); err != nil {
 		return err
 	}
-	if err := genericPilot.WaitForCacheSync(stopCh); err != nil {
-		return err
-	}
 
 	return genericPilot.Run()
 }

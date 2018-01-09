@@ -22,7 +22,7 @@ import (
 	"k8s.io/apiserver/pkg/util/logs"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
-	"github.com/jetstack/navigator/pkg/pilot/genericpilot"
+	"github.com/jetstack/navigator/pkg/pilot/genericpilot/signals"
 )
 
 func main() {
@@ -33,7 +33,7 @@ func main() {
 		runtime.GOMAXPROCS(runtime.NumCPU())
 	}
 
-	stopCh := genericpilot.SetupSignalHandler()
+	stopCh := signals.SetupSignalHandler()
 	cmd := NewCommandStartPilot(os.Stdout, os.Stderr, stopCh)
 	cmd.Flags().AddGoFlagSet(flag.CommandLine)
 	flag.CommandLine.Parse([]string{})

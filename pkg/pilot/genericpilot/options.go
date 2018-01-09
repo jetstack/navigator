@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"reflect"
 	"syscall"
 
 	"github.com/golang/glog"
@@ -13,18 +12,17 @@ import (
 	"k8s.io/client-go/kubernetes"
 	kubescheme "k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/client-go/util/workqueue"
 
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	clientset "github.com/jetstack/navigator/pkg/client/clientset/versioned"
 	"github.com/jetstack/navigator/pkg/client/clientset/versioned/scheme"
 	informers "github.com/jetstack/navigator/pkg/client/informers/externalversions"
+	"github.com/jetstack/navigator/pkg/pilot/genericpilot/controller"
 	"github.com/jetstack/navigator/pkg/pilot/genericpilot/hook"
 	"github.com/jetstack/navigator/pkg/pilot/genericpilot/probe"
-	"github.com/jetstack/navigator/pkg/pilot/genericpilot/process"
-	"github.com/jetstack/navigator/pkg/pilot/genericpilot/scheduler"
+	"github.com/jetstack/navigator/pkg/pilot/genericpilot/processmanager"
+	"github.com/jetstack/navigator/pkg/pilot/genericpilot/signals"
 )
 
 const (
@@ -48,7 +46,7 @@ type Options struct {
 	// CmdFunc returns an *exec.Cmd for a given Pilot resource for the pilot
 	CmdFunc func(*v1alpha1.Pilot) (*exec.Cmd, error)
 	// Signals contains a genericpilot->os.Signal translation
-	Signals process.Signals
+	Signals processmanager.Signals
 	// Stdout to be used when creating the application process
 	Stdout *os.File
 	// Stderr to be used when creating the application process
@@ -66,10 +64,8 @@ type Options struct {
 
 func NewDefaultOptions() *Options {
 	return &Options{
-		Signals: process.Signals{
-			Stop:      syscall.SIGTERM,
-			Terminate: syscall.SIGKILL,
-			Reload:    syscall.SIGHUP,
+		Signals: processmanager.Signals{
+			Stop: syscall.SIGTERM,
 		},
 		Stdout: os.Stdout,
 		Stderr: os.Stderr,
@@ -85,7 +81,7 @@ func (o *Options) Complete() error {
 		}
 	}
 	if o.StopCh == nil {
-		o.StopCh = SetupSignalHandler()
+		o.StopCh = signals.SetupSignalHandler()
 	}
 	if o.Stdout == nil {
 		o.Stdout = os.Stdout
@@ -95,12 +91,6 @@ func (o *Options) Complete() error {
 	}
 	if o.Signals.Stop == nil {
 		o.Signals.Stop = syscall.SIGTERM
-	}
-	if o.Signals.Terminate == nil {
-		o.Signals.Stop = syscall.SIGKILL
-	}
-	if o.Signals.Reload == nil {
-		o.Signals.Stop = syscall.SIGHUP
 	}
 	if o.Hooks == nil {
 		o.Hooks = &hook.Hooks{}
@@ -157,23 +147,18 @@ func (o *Options) Pilot() (*GenericPilot, error) {
 	// TODO: use a filtered informer that only watches pilot-namespace
 	pilotInformer := o.SharedInformerFactory.Navigator().V1alpha1().Pilots()
 	genericPilot := &GenericPilot{
-		Options:             *o,
-		client:              o.NavigatorClient,
-		pilotLister:         pilotInformer.Lister(),
-		pilotInformerSynced: pilotInformer.Informer().HasSynced,
-		queue:               workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "Pilots"),
-		recorder:            recorder,
+		Options:     *o,
+		client:      o.NavigatorClient,
+		pilotLister: pilotInformer.Lister(),
+		recorder:    recorder,
 	}
-	genericPilot.scheduledWorkQueue = scheduler.NewScheduledWorkQueue(genericPilot.enqueuePilot)
-
-	pilotInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: genericPilot.enqueuePilot,
-		UpdateFunc: func(old, new interface{}) {
-			if !reflect.DeepEqual(old, new) {
-				genericPilot.enqueuePilot(new)
-			}
-		},
-		DeleteFunc: genericPilot.enqueuePilot,
+	genericPilot.controller = controller.NewController(controller.Options{
+		PilotName:      o.PilotName,
+		PilotNamespace: o.PilotNamespace,
+		SyncFunc:       genericPilot.syncPilot,
+		KubeClientset:  o.KubernetesClient,
+		Clientset:      o.NavigatorClient,
+		PilotInformer:  pilotInformer,
 	})
 
 	return genericPilot, nil
