@@ -111,7 +111,7 @@ func (h *Hooks) Transition(p v1alpha1.PilotPhase, pilot *v1alpha1.Pilot) error {
 	}
 	for _, hook := range hooks {
 		if _, ok := executed[hook.Name()]; ok {
-			glog.V(4).Infof("Skipping already executed hook for %q in phase %q", hook.Name, p)
+			glog.V(4).Infof("Skipping already executed hook for %q in phase %q", hook.Name(), p)
 			continue
 		}
 		glog.V(4).Infof("Executing %s hook '%s'", p, hook.Name())
