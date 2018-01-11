@@ -26,7 +26,7 @@ func (p *Pilot) syncFunc(pilot *v1alpha1.Pilot) error {
 		return fmt.Errorf("local elasticsearch client not available")
 	}
 	// TODO: use context with a timeout
-	statsList, err := p.localESClient.NodesStats().NodeId(elasticsearchLocalNodeID).Do(context.Background())
+	statsList, err := p.localESClient.NodesStats().NodeId(p.Options.GenericPilotOptions.PilotName).Do(context.Background())
 	if err != nil {
 		return err
 	}
