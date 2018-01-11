@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/golang/glog"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 )
@@ -39,7 +40,60 @@ func (p *Pilot) syncFunc(pilot *v1alpha1.Pilot) error {
 	return nil
 }
 
+// Perform leader elected sync actions. A broad description of this controllers
+// behaviour:
+//
+// - (TODO) Generate the exclude allocation elasticsearch string
+//   - List all Pilots in cluster
+//   - Filter Pilots to those that have excludeShards: true
+//   - Build exclude string
+//   - Update ES API
+// - Update ElasticsearchCluster.status field
+//   - Check the current cluster health status in the Elasticsearch API
+//   - Update the status block
+//   - Write changes back to k8s API
 func (p *Pilot) leaderElectedSyncFunc(pilot *v1alpha1.Pilot) error {
 	glog.V(4).Infof("ElasticsearchController: leader elected sync of pilot %q", pilot.Name)
+	ctx := context.Background()
+
+	// TODO: switch on currentHealth.Status to translate into correct concrete types
+	esc, err := p.getOwningCluster(pilot)
+	if err != nil {
+		return err
+	}
+
+	err = p.updateElasticsearchClusterStatus(ctx, esc)
+	if err != nil {
+		return fmt.Errorf("error updating elasticsearchcluster %q status: %s", esc.Name, err)
+	}
+
+	return nil
+}
+
+func (p *Pilot) getOwningCluster(pilot *v1alpha1.Pilot) (*v1alpha1.ElasticsearchCluster, error) {
+	ownerRef := metav1.GetControllerOf(pilot)
+	if ownerRef == nil || ownerRef.Kind != "ElasticsearchCluster" {
+		return nil, fmt.Errorf("could not determine controller of Pilot %q", pilot.Name)
+	}
+
+	return p.esClusterLister.ElasticsearchClusters(pilot.Namespace).Get(ownerRef.Name)
+}
+
+func (p *Pilot) updateElasticsearchClusterStatus(ctx context.Context, esc *v1alpha1.ElasticsearchCluster) error {
+	// TODO: use a cluster-wide elasticsearch client instead of localESClient
+	if p.localESClient == nil {
+		return fmt.Errorf("local elasticsearch client not available")
+	}
+	currentHealth, err := p.localESClient.ClusterHealth().Do(ctx)
+	if err != nil {
+		return err
+	}
+
+	escCopy := esc.DeepCopy()
+	escCopy.Status.Health = v1alpha1.ElasticsearchClusterHealth(currentHealth.Status)
+	if _, err := p.navigatorClient.NavigatorV1alpha1().ElasticsearchClusters(escCopy.Namespace).UpdateStatus(escCopy); err != nil {
+		return err
+	}
+
 	return nil
 }
