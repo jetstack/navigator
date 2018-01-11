@@ -53,7 +53,7 @@ func (f *genericInformer) Lister() cache.GenericLister {
 // TODO extend this to unknown resources with a client pool
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
-	// Group=Apps, Version=V1beta1
+	// Group=apps, Version=v1beta1
 	case v1beta1.SchemeGroupVersion.WithResource("controllerrevisions"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Apps().V1beta1().ControllerRevisions().Informer()}, nil
 	case v1beta1.SchemeGroupVersion.WithResource("deployments"):
@@ -61,7 +61,7 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 	case v1beta1.SchemeGroupVersion.WithResource("statefulsets"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Apps().V1beta1().StatefulSets().Informer()}, nil
 
-		// Group=Core, Version=V1
+		// Group=core, Version=v1
 	case v1.SchemeGroupVersion.WithResource("componentstatuses"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Core().V1().ComponentStatuses().Informer()}, nil
 	case v1.SchemeGroupVersion.WithResource("configmaps"):
@@ -95,7 +95,7 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 	case v1.SchemeGroupVersion.WithResource("serviceaccounts"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Core().V1().ServiceAccounts().Informer()}, nil
 
-		// Group=Rbac, Version=V1beta1
+		// Group=rbac.authorization.k8s.io, Version=v1beta1
 	case rbac_v1beta1.SchemeGroupVersion.WithResource("clusterroles"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Rbac().V1beta1().ClusterRoles().Informer()}, nil
 	case rbac_v1beta1.SchemeGroupVersion.WithResource("clusterrolebindings"):
