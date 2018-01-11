@@ -181,7 +181,7 @@ func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.Elasticsear
 						{
 							Name: "LEADER_ELECTION_CONFIG_MAP",
 							// TODO: trim the length of this string
-							Value: fmt.Sprintf("%s-leaderelection", c.Name),
+							Value: fmt.Sprintf("elastic-%s-leaderelection", c.Name),
 						},
 						{
 							Name:  "CLUSTER_URL",
