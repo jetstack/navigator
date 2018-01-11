@@ -99,11 +99,13 @@ type ElasticsearchClusterList struct {
 }
 
 type ElasticsearchClusterSpec struct {
-	Plugins   []string
-	NodePools []ElasticsearchClusterNodePool
-	Pilot     ElasticsearchPilotImage
-	Image     ElasticsearchImage
-	Sysctl    []string
+	Pilot  ElasticsearchPilotImage
+	Image  ElasticsearchImage
+	Sysctl []string
+
+	Plugins        []string
+	NodePools      []ElasticsearchClusterNodePool
+	MinimumMasters int64
 }
 
 type ElasticsearchClusterNodePool struct {
@@ -113,10 +115,6 @@ type ElasticsearchClusterNodePool struct {
 	NodeSelector map[string]string
 	Resources    *v1.ResourceRequirements
 	Persistence  ElasticsearchClusterPersistenceConfig
-	// Config is a map of configuration files to be placed in the elasticsearch
-	// config directory. Environment variables may be used in these files and
-	// they will be automatically expanded by the Elasticsearch process.
-	Config map[string]string
 }
 
 type ElasticsearchClusterRole string

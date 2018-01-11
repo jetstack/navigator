@@ -122,6 +122,12 @@ type ElasticsearchClusterSpec struct {
 	// Sysctl can be used to specify a list of sysctl values to set on start-up
 	// This can be used to set for example the vm.max_map_count parameter.
 	Sysctl []string `json:"sysctl"`
+
+	// The minimum number of masters required to form a quorom in the cluster.
+	// If omitted, this will be set to a quorom of the master nodes in the
+	// cluster. If set, the value *must* be greater than or equal to a quorom
+	// of master nodes.
+	MinimumMasters int64 `json:"minimumMasters"`
 }
 
 // ElasticsearchClusterNodePool describes a node pool within an ElasticsearchCluster.
@@ -148,11 +154,6 @@ type ElasticsearchClusterNodePool struct {
 	// node. Disabling persistence can cause issues when nodes restart, so
 	// should only be using for testing purposes.
 	Persistence ElasticsearchClusterPersistenceConfig `json:"persistence,omitempty"`
-
-	// Config is a map of configuration files to be placed in the elasticsearch
-	// config directory. Environment variables may be used in these files and
-	// they will be automatically expanded by the Elasticsearch process.
-	Config map[string]string `json:"config"`
 }
 
 // ElasticsearchClusterRole is a node role in an ElasticsearchCluster.

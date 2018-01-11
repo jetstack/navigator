@@ -3,6 +3,7 @@ kind: ElasticsearchCluster
 metadata:
   name: test
 spec:
+  minimumMasters: 1
   sysctl:
   - vm.max_map_count=262144
 
@@ -28,22 +29,6 @@ spec:
     - master
     - ingest
     - data
-
-    config:
-      elasticsearch.yml: |
-        node.data: ${NODE_DATA}
-        node.master: ${NODE_MASTER}
-        node.ingest: ${NODE_INGEST}
-        node.name: ${POD_NAME}
-
-        network.host: 0.0.0.0
-
-        discovery:
-          zen:
-            ping.unicast.hosts: ${DISCOVERY_URL}
-            minimum_master_nodes: 1
-
-        xpack.security.enabled: false
 
     resources:
       requests:
