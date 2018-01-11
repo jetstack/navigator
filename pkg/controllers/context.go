@@ -1,12 +1,12 @@
 package controllers
 
 import (
+	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/record"
 
 	clientset "github.com/jetstack/navigator/pkg/client/clientset/versioned"
 	intinformers "github.com/jetstack/navigator/pkg/client/informers/externalversions"
-	kubeinformers "github.com/jetstack/navigator/third_party/k8s.io/client-go/informers/externalversions"
 )
 
 type Context struct {

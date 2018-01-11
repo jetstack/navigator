@@ -9,6 +9,7 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	kubescheme "k8s.io/client-go/kubernetes/scheme"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -23,7 +24,6 @@ import (
 	intscheme "github.com/jetstack/navigator/pkg/client/clientset/versioned/scheme"
 	informers "github.com/jetstack/navigator/pkg/client/informers/externalversions"
 	"github.com/jetstack/navigator/pkg/controllers"
-	kubeinformers "github.com/jetstack/navigator/third_party/k8s.io/client-go/informers/externalversions"
 )
 
 const controllerAgentName = "navigator-controller"
