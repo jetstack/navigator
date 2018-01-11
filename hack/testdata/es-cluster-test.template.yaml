@@ -19,7 +19,7 @@ spec:
     ## This sets the group of the persistent volume created for
     ## the data nodes. This must be the same as the user that elasticsearch
     ## runs as within the container.
-    fsGroup: 1000
+    runAsUser: 1000
 
   nodePools:
   - name: mixed
