@@ -2,3 +2,4 @@
 !navigator-controller_linux_amd64
 !navigator-apiserver_linux_amd64
 !navigator-pilot-elasticsearch_linux_amd64
+!navigator-pilot-cassandra_linux_amd64
