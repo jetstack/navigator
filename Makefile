@@ -9,12 +9,11 @@ REGISTRY := jetstackexperimental
 IMAGE_NAME := navigator
 BUILD_TAG := build
 IMAGE_TAGS := canary
-CHART_VALUES := ${HACK_DIR}/testdata/values.yaml
 
 BUILD_IMAGE_DIR := hack/builder
 BUILD_IMAGE_NAME := navigator/builder
 
-CMDS := controller apiserver pilot-elasticsearch
+CMDS := controller apiserver pilot-elasticsearch pilot-cassandra
 
 GOPATH ?= /tmp/go
 
@@ -35,7 +34,6 @@ all: verify build docker_build
 test: go_test
 
 .run_e2e:
-	export CHART_VALUES=${CHART_VALUES}; \
 	${HACK_DIR}/prepare-e2e.sh; \
 	${HACK_DIR}/e2e.sh
 

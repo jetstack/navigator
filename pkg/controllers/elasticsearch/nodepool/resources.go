@@ -256,7 +256,7 @@ func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.Elasticsear
 						{
 							Name:      sharedVolumeName,
 							MountPath: sharedVolumeMountPath,
-							ReadOnly:  false,
+							ReadOnly:  true,
 						},
 						{
 							Name:      esConfigVolumeName,

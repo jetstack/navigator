@@ -18,3 +18,7 @@ spec:
     repository: {{ .Values.image.repository }}
     tag: {{ .Values.image.tag }}
     pullPolicy: {{ .Values.image.pullPolicy }}
+  pilotImage:
+    repository: {{ .Values.pilotImage.repository }}
+    tag: {{ .Values.pilotImage.tag }}
+    pullPolicy: {{ .Values.pilotImage.pullPolicy }}
