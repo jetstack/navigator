@@ -20,22 +20,34 @@ const (
 )
 
 func (g *GenericPilot) syncPilot(pilot *v1alpha1.Pilot) (err error) {
-	// don't perform status updates for any Pilot other than our own
-	if !g.controller.IsThisPilot(pilot) {
-		return g.Options.SyncFunc(pilot)
-	}
-
 	// we defer this to the end of execution to ensure it is run even if a part
 	// of the sync errors
 	defer func() {
-		errs := []error{err}
-		errs = append(errs, g.updatePilotStatus(pilot))
-		// err will be nil if the contents of errs is all nil
-		err = utilerrors.NewAggregate(errs)
+		if g.IsThisPilot(pilot) {
+			errs := []error{err}
+			errs = append(errs, g.updatePilotStatus(pilot))
+			// err will be nil if the contents of errs is all nil
+			err = utilerrors.NewAggregate(errs)
+		}
 	}()
 
 	g.lock.Lock()
 	defer g.lock.Unlock()
+
+	// we defer this to ensure it is run regardless of whether the pilot has
+	// actually started, else progress across the rest of the application may
+	// be stalled
+	defer func() {
+		if g.Options.LeaderElectedSyncFunc != nil && g.elector.Leading() {
+			errs := []error{err}
+			errs = append(errs, g.Options.LeaderElectedSyncFunc(pilot))
+			err = utilerrors.NewAggregate(errs)
+		}
+	}()
+
+	if !g.IsThisPilot(pilot) {
+		return
+	}
 
 	err = g.Options.Hooks.Transition(v1alpha1.PilotPhasePreStart, pilot)
 	if err != nil {
@@ -65,11 +77,11 @@ func (g *GenericPilot) syncPilot(pilot *v1alpha1.Pilot) (err error) {
 		return err
 	}
 
-	return g.Options.SyncFunc(pilot)
+	err = g.Options.SyncFunc(pilot)
+	return
 }
 
 func (g *GenericPilot) stop(pilot *v1alpha1.Pilot) error {
-	// set g.shutdown = true to signal preStop hooks to run
 	g.shutdown = true
 	glog.V(4).Infof("Waiting for process exit and hooks to execute")
 

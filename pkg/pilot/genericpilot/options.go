@@ -9,6 +9,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	kubescheme "k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -20,6 +21,7 @@ import (
 	informers "github.com/jetstack/navigator/pkg/client/informers/externalversions"
 	"github.com/jetstack/navigator/pkg/pilot/genericpilot/controller"
 	"github.com/jetstack/navigator/pkg/pilot/genericpilot/hook"
+	"github.com/jetstack/navigator/pkg/pilot/genericpilot/leaderelection"
 	"github.com/jetstack/navigator/pkg/pilot/genericpilot/probe"
 	"github.com/jetstack/navigator/pkg/pilot/genericpilot/processmanager"
 	"github.com/jetstack/navigator/pkg/pilot/genericpilot/signals"
@@ -41,7 +43,8 @@ type Options struct {
 	// PilotName is the name of this Pilot
 	PilotName string
 	// PilotNamespace is the namespace the corresponding Pilot exists within
-	PilotNamespace string
+	PilotNamespace          string
+	LeaderElectionConfigMap string
 
 	// CmdFunc returns an *exec.Cmd for a given Pilot resource for the pilot
 	CmdFunc func(*v1alpha1.Pilot) (*exec.Cmd, error)
@@ -59,7 +62,8 @@ type Options struct {
 	ReadinessProbe probe.Check
 	LivenessProbe  probe.Check
 
-	SyncFunc func(*v1alpha1.Pilot) error
+	SyncFunc              func(*v1alpha1.Pilot) error
+	LeaderElectedSyncFunc func(*v1alpha1.Pilot) error
 }
 
 func NewDefaultOptions() *Options {
@@ -151,6 +155,14 @@ func (o *Options) Pilot() (*GenericPilot, error) {
 		client:      o.NavigatorClient,
 		pilotLister: pilotInformer.Lister(),
 		recorder:    recorder,
+		elector: &leaderelection.Elector{
+			LockMeta: metav1.ObjectMeta{
+				Name:      o.LeaderElectionConfigMap,
+				Namespace: o.PilotNamespace,
+			},
+			Client:   o.KubernetesClient,
+			Recorder: recorder,
+		},
 	}
 	genericPilot.controller = controller.NewController(controller.Options{
 		PilotName:      o.PilotName,
@@ -167,4 +179,5 @@ func (o *Options) Pilot() (*GenericPilot, error) {
 func (o *Options) AddFlags(flags *pflag.FlagSet) {
 	flags.StringVar(&o.PilotName, "pilot-name", "", "The name of this Pilot. If not specified, an auto-detected name will be used.")
 	flags.StringVar(&o.PilotNamespace, "pilot-namespace", "", "The namespace the corresponding Pilot resource for this Pilot exists within.")
+	flags.StringVar(&o.LeaderElectionConfigMap, "leader-election-config-map", "", "The  name of the ConfigMap to use for leader election")
 }

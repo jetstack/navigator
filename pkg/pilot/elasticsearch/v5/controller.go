@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/golang/glog"
+
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 )
 
@@ -12,10 +14,7 @@ const (
 )
 
 func (p *Pilot) syncFunc(pilot *v1alpha1.Pilot) error {
-	// TODO: perform cluster wide actions if we are a leader
-	if !p.genericPilot.IsThisPilot(pilot) {
-		return nil
-	}
+	glog.V(4).Infof("ElasticsearchController: syncing current pilot %q", pilot.Name)
 	if pilot.Status.Elasticsearch == nil {
 		pilot.Status.Elasticsearch = &v1alpha1.ElasticsearchPilotStatus{}
 	}
@@ -37,5 +36,10 @@ func (p *Pilot) syncFunc(pilot *v1alpha1.Pilot) error {
 		docCount := stats.Indices.Docs.Count
 		pilot.Status.Elasticsearch.Documents = &docCount
 	}
+	return nil
+}
+
+func (p *Pilot) leaderElectedSyncFunc(pilot *v1alpha1.Pilot) error {
+	glog.V(4).Infof("ElasticsearchController: leader elected sync of pilot %q", pilot.Name)
 	return nil
 }

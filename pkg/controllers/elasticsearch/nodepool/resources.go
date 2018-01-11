@@ -163,6 +163,7 @@ func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.Elasticsear
 						"--elasticsearch-master-url=$(CLUSTER_URL)",
 						"--elasticsearch-roles=$(ROLES)",
 						"--elasticsearch-plugins=$(PLUGINS)",
+						"--leader-election-config-map=$(LEADER_ELECTION_CONFIG_MAP)",
 					},
 					Env: []apiv1.EnvVar{
 						{
@@ -176,6 +177,11 @@ func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.Elasticsear
 						{
 							Name:  "PLUGINS",
 							Value: plugins,
+						},
+						{
+							Name: "LEADER_ELECTION_CONFIG_MAP",
+							// TODO: trim the length of this string
+							Value: fmt.Sprintf("elastic-%s-leaderelection", c.Name),
 						},
 						{
 							Name:  "CLUSTER_URL",
