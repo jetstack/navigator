@@ -44,9 +44,11 @@ func (p *Pilot) updateNodeStats(pilot *v1alpha1.Pilot) error {
 	if err != nil {
 		return err
 	}
+	glog.V(4).Infof("Got %d nodes in returned data", len(statsList.Nodes))
 	// we can iterate over the results as the elastic client should only return
 	// a single node entry or none as we specify a single nodeID.
-	for _, stats := range statsList.Nodes {
+	for name, stats := range statsList.Nodes {
+		glog.V(4).Infof("Applying stats for node %q", name)
 		docCount := stats.Indices.Docs.Count
 		pilot.Status.Elasticsearch.Documents = &docCount
 	}
