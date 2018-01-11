@@ -136,7 +136,7 @@ func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.Elasticsear
 			ServiceAccountName:            util.ServiceAccountName(c),
 			NodeSelector:                  np.NodeSelector,
 			SecurityContext: &apiv1.PodSecurityContext{
-				FSGroup: util.Int64Ptr(c.Spec.Image.FsGroup),
+				FSGroup: util.Int64Ptr(c.Spec.Image.RunAsUser),
 			},
 			Volumes:        volumes,
 			InitContainers: buildInitContainers(c, np),
@@ -196,6 +196,7 @@ func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.Elasticsear
 						},
 					},
 					SecurityContext: &apiv1.SecurityContext{
+						RunAsUser: util.Int64Ptr(c.Spec.Image.RunAsUser),
 						Capabilities: &apiv1.Capabilities{
 							Add: []apiv1.Capability{
 								apiv1.Capability("IPC_LOCK"),

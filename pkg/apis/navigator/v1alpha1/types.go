@@ -200,8 +200,9 @@ type ElasticsearchPilotImage struct {
 
 type ElasticsearchImage struct {
 	ImageSpec `json:",inline"`
-	// FsGroup specifies the user that the should be set for the pods fsGroup
-	FsGroup int64 `json:"fsGroup"`
+
+	// RunAsUser specifies the user that the pod should be run as
+	RunAsUser int64 `json:"runAsUser"`
 }
 
 // +genclient

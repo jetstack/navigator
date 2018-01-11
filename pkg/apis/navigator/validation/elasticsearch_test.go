@@ -38,7 +38,7 @@ var (
 
 	validSpecPluginsList = []string{"anything"}
 	validSpecESImage     = navigator.ElasticsearchImage{
-		FsGroup:   int64(1000),
+		RunAsUser: int64(1000),
 		ImageSpec: validImageSpec,
 	}
 	validSpecPilotImage = navigator.ElasticsearchPilotImage{
