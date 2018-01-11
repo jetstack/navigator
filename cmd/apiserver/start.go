@@ -46,7 +46,7 @@ type NavigatorServerOptions struct {
 
 func NewNavigatorServerOptions(out, errOut io.Writer) *NavigatorServerOptions {
 	o := &NavigatorServerOptions{
-		RecommendedOptions: genericoptions.NewRecommendedOptions(defaultEtcdPathPrefix, apiserver.Scheme, apiserver.Codecs.LegacyCodec(v1alpha1.SchemeGroupVersion)),
+		RecommendedOptions: genericoptions.NewRecommendedOptions(defaultEtcdPathPrefix, apiserver.Codecs.LegacyCodec(v1alpha1.SchemeGroupVersion)),
 		Admission:          genericoptions.NewAdmissionOptions(),
 
 		StdOut: out,
