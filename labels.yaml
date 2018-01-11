@@ -69,26 +69,10 @@ labels:
   color: c7def8
 - name: kind/documentation
   color: c7def8
-- name: kind/enhancement
-  color: c7def8
 - name: kind/feature
   color: c7def8
-- name: kind/flake
-  color: f7c6c7
-- name: kind/friction
+- name: kind/question
   color: c7def8
-- name: kind/new-api
-  color: c7def8
-- name: kind/old-docs
-  color: c7def8
-- name: kind/postmortem
-  color: bfe5bf
-- name: kind/support
-  color: eb6420
-- name: kind/technical-debt
-  color: c7def8
-- name: kind/upgrade-test-failure
-  color: fbca04
 - name: lgtm
   color: 15dd18
 - name: milestone-labels-complete
