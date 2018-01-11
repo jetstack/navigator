@@ -3,6 +3,7 @@ package v5
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/golang/glog"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -12,6 +13,7 @@ import (
 
 const (
 	elasticsearchLocalNodeID = "_local"
+	nodeStatsUpdateFrequency = time.Second * 10
 )
 
 func (p *Pilot) syncFunc(pilot *v1alpha1.Pilot) error {
@@ -19,6 +21,17 @@ func (p *Pilot) syncFunc(pilot *v1alpha1.Pilot) error {
 	if pilot.Status.Elasticsearch == nil {
 		pilot.Status.Elasticsearch = &v1alpha1.ElasticsearchPilotStatus{}
 	}
+
+	// if true, it is too soon to perform an update of the node stats
+	if p.lastNodeStatsUpdate.Add(nodeStatsUpdateFrequency).After(time.Now()) {
+		return nil
+	}
+
+	err := p.updateNodeStats(pilot)
+	return err
+}
+
+func (p *Pilot) updateNodeStats(pilot *v1alpha1.Pilot) error {
 	// set the ES document count to nil to indicate an unknown number of
 	// documents in case obtaining the document count fails. This prevents the
 	// node being shut down if it is not safe to do so.
