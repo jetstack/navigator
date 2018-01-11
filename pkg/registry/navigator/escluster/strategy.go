@@ -16,7 +16,6 @@ package escluster
 import (
 	"fmt"
 
-	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -27,6 +26,7 @@ import (
 	"k8s.io/apiserver/pkg/storage/names"
 
 	"github.com/jetstack/navigator/pkg/apis/navigator"
+	"github.com/jetstack/navigator/pkg/apis/navigator/validation"
 )
 
 func NewStrategy(typer runtime.ObjectTyper) esClusterStrategy {
@@ -72,7 +72,8 @@ func (esClusterStrategy) PrepareForUpdate(ctx genericapirequest.Context, obj, ol
 }
 
 func (esClusterStrategy) Validate(ctx genericapirequest.Context, obj runtime.Object) field.ErrorList {
-	return field.ErrorList{}
+	esc := obj.(*navigator.ElasticsearchCluster)
+	return validation.ValidateElasticsearchCluster(esc)
 }
 
 func (esClusterStrategy) AllowCreateOnUpdate() bool {
@@ -97,14 +98,8 @@ type esClusterStatusStrategy struct {
 }
 
 func (esClusterStatusStrategy) PrepareForUpdate(ctx genericapirequest.Context, new, old runtime.Object) {
-	newESCluster, ok := new.(*navigator.ElasticsearchCluster)
-	if !ok {
-		glog.Fatal("received a non-elasticsearchcluster object to update to")
-	}
-	oldESCluster, ok := old.(*navigator.ElasticsearchCluster)
-	if !ok {
-		glog.Fatal("received a non-elasticsearchcluster object to update from")
-	}
+	newESCluster := new.(*navigator.ElasticsearchCluster)
+	oldESCluster := old.(*navigator.ElasticsearchCluster)
 	// Status changes are not allowed to update spec
 	newESCluster.Spec = oldESCluster.Spec
 }
