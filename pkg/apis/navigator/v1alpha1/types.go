@@ -71,11 +71,20 @@ type ElasticsearchCluster struct {
 
 type ElasticsearchClusterStatus struct {
 	NodePools map[string]ElasticsearchClusterNodePoolStatus `json:"nodePools"`
+	Health    ElasticsearchClusterHealth                    `json:"health"`
 }
 
 type ElasticsearchClusterNodePoolStatus struct {
 	ReadyReplicas int64 `json:"readyReplicas"`
 }
+
+type ElasticsearchClusterHealth string
+
+const (
+	ElasticsearchClusterHealthRed    ElasticsearchClusterHealth = "Red"
+	ElasticsearchClusterHealthYellow ElasticsearchClusterHealth = "Yellow"
+	ElasticsearchClusterHealthGreen  ElasticsearchClusterHealth = "Green"
+)
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
