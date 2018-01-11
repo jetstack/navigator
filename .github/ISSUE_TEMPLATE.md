@@ -4,6 +4,7 @@
 >
 > /kind bug
 > /kind feature
+> /kind question
 
 
 **What happened**:
