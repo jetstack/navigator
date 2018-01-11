@@ -1,5 +1,5 @@
-FROM alpine:3.6
+FROM docker.elastic.co/elasticsearch/elasticsearch:5.6.2
 
 ADD navigator-pilot-elasticsearch_linux_amd64 /pilot
-
+VOLUME /etc/pilot/elasticsearch/config
 ENTRYPOINT ["/pilot"]
