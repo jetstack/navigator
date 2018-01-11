@@ -82,7 +82,6 @@ func (g *GenericPilot) syncPilot(pilot *v1alpha1.Pilot) (err error) {
 }
 
 func (g *GenericPilot) stop(pilot *v1alpha1.Pilot) error {
-	// set g.shutdown = true to signal preStop hooks to run
 	g.shutdown = true
 	glog.V(4).Infof("Waiting for process exit and hooks to execute")
 

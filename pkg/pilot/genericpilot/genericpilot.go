@@ -52,31 +52,32 @@ func (g *GenericPilot) Run() error {
 	// block until told to shutdown
 	select {
 	case <-g.Options.StopCh:
+		glog.Infof("Shutdown signal received")
 	case <-g.waitForProcess():
 		if err = g.process.Error(); err != nil {
-			glog.V(4).Infof("Underlying process failed with error: %s", err)
+			glog.Errorf("Underlying process failed with error: %s", err)
 		} else {
-			glog.V(4).Infof("Underlying process unexpectedly exited")
+			glog.Errorf("Underlying process unexpectedly exited")
 		}
 	case err = <-g.runController(ctrlStopCh):
 		if err != nil {
-			glog.V(4).Infof("Control loop failed with error: %s", err)
+			glog.Errorf("Control loop failed with error: %s", err)
 		} else {
-			glog.V(4).Infof("Control loop unexpectedly exited")
+			glog.Errorf("Control loop unexpectedly exited")
 		}
 	case err = <-g.runElector(ctrlStopCh):
 		if err != nil {
-			glog.V(4).Infof("Leader elector failed with error: %s", err)
+			glog.Errorf("Leader elector failed with error: %s", err)
 		} else {
-			glog.V(4).Infof("Leader elector unexpectedly exited")
+			glog.Errorf("Leader elector unexpectedly exited")
 		}
 	}
 
-	glog.V(4).Infof("Shutdown signal received")
 	thisPilot, err := g.controller.ThisPilot()
 	if err != nil {
 		return err
 	}
+
 	return g.stop(thisPilot)
 }
 
