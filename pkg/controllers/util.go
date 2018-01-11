@@ -1,8 +1,7 @@
 package controllers
 
 import (
-	"reflect"
-
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
@@ -32,10 +31,11 @@ func (q *QueuingEventHandler) OnAdd(obj interface{}) {
 }
 
 func (q *QueuingEventHandler) OnUpdate(old, new interface{}) {
-	if reflect.DeepEqual(old, new) {
-		return
+	oldObj := old.(metav1.Object)
+	newObj := new.(metav1.Object)
+	if oldObj.GetResourceVersion() != newObj.GetResourceVersion() {
+		q.Enqueue(new)
 	}
-	q.Enqueue(new)
 }
 
 func (q *QueuingEventHandler) OnDelete(obj interface{}) {
@@ -62,10 +62,11 @@ func (b *BlockingEventHandler) OnAdd(obj interface{}) {
 }
 
 func (b *BlockingEventHandler) OnUpdate(old, new interface{}) {
-	if reflect.DeepEqual(old, new) {
-		return
+	oldObj := old.(metav1.Object)
+	newObj := new.(metav1.Object)
+	if oldObj.GetResourceVersion() != newObj.GetResourceVersion() {
+		b.WorkFunc(new)
 	}
-	b.WorkFunc(new)
 }
 
 func (b *BlockingEventHandler) OnDelete(obj interface{}) {
