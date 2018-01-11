@@ -8,7 +8,6 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
 	appslisters "k8s.io/client-go/listers/apps/v1beta1"
@@ -80,6 +79,13 @@ func (e *statefulControl) Sync(c *v1alpha1.ElasticsearchCluster) error {
 		c.Status.NodePools[np.Name] = npStatus
 	}
 
+	// Create Pilot resources for each member of the set
+	err = e.syncPilotResources(c)
+	if err != nil {
+		glog.V(4).Infof("Error syncing Pilot resources for ElasticsearchCluster '%s': %s", c.Name, err)
+		return err
+	}
+
 	return nil
 }
 
@@ -129,12 +135,6 @@ func (e *statefulControl) syncNodePool(c *v1alpha1.ElasticsearchCluster, np *v1a
 	}
 
 	statusCopy.ReadyReplicas = int64(existingStatefulSet.Status.ReadyReplicas)
-	// Create Pilot resources for each member of the set
-	err = e.syncPilotResources(c, np, existingStatefulSet)
-	if err != nil {
-		glog.V(4).Infof("Error syncing Pilot resources for ElasticsearchCluster '%s' StatefulSet '%s': %s", c.Name, desiredStatefulSet.Name, err.Error())
-		return statusCopy, err
-	}
 
 	// the hashes match, which means the properties of the node pool have not changed
 	return statusCopy, nil
@@ -173,39 +173,38 @@ func (e *statefulControl) existingStatefulSet(c *v1alpha1.ElasticsearchCluster, 
 	return sets[0], nil
 }
 
-func (e *statefulControl) syncPilotResources(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.ElasticsearchClusterNodePool, ss *appsv1beta1.StatefulSet) error {
-	// TODO: use labels to limit which pods we list to save memory
-	allPods, err := e.podLister.Pods(c.Namespace).List(labels.Everything())
+func (e *statefulControl) syncPilotResources(c *v1alpha1.ElasticsearchCluster) error {
+	selector, err := util.SelectorForCluster(c)
 	if err != nil {
 		return err
 	}
+
+	allPods, err := e.podLister.Pods(c.Namespace).List(selector)
+	if err != nil {
+		return err
+	}
+
 	for _, pod := range allPods {
 		isMember, err := controllers.PodControlledByCluster(c, pod, e.statefulSetLister)
 		if err != nil {
 			return fmt.Errorf("error checking if pod is controller by elasticsearch cluster: %s", err.Error())
 		}
 
-		if isMember {
-			var name string
-			var ok bool
-			if name, ok = pod.Labels[util.NodePoolNameLabelKey]; !ok {
-				return fmt.Errorf("no node pool label set on pod '%s'", pod.Name)
-			}
-			if name != np.Name {
-				continue
-			}
+		// skip this pod if it's not a member of the cluster
+		if !isMember {
+			continue
+		}
 
-			err := e.ensurePilotResource(c, np, pod)
-			if err != nil {
-				return fmt.Errorf("error ensuring pilot resource exists for pod '%s': %s", pod.Name, err.Error())
-			}
+		err = e.ensurePilotResource(c, pod)
+		if err != nil {
+			return fmt.Errorf("error ensuring pilot resource exists for pod '%s': %s", pod.Name, err.Error())
 		}
 	}
 	return nil
 }
 
-func (e *statefulControl) ensurePilotResource(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.ElasticsearchClusterNodePool, pod *apiv1.Pod) error {
-	desiredPilot := newPilotResource(c, np, pod)
+func (e *statefulControl) ensurePilotResource(c *v1alpha1.ElasticsearchCluster, pod *apiv1.Pod) error {
+	desiredPilot := newPilotResource(c, pod)
 	actualPilot, err := e.pilotLister.Pilots(pod.Namespace).Get(pod.Name)
 	if apierrors.IsNotFound(err) {
 		_, err := e.navigatorClient.NavigatorV1alpha1().Pilots(pod.Namespace).Create(desiredPilot)
@@ -225,7 +224,7 @@ func (e *statefulControl) ensurePilotResource(c *v1alpha1.ElasticsearchCluster, 
 	return err
 }
 
-func newPilotResource(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.ElasticsearchClusterNodePool, pod *apiv1.Pod) *v1alpha1.Pilot {
+func newPilotResource(c *v1alpha1.ElasticsearchCluster, pod *apiv1.Pod) *v1alpha1.Pilot {
 	// TODO: break this function out to account for scale down events, and
 	// setting the spec however appropriate
 	pilot := &v1alpha1.Pilot{
