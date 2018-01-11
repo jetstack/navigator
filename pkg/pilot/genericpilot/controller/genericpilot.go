@@ -2,7 +2,6 @@ package controller
 
 import (
 	"fmt"
-	"reflect"
 	"sync"
 	"time"
 
@@ -17,6 +16,7 @@ import (
 	clientset "github.com/jetstack/navigator/pkg/client/clientset/versioned"
 	informersv1alpha1 "github.com/jetstack/navigator/pkg/client/informers/externalversions/navigator/v1alpha1"
 	listersv1alpha1 "github.com/jetstack/navigator/pkg/client/listers/navigator/v1alpha1"
+	"github.com/jetstack/navigator/pkg/controllers"
 	"github.com/jetstack/navigator/pkg/pilot/genericpilot/controller/scheduler"
 )
 
@@ -76,15 +76,7 @@ func NewController(opts Options) *Controller {
 	}
 	ctrl.scheduledWorkQueue = scheduler.NewScheduledWorkQueue(ctrl.enqueuePilot)
 
-	opts.PilotInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: ctrl.enqueuePilot,
-		UpdateFunc: func(old, new interface{}) {
-			if !reflect.DeepEqual(old, new) {
-				ctrl.enqueuePilot(new)
-			}
-		},
-		DeleteFunc: ctrl.enqueuePilot,
-	})
+	opts.PilotInformer.Informer().AddEventHandler(&controllers.QueuingEventHandler{queue})
 
 	return ctrl
 }
