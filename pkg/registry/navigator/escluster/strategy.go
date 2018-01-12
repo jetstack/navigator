@@ -88,7 +88,8 @@ func (esClusterStrategy) Canonicalize(obj runtime.Object) {
 }
 
 func (esClusterStrategy) ValidateUpdate(ctx genericapirequest.Context, obj, old runtime.Object) field.ErrorList {
-	return field.ErrorList{}
+	esc := obj.(*navigator.ElasticsearchCluster)
+	return validation.ValidateElasticsearchCluster(esc)
 }
 
 // implements interface RESTUpdateStrategy. This implementation validates updates to
