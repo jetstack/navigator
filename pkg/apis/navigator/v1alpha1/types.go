@@ -49,7 +49,6 @@ type CassandraClusterNodePoolStatus struct {
 // CassandraClusterList defines a List type for our custom CassandraCluster type.
 // This is needed in order to make List operations work.
 type CassandraClusterList struct {
-	// we embed these types so that CassandraClusterList implements runtime.Object and List interfaces
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata"`
 
@@ -69,11 +68,16 @@ type ElasticsearchCluster struct {
 	Status ElasticsearchClusterStatus `json:"status"`
 }
 
+// ElasticsearchClusterStatus specifies the overall status of an
+// ElasticsearchCluster.
 type ElasticsearchClusterStatus struct {
 	NodePools map[string]ElasticsearchClusterNodePoolStatus `json:"nodePools"`
 }
 
+// ElasticsearchClusterNodePoolStatus specifies the status of a single node
+// pool in an ElasticsearchCluster
 type ElasticsearchClusterNodePoolStatus struct {
+	// ReadyReplicas is the total number of ready pods in this cluster.
 	ReadyReplicas int64 `json:"readyReplicas"`
 }
 
@@ -91,28 +95,57 @@ type ElasticsearchClusterList struct {
 
 // ElasticsearchClusterSpec describes a specification for an ElasticsearchCluster
 type ElasticsearchClusterSpec struct {
-	Plugins   []string                       `json:"plugins"`
+	// A list of plugins to install on nodes in the cluster.
+	Plugins []string `json:"plugins"`
+
+	// NodePools specify the various pools of nodes that make up this cluster.
+	// There must be at least one master node specified.
 	NodePools []ElasticsearchClusterNodePool `json:"nodePools"`
-	Pilot     ElasticsearchPilotImage        `json:"pilot"`
-	Image     ElasticsearchImage             `json:"image"`
-	Sysctl    []string                       `json:"sysctl"`
+
+	// Pilot describes the image containing the pilot-elasticsearch binary to
+	// run
+	Pilot ElasticsearchPilotImage `json:"pilot"`
+
+	// Image describes the Elasticsearch image to use
+	Image ElasticsearchImage `json:"image"`
+
+	// Sysctl can be used to specify a list of sysctl values to set on start-up
+	// This can be used to set for example the vm.max_map_count parameter.
+	Sysctl []string `json:"sysctl"`
 }
 
 // ElasticsearchClusterNodePool describes a node pool within an ElasticsearchCluster.
 // The nodes in this pool will be configured to be of the specified roles
 type ElasticsearchClusterNodePool struct {
-	Name         string                                `json:"name"`
-	Replicas     int64                                 `json:"replicas"`
-	Roles        []ElasticsearchClusterRole            `json:"roles"`
-	NodeSelector map[string]string                     `json:"nodeSelector"`
-	Resources    *v1.ResourceRequirements              `json:"resources,omitempty"`
-	Persistence  ElasticsearchClusterPersistenceConfig `json:"persistence,omitempty"`
+	// Name of the node pool.
+	Name string `json:"name"`
+
+	// Number of replicas in the pool.
+	Replicas int64 `json:"replicas"`
+
+	// Roles that nodes in this pool should perform within the cluster.
+	Roles []ElasticsearchClusterRole `json:"roles"`
+
+	// NodeSelector should be specified to force nodes in this pool to run on
+	// nodes matching the given selector.
+	NodeSelector map[string]string `json:"nodeSelector"`
+
+	// Resources specifies the resource requirements to be used for nodes that
+	// are part of the pool.
+	Resources *v1.ResourceRequirements `json:"resources,omitempty"`
+
+	// Persistence specifies the configuration for persistent data for this
+	// node. Disabling persistence can cause issues when nodes restart, so
+	// should only be using for testing purposes.
+	Persistence ElasticsearchClusterPersistenceConfig `json:"persistence,omitempty"`
+
 	// Config is a map of configuration files to be placed in the elasticsearch
 	// config directory. Environment variables may be used in these files and
 	// they will be automatically expanded by the Elasticsearch process.
 	Config map[string]string `json:"config"`
 }
 
+// ElasticsearchClusterRole is a node role in an ElasticsearchCluster.
 type ElasticsearchClusterRole string
 
 const (
@@ -121,15 +154,32 @@ const (
 	ElasticsearchRoleIngest ElasticsearchClusterRole = "ingest"
 )
 
+// ElasticsearchClusterPersistenceConfig contains persistent volume
+// configuration.
 type ElasticsearchClusterPersistenceConfig struct {
-	Enabled      bool   `json:"enabled"`
-	Size         string `json:"size"`
+	// Toggle whether persistence should be enabled on this cluster. If false,
+	// an emptyDir will be provisioned to store Elasticsearch data.
+	Enabled bool `json:"enabled"`
+
+	// Size of the persistent volume to provision (required if persistence is
+	// enabled).
+	Size string `json:"size"`
+
+	// StorageClass to use for the persistent volume claim. If not set, the
+	// default cluster storage class will be used.
 	StorageClass string `json:"storageClass"`
 }
 
+// ImageSpec specifies a docker image to be used.
 type ImageSpec struct {
+	// Repository is the repository of a docker image (e.g. 'alpine').
 	Repository string `json:"repository"`
-	Tag        string `json:"tag"`
+
+	// Tag is the tag of a docker image (e.g. 'latest').
+	Tag string `json:"tag"`
+
+	// PullPolicy is the policy for pulling docker images. If not set, the
+	// cluster default will be used.
 	PullPolicy string `json:"pullPolicy"`
 }
 
@@ -139,7 +189,8 @@ type ElasticsearchPilotImage struct {
 
 type ElasticsearchImage struct {
 	ImageSpec `json:",inline"`
-	FsGroup   int64 `json:"fsGroup"`
+	// FsGroup specifies the user that the should be set for the pods fsGroup
+	FsGroup int64 `json:"fsGroup"`
 }
 
 // +genclient
