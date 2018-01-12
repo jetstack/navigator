@@ -128,9 +128,9 @@ type ElasticsearchClusterPersistenceConfig struct {
 }
 
 type ImageSpec struct {
-	Repository string `json:"repository"`
-	Tag        string `json:"tag"`
-	PullPolicy string `json:"pullPolicy"`
+	Repository string        `json:"repository"`
+	Tag        string        `json:"tag"`
+	PullPolicy v1.PullPolicy `json:"pullPolicy"`
 }
 
 type ElasticsearchPilotImage struct {

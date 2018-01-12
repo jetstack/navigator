@@ -28,5 +28,18 @@ import (
 // Public to allow building arbitrary schemes.
 // All generated defaulters are covering - they call all nested defaulters.
 func RegisterDefaults(scheme *runtime.Scheme) error {
+	scheme.AddTypeDefaultingFunc(&ElasticsearchCluster{}, func(obj interface{}) { SetObjectDefaults_ElasticsearchCluster(obj.(*ElasticsearchCluster)) })
+	scheme.AddTypeDefaultingFunc(&ElasticsearchClusterList{}, func(obj interface{}) { SetObjectDefaults_ElasticsearchClusterList(obj.(*ElasticsearchClusterList)) })
 	return nil
+}
+
+func SetObjectDefaults_ElasticsearchCluster(in *ElasticsearchCluster) {
+	SetDefaults_ElasticsearchPilotImage(&in.Spec.Pilot)
+}
+
+func SetObjectDefaults_ElasticsearchClusterList(in *ElasticsearchClusterList) {
+	for i := range in.Items {
+		a := &in.Items[i]
+		SetObjectDefaults_ElasticsearchCluster(a)
+	}
 }
