@@ -1,6 +1,8 @@
 package validation
 
 import (
+	"fmt"
+
 	corev1 "k8s.io/api/core/v1"
 	apimachineryvalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -96,7 +98,44 @@ func ValidateElasticsearchClusterSpec(spec *navigator.ElasticsearchClusterSpec, 
 		}
 		allErrs = append(allErrs, ValidateElasticsearchClusterNodePool(&np, idxPath)...)
 	}
+
+	numMasters := countMasterReplicas(spec.NodePools)
+	quorom := calculateQuorom(numMasters)
+	if numMasters == 0 {
+		allErrs = append(allErrs, field.Invalid(npPath, numMasters, "must be at least one master node"))
+	} else if spec.MinimumMasters < quorom {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("minimumMasters"), spec.MinimumMasters, fmt.Sprintf("must be a minimum of %d to avoid a split brain scenario", quorom)))
+	} else if spec.MinimumMasters > numMasters {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("minimumMasters"), spec.MinimumMasters, fmt.Sprintf("cannot be greater than the total number of master nodes")))
+	}
+
 	return allErrs
+}
+
+func calculateQuorom(num int64) int64 {
+	if num == 1 {
+		return 1
+	}
+	return (num / 2) + 1
+}
+
+func countMasterReplicas(pools []navigator.ElasticsearchClusterNodePool) int64 {
+	masters := int64(0)
+	for _, pool := range pools {
+		if hasRole(pool.Roles, navigator.ElasticsearchRoleMaster) {
+			masters += pool.Replicas
+		}
+	}
+	return masters
+}
+
+func hasRole(set []navigator.ElasticsearchClusterRole, role navigator.ElasticsearchClusterRole) bool {
+	for _, s := range set {
+		if s == role {
+			return true
+		}
+	}
+	return false
 }
 
 func ValidateElasticsearchCluster(esc *navigator.ElasticsearchCluster) field.ErrorList {
