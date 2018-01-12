@@ -20,7 +20,9 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strings"
 
+	"github.com/go-openapi/spec"
 	"github.com/spf13/cobra"
 
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -32,6 +34,7 @@ import (
 	"github.com/jetstack/navigator/pkg/apiserver"
 	clientset "github.com/jetstack/navigator/pkg/client/clientset/internalversion"
 	informers "github.com/jetstack/navigator/pkg/client/informers/internalversion"
+	"github.com/jetstack/navigator/pkg/client/openapi"
 )
 
 const defaultEtcdPathPrefix = "/registry/navigator.jetstack.io"
@@ -107,6 +110,17 @@ func (o NavigatorServerOptions) Config() (*apiserver.Config, error) {
 	serverConfig := genericapiserver.NewRecommendedConfig(apiserver.Codecs)
 	if err := o.RecommendedOptions.ApplyTo(serverConfig); err != nil {
 		return nil, err
+	}
+	serverConfig.OpenAPIConfig = genericapiserver.DefaultOpenAPIConfig(openapi.GetOpenAPIDefinitions, apiserver.Scheme)
+	if serverConfig.OpenAPIConfig.Info == nil {
+		serverConfig.OpenAPIConfig.Info = &spec.Info{}
+	}
+	if serverConfig.OpenAPIConfig.Info.Version == "" {
+		if serverConfig.Version != nil {
+			serverConfig.OpenAPIConfig.Info.Version = strings.Split(serverConfig.Version.String(), "-")[0]
+		} else {
+			serverConfig.OpenAPIConfig.Info.Version = "unversioned"
+		}
 	}
 
 	client, err := clientset.NewForConfig(serverConfig.LoopbackClientConfig)
