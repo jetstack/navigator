@@ -124,6 +124,18 @@ func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.Elasticsear
 	plugins := strings.Join(c.Spec.Plugins, ",")
 	nodePoolLabels := util.NodePoolLabels(c, np.Name, np.Roles...)
 
+	esImage := c.Spec.Image
+	if esImage.FsGroup == 0 &&
+		esImage.ImageSpec.PullPolicy == "" &&
+		esImage.ImageSpec.Repository == "" &&
+		esImage.ImageSpec.Tag == "" {
+		var err error
+		esImage, err = util.DefaultElasticsearchImageForVersion(c.Spec.Version)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return &apiv1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: nodePoolLabels,
@@ -136,15 +148,15 @@ func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.Elasticsear
 			ServiceAccountName:            util.ServiceAccountName(c),
 			NodeSelector:                  np.NodeSelector,
 			SecurityContext: &apiv1.PodSecurityContext{
-				FSGroup: util.Int64Ptr(c.Spec.Image.FsGroup),
+				FSGroup: util.Int64Ptr(esImage.FsGroup),
 			},
 			Volumes:        volumes,
 			InitContainers: buildInitContainers(c, np),
 			Containers: []apiv1.Container{
 				{
 					Name:            "elasticsearch",
-					Image:           c.Spec.Image.Repository + ":" + c.Spec.Image.Tag,
-					ImagePullPolicy: apiv1.PullPolicy(c.Spec.Image.PullPolicy),
+					Image:           esImage.Repository + ":" + esImage.Tag,
+					ImagePullPolicy: apiv1.PullPolicy(esImage.PullPolicy),
 					Command:         []string{fmt.Sprintf("%s/pilot", sharedVolumeMountPath)},
 					Args: []string{
 						"--v=4",

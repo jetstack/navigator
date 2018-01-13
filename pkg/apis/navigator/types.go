@@ -99,9 +99,10 @@ type ElasticsearchClusterList struct {
 }
 
 type ElasticsearchClusterSpec struct {
-	Pilot  ElasticsearchPilotImage
-	Image  ElasticsearchImage
-	Sysctl []string
+	Version string
+	Pilot   ElasticsearchPilotImage
+	Image   ElasticsearchImage
+	Sysctl  []string
 
 	Plugins        []string
 	NodePools      []ElasticsearchClusterNodePool

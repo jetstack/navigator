@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"hash/fnv"
 
+	"github.com/coreos/go-semver/semver"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 
@@ -78,4 +80,24 @@ func SelectorForNodePool(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.Elastics
 		return nil, err
 	}
 	return clusterSelector.Add(*nodePoolNameReq), nil
+}
+
+const defaultElasticsearchImageRepository = "docker.elastic.co/elasticsearch/elasticsearch"
+const defaultElasticsearchRunAsUser = 1000
+
+func DefaultElasticsearchImageForVersion(s string) (v1alpha1.ElasticsearchImage, error) {
+	// ensure the version follows semver
+	_, err := semver.NewVersion(s)
+	if err != nil {
+		return v1alpha1.ElasticsearchImage{}, err
+	}
+
+	return v1alpha1.ElasticsearchImage{
+		FsGroup: defaultElasticsearchRunAsUser,
+		ImageSpec: v1alpha1.ImageSpec{
+			Repository: defaultElasticsearchImageRepository,
+			Tag:        s,
+			PullPolicy: string(corev1.PullIfNotPresent),
+		},
+	}, nil
 }

@@ -105,6 +105,9 @@ type ElasticsearchClusterList struct {
 
 // ElasticsearchClusterSpec describes a specification for an ElasticsearchCluster
 type ElasticsearchClusterSpec struct {
+	// The version of Elasticsearch to be used for nodes in the cluster.
+	Version string `json:"version"`
+
 	// A list of plugins to install on nodes in the cluster.
 	Plugins []string `json:"plugins"`
 

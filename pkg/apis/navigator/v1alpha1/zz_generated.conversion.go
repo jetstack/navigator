@@ -390,6 +390,7 @@ func Convert_navigator_ElasticsearchClusterPersistenceConfig_To_v1alpha1_Elastic
 }
 
 func autoConvert_v1alpha1_ElasticsearchClusterSpec_To_navigator_ElasticsearchClusterSpec(in *ElasticsearchClusterSpec, out *navigator.ElasticsearchClusterSpec, s conversion.Scope) error {
+	out.Version = in.Version
 	out.Plugins = *(*[]string)(unsafe.Pointer(&in.Plugins))
 	out.NodePools = *(*[]navigator.ElasticsearchClusterNodePool)(unsafe.Pointer(&in.NodePools))
 	if err := Convert_v1alpha1_ElasticsearchPilotImage_To_navigator_ElasticsearchPilotImage(&in.Pilot, &out.Pilot, s); err != nil {
@@ -409,6 +410,7 @@ func Convert_v1alpha1_ElasticsearchClusterSpec_To_navigator_ElasticsearchCluster
 }
 
 func autoConvert_navigator_ElasticsearchClusterSpec_To_v1alpha1_ElasticsearchClusterSpec(in *navigator.ElasticsearchClusterSpec, out *ElasticsearchClusterSpec, s conversion.Scope) error {
+	out.Version = in.Version
 	if err := Convert_navigator_ElasticsearchPilotImage_To_v1alpha1_ElasticsearchPilotImage(&in.Pilot, &out.Pilot, s); err != nil {
 		return err
 	}
