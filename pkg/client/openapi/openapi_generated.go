@@ -266,7 +266,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 				VendorExtensible: spec.VendorExtensible{
 					Extensions: spec.Extensions{
-						"x-kubernetes-print-columns": "custom-columns=NAME:.metadata.name,REPLICAS:.spec.replicas",
+						"x-kubernetes-print-columns": "custom-columns=NAME:.metadata.name,VERSION:.spec.image.tag",
 					},
 				},
 			},
