@@ -264,6 +264,11 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 					},
 					Required: []string{"metadata", "spec", "status"},
 				},
+				VendorExtensible: spec.VendorExtensible{
+					Extensions: spec.Extensions{
+						"x-kubernetes-print-columns": "custom-columns=NAME:.metadata.name,REPLICAS=.spec.replicas",
+					},
+				},
 			},
 			Dependencies: []string{
 				"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1.ElasticsearchClusterSpec", "github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1.ElasticsearchClusterStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},

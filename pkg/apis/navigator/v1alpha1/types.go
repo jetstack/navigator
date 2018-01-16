@@ -57,7 +57,7 @@ type CassandraClusterList struct {
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
+// +k8s:openapi-gen=x-kubernetes-print-columns:custom-columns=NAME:.metadata.name,REPLICAS=.spec.replicas
 // ElasticsearchCluster describes a specification for an Elasticsearch cluster
 type ElasticsearchCluster struct {
 	// we embed these types so the ElasticsearchCluster implements runtime.Object
