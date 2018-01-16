@@ -9,7 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/selection"
 
 	v1alpha1 "github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
-	hashutil "github.com/jetstack/navigator/pkg/util/hash"
+	hashutil "k8s.io/kubernetes/pkg/util/hash"
 )
 
 const (
