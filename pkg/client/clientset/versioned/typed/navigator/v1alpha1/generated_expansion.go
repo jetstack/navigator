@@ -17,6 +17,4 @@ package v1alpha1
 
 type CassandraClusterExpansion interface{}
 
-type ElasticsearchClusterExpansion interface{}
-
 type PilotExpansion interface{}

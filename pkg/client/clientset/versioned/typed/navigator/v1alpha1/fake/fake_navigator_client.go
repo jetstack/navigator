@@ -29,10 +29,6 @@ func (c *FakeNavigatorV1alpha1) CassandraClusters(namespace string) v1alpha1.Cas
 	return &FakeCassandraClusters{c, namespace}
 }
 
-func (c *FakeNavigatorV1alpha1) ElasticsearchClusters(namespace string) v1alpha1.ElasticsearchClusterInterface {
-	return &FakeElasticsearchClusters{c, namespace}
-}
-
 func (c *FakeNavigatorV1alpha1) Pilots(namespace string) v1alpha1.PilotInterface {
 	return &FakePilots{c, namespace}
 }

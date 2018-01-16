@@ -26,8 +26,6 @@ import (
 type Interface interface {
 	// CassandraClusters returns a CassandraClusterInformer.
 	CassandraClusters() CassandraClusterInformer
-	// ElasticsearchClusters returns a ElasticsearchClusterInformer.
-	ElasticsearchClusters() ElasticsearchClusterInformer
 	// Pilots returns a PilotInformer.
 	Pilots() PilotInformer
 }
@@ -46,11 +44,6 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 // CassandraClusters returns a CassandraClusterInformer.
 func (v *version) CassandraClusters() CassandraClusterInformer {
 	return &cassandraClusterInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
-}
-
-// ElasticsearchClusters returns a ElasticsearchClusterInformer.
-func (v *version) ElasticsearchClusters() ElasticsearchClusterInformer {
-	return &elasticsearchClusterInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // Pilots returns a PilotInformer.

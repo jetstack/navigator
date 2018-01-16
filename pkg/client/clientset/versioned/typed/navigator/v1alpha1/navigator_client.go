@@ -25,7 +25,6 @@ import (
 type NavigatorV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	CassandraClustersGetter
-	ElasticsearchClustersGetter
 	PilotsGetter
 }
 
@@ -36,10 +35,6 @@ type NavigatorV1alpha1Client struct {
 
 func (c *NavigatorV1alpha1Client) CassandraClusters(namespace string) CassandraClusterInterface {
 	return newCassandraClusters(c, namespace)
-}
-
-func (c *NavigatorV1alpha1Client) ElasticsearchClusters(namespace string) ElasticsearchClusterInterface {
-	return newElasticsearchClusters(c, namespace)
 }
 
 func (c *NavigatorV1alpha1Client) Pilots(namespace string) PilotInterface {

@@ -26,14 +26,6 @@ type CassandraClusterListerExpansion interface{}
 // CassandraClusterNamespaceLister.
 type CassandraClusterNamespaceListerExpansion interface{}
 
-// ElasticsearchClusterListerExpansion allows custom methods to be added to
-// ElasticsearchClusterLister.
-type ElasticsearchClusterListerExpansion interface{}
-
-// ElasticsearchClusterNamespaceListerExpansion allows custom methods to be added to
-// ElasticsearchClusterNamespaceLister.
-type ElasticsearchClusterNamespaceListerExpansion interface{}
-
 // PilotListerExpansion allows custom methods to be added to
 // PilotLister.
 type PilotListerExpansion interface{}
