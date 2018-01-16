@@ -34,3 +34,8 @@ ${GOPATH}/bin/informer-gen \
            --listers-package "k8s.io/client-go/listers" \
            --output-package "github.com/jetstack/navigator/third_party/k8s.io/client-go/informers" \
            --go-header-file ${SCRIPT_ROOT}/hack/boilerplate.go.txt
+
+go build -o ${GOPATH}/bin/openapi-gen ./vendor/k8s.io/code-generator/cmd/openapi-gen
+${GOPATH}/bin/openapi-gen \
+  --input-dirs github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1,k8s.io/api/core/v1,k8s.io/apimachinery/pkg/apis/meta/v1,k8s.io/apimachinery/pkg/api/resource,k8s.io/apimachinery/pkg/runtime,k8s.io/apimachinery/pkg/version \
+  --output-package github.com/jetstack/navigator/pkg/client/openapi
