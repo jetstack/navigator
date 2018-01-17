@@ -72,6 +72,7 @@ type ElasticsearchCluster struct {
 // ElasticsearchCluster.
 type ElasticsearchClusterStatus struct {
 	NodePools map[string]ElasticsearchClusterNodePoolStatus `json:"nodePools"`
+	Health    ElasticsearchClusterHealth                    `json:"health"`
 }
 
 // ElasticsearchClusterNodePoolStatus specifies the status of a single node
@@ -80,6 +81,14 @@ type ElasticsearchClusterNodePoolStatus struct {
 	// ReadyReplicas is the total number of ready pods in this cluster.
 	ReadyReplicas int64 `json:"readyReplicas"`
 }
+
+type ElasticsearchClusterHealth string
+
+const (
+	ElasticsearchClusterHealthRed    ElasticsearchClusterHealth = "Red"
+	ElasticsearchClusterHealthYellow ElasticsearchClusterHealth = "Yellow"
+	ElasticsearchClusterHealthGreen  ElasticsearchClusterHealth = "Green"
+)
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 

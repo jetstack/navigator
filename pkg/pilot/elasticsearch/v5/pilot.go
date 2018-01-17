@@ -3,6 +3,7 @@ package v5
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/golang/glog"
 	"gopkg.in/olivere/elastic.v5"
@@ -34,6 +35,8 @@ type Pilot struct {
 
 	// a reference to the GenericPilot for this Pilot
 	genericPilot *genericpilot.GenericPilot
+
+	lastNodeStatsUpdate time.Time
 }
 
 func NewPilot(opts *PilotOptions) (*Pilot, error) {

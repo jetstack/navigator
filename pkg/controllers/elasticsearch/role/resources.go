@@ -41,6 +41,7 @@ func roleForCluster(c *v1alpha1.ElasticsearchCluster) *rbacv1beta1.Role {
 				Verbs:     []string{"update", "patch"},
 				Resources: []string{
 					"pilots/status",
+					"elasticsearchclusters/status",
 				},
 			},
 		},

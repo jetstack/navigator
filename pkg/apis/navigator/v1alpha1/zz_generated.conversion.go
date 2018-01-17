@@ -409,6 +409,7 @@ func Convert_navigator_ElasticsearchClusterSpec_To_v1alpha1_ElasticsearchCluster
 
 func autoConvert_v1alpha1_ElasticsearchClusterStatus_To_navigator_ElasticsearchClusterStatus(in *ElasticsearchClusterStatus, out *navigator.ElasticsearchClusterStatus, s conversion.Scope) error {
 	out.NodePools = *(*map[string]navigator.ElasticsearchClusterNodePoolStatus)(unsafe.Pointer(&in.NodePools))
+	out.Health = navigator.ElasticsearchClusterHealth(in.Health)
 	return nil
 }
 
@@ -419,6 +420,7 @@ func Convert_v1alpha1_ElasticsearchClusterStatus_To_navigator_ElasticsearchClust
 
 func autoConvert_navigator_ElasticsearchClusterStatus_To_v1alpha1_ElasticsearchClusterStatus(in *navigator.ElasticsearchClusterStatus, out *ElasticsearchClusterStatus, s conversion.Scope) error {
 	out.NodePools = *(*map[string]ElasticsearchClusterNodePoolStatus)(unsafe.Pointer(&in.NodePools))
+	out.Health = ElasticsearchClusterHealth(in.Health)
 	return nil
 }
 
