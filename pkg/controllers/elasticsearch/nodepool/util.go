@@ -1,6 +1,8 @@
 package nodepool
 
 import (
+	"fmt"
+
 	"github.com/coreos/go-semver/semver"
 	corev1 "k8s.io/api/core/v1"
 
@@ -18,18 +20,15 @@ const defaultElasticsearchImageRepository = "docker.elastic.co/elasticsearch/ela
 const defaultElasticsearchRunAsUser = 1000
 const defaultElasticsearchImagePullPolicy = string(corev1.PullIfNotPresent)
 
-func defaultElasticsearchImageForVersion(s string) (*v1alpha1.ElasticsearchImage, error) {
-	// ensure the version follows semver
-	_, err := semver.NewVersion(s)
-	if err != nil {
-		return nil, err
+func defaultElasticsearchImageForVersion(v semver.Version) (*v1alpha1.ElasticsearchImage, error) {
+	if v.Major == 0 && v.Minor == 0 && v.Patch == 0 {
+		return nil, fmt.Errorf("version must be specified")
 	}
-
 	return &v1alpha1.ElasticsearchImage{
 		FsGroup: defaultElasticsearchRunAsUser,
 		ImageSpec: v1alpha1.ImageSpec{
 			Repository: defaultElasticsearchImageRepository,
-			Tag:        s,
+			Tag:        v.String(),
 			PullPolicy: defaultElasticsearchImagePullPolicy,
 		},
 	}, nil

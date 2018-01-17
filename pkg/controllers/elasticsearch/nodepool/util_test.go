@@ -4,8 +4,12 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/coreos/go-semver/semver"
+
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 )
+
+var validESVersion = semver.New("6.1.1")
 
 func TestESImageToUse(t *testing.T) {
 	type testT struct {
@@ -18,7 +22,7 @@ func TestESImageToUse(t *testing.T) {
 		{
 			name: "version specified with no manual image spec",
 			spec: &v1alpha1.ElasticsearchClusterSpec{
-				Version: "6.1.1",
+				Version: *validESVersion,
 			},
 			expectedImage: &v1alpha1.ElasticsearchImage{
 				FsGroup: 1000,
@@ -32,7 +36,7 @@ func TestESImageToUse(t *testing.T) {
 		{
 			name: "version specified with manual image spec",
 			spec: &v1alpha1.ElasticsearchClusterSpec{
-				Version: "6.1.1",
+				Version: *validESVersion,
 				Image: &v1alpha1.ElasticsearchImage{
 					FsGroup: 1234,
 					ImageSpec: v1alpha1.ImageSpec{
@@ -54,7 +58,6 @@ func TestESImageToUse(t *testing.T) {
 		{
 			name: "no version specified with manual image spec",
 			spec: &v1alpha1.ElasticsearchClusterSpec{
-				Version: "",
 				Image: &v1alpha1.ElasticsearchImage{
 					FsGroup: 1234,
 					ImageSpec: v1alpha1.ImageSpec{
@@ -74,36 +77,9 @@ func TestESImageToUse(t *testing.T) {
 			},
 		},
 		{
-			name: "invalid (non semver) version specified and no manual image",
-			spec: &v1alpha1.ElasticsearchClusterSpec{
-				Version: "not.semver",
-			},
+			name:          "no version specified and no manual image",
+			spec:          &v1alpha1.ElasticsearchClusterSpec{},
 			expectedError: true,
-		},
-		// We don't error here - if the specified version is non semver but the
-		// user has specified a manual image, validation should detect the
-		// invalid semver and fail.
-		{
-			name: "invalid (non semver) version specified with a manual image",
-			spec: &v1alpha1.ElasticsearchClusterSpec{
-				Version: "not.semver",
-				Image: &v1alpha1.ElasticsearchImage{
-					FsGroup: 1234,
-					ImageSpec: v1alpha1.ImageSpec{
-						Repository: "abcd",
-						Tag:        "xyz",
-						PullPolicy: "www",
-					},
-				},
-			},
-			expectedImage: &v1alpha1.ElasticsearchImage{
-				FsGroup: 1234,
-				ImageSpec: v1alpha1.ImageSpec{
-					Repository: "abcd",
-					Tag:        "xyz",
-					PullPolicy: "www",
-				},
-			},
 		},
 	}
 	testF := func(test testT) func(*testing.T) {

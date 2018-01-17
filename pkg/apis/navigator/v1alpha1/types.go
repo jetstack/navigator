@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	"github.com/coreos/go-semver/semver"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -106,7 +107,7 @@ type ElasticsearchClusterList struct {
 // ElasticsearchClusterSpec describes a specification for an ElasticsearchCluster
 type ElasticsearchClusterSpec struct {
 	// The version of Elasticsearch to be used for nodes in the cluster.
-	Version string `json:"version"`
+	Version semver.Version `json:"version"`
 
 	// A list of plugins to install on nodes in the cluster.
 	Plugins []string `json:"plugins"`

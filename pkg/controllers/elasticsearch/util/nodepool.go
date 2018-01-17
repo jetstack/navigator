@@ -28,7 +28,7 @@ func ComputeNodePoolHash(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.Elastics
 		NodePool   *v1alpha1.ElasticsearchClusterNodePool
 	}{
 		Plugins:    c.Spec.Plugins,
-		Version:    c.Spec.Version,
+		Version:    c.Spec.Version.String(),
 		ESImage:    c.Spec.Image,
 		PilotImage: c.Spec.Pilot,
 		Sysctl:     c.Spec.Sysctl,

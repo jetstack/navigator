@@ -1,6 +1,7 @@
 package navigator
 
 import (
+	"github.com/coreos/go-semver/semver"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -99,7 +100,7 @@ type ElasticsearchClusterList struct {
 }
 
 type ElasticsearchClusterSpec struct {
-	Version string
+	Version semver.Version
 	Pilot   ElasticsearchPilotImage
 	Image   *ElasticsearchImage
 	Sysctl  []string
