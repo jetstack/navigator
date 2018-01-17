@@ -27,7 +27,6 @@ func NewREST(scheme *runtime.Scheme, optsGetter generic.RESTOptionsGetter) (*reg
 	strategy := NewStrategy(scheme)
 
 	store := genericregistry.Store{
-		Copier:                   scheme,
 		NewFunc:                  func() runtime.Object { return &navigator.ElasticsearchCluster{} },
 		NewListFunc:              func() runtime.Object { return &navigator.ElasticsearchClusterList{} },
 		PredicateFunc:            MatchESCluster,

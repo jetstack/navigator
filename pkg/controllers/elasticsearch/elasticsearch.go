@@ -11,6 +11,9 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
+	appsinformers "k8s.io/client-go/informers/apps/v1beta1"
+	coreinformers "k8s.io/client-go/informers/core/v1"
+	rbacinformers "k8s.io/client-go/informers/rbac/v1beta1"
 	"k8s.io/client-go/kubernetes"
 	appslisters "k8s.io/client-go/listers/apps/v1beta1"
 	corelisters "k8s.io/client-go/listers/core/v1"
@@ -30,9 +33,6 @@ import (
 	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/rolebinding"
 	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/service"
 	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/serviceaccount"
-	appsinformers "github.com/jetstack/navigator/third_party/k8s.io/client-go/informers/externalversions/apps/v1beta1"
-	coreinformers "github.com/jetstack/navigator/third_party/k8s.io/client-go/informers/externalversions/core/v1"
-	rbacinformers "github.com/jetstack/navigator/third_party/k8s.io/client-go/informers/externalversions/rbac/v1beta1"
 )
 
 type ElasticsearchController struct {

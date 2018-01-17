@@ -5,17 +5,17 @@ import (
 	"testing"
 	"time"
 
-	informers "github.com/jetstack/navigator/pkg/client/informers/externalversions"
-	kubeinformers "github.com/jetstack/navigator/third_party/k8s.io/client-go/informers/externalversions"
-
-	navigatorfake "github.com/jetstack/navigator/pkg/client/clientset/versioned/fake"
-	"github.com/jetstack/navigator/pkg/controllers"
-	"github.com/jetstack/navigator/pkg/controllers/cassandra"
-	casstesting "github.com/jetstack/navigator/pkg/controllers/cassandra/testing"
 	"k8s.io/apimachinery/pkg/watch"
+	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
 	clienttesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/record"
+
+	navigatorfake "github.com/jetstack/navigator/pkg/client/clientset/versioned/fake"
+	informers "github.com/jetstack/navigator/pkg/client/informers/externalversions"
+	"github.com/jetstack/navigator/pkg/controllers"
+	"github.com/jetstack/navigator/pkg/controllers/cassandra"
+	casstesting "github.com/jetstack/navigator/pkg/controllers/cassandra/testing"
 )
 
 type fixture struct {

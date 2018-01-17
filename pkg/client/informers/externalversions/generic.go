@@ -51,7 +51,7 @@ func (f *genericInformer) Lister() cache.GenericLister {
 // TODO extend this to unknown resources with a client pool
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
-	// Group=Navigator, Version=V1alpha1
+	// Group=navigator.jetstack.io, Version=v1alpha1
 	case v1alpha1.SchemeGroupVersion.WithResource("cassandraclusters"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Navigator().V1alpha1().CassandraClusters().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("elasticsearchclusters"):
