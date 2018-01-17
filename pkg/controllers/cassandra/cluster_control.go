@@ -5,8 +5,11 @@ import (
 	v1alpha1 "github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/nodepool"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/pilot"
+	"github.com/jetstack/navigator/pkg/controllers/cassandra/role"
+	"github.com/jetstack/navigator/pkg/controllers/cassandra/rolebinding"
 	servicecql "github.com/jetstack/navigator/pkg/controllers/cassandra/service/cql"
 	serviceseedprovider "github.com/jetstack/navigator/pkg/controllers/cassandra/service/seedprovider"
+	"github.com/jetstack/navigator/pkg/controllers/cassandra/serviceaccount"
 	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
 )
@@ -17,6 +20,8 @@ const (
 	SuccessSync = "SuccessSync"
 
 	MessageErrorSyncServiceAccount = "Error syncing service account: %s"
+	MessageErrorSyncRole           = "Error syncing role: %s"
+	MessageErrorSyncRoleBinding    = "Error syncing role binding: %s"
 	MessageErrorSyncConfigMap      = "Error syncing config map: %s"
 	MessageErrorSyncService        = "Error syncing service: %s"
 	MessageErrorSyncNodePools      = "Error syncing node pools: %s"
@@ -35,6 +40,9 @@ type defaultCassandraClusterControl struct {
 	cqlServiceControl          servicecql.Interface
 	nodepoolControl            nodepool.Interface
 	pilotControl               pilot.Interface
+	serviceAccountControl      serviceaccount.Interface
+	roleControl                role.Interface
+	roleBindingControl         rolebinding.Interface
 	recorder                   record.EventRecorder
 }
 
@@ -43,6 +51,9 @@ func NewControl(
 	cqlServiceControl servicecql.Interface,
 	nodepoolControl nodepool.Interface,
 	pilotControl pilot.Interface,
+	serviceAccountControl serviceaccount.Interface,
+	roleControl role.Interface,
+	roleBindingControl rolebinding.Interface,
 	recorder record.EventRecorder,
 ) ControlInterface {
 	return &defaultCassandraClusterControl{
@@ -50,6 +61,9 @@ func NewControl(
 		cqlServiceControl:          cqlServiceControl,
 		nodepoolControl:            nodepoolControl,
 		pilotControl:               pilotControl,
+		serviceAccountControl:      serviceAccountControl,
+		roleControl:                roleControl,
+		roleBindingControl:         roleBindingControl,
 		recorder:                   recorder,
 	}
 }
@@ -96,6 +110,39 @@ func (e *defaultCassandraClusterControl) Sync(c *v1alpha1.CassandraCluster) erro
 			apiv1.EventTypeWarning,
 			ErrorSync,
 			MessageErrorSyncPilots,
+			err,
+		)
+		return err
+	}
+	err = e.serviceAccountControl.Sync(c)
+	if err != nil {
+		e.recorder.Eventf(
+			c,
+			apiv1.EventTypeWarning,
+			ErrorSync,
+			MessageErrorSyncServiceAccount,
+			err,
+		)
+		return err
+	}
+	err = e.roleControl.Sync(c)
+	if err != nil {
+		e.recorder.Eventf(
+			c,
+			apiv1.EventTypeWarning,
+			ErrorSync,
+			MessageErrorSyncRole,
+			err,
+		)
+		return err
+	}
+	err = e.roleBindingControl.Sync(c)
+	if err != nil {
+		e.recorder.Eventf(
+			c,
+			apiv1.EventTypeWarning,
+			ErrorSync,
+			MessageErrorSyncRoleBinding,
 			err,
 		)
 		return err

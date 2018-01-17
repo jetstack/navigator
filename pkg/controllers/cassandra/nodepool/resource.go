@@ -47,6 +47,7 @@ func StatefulSetForCluster(
 					Labels: nodePoolLabels,
 				},
 				Spec: apiv1.PodSpec{
+					ServiceAccountName: util.ServiceAccountName(cluster),
 					Volumes: []apiv1.Volume{
 						apiv1.Volume{
 							Name: sharedVolumeName,

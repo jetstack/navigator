@@ -24,8 +24,12 @@ import (
 	"github.com/jetstack/navigator/pkg/controllers"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/nodepool"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/pilot"
+	"github.com/jetstack/navigator/pkg/controllers/cassandra/role"
+	"github.com/jetstack/navigator/pkg/controllers/cassandra/rolebinding"
 	servicecql "github.com/jetstack/navigator/pkg/controllers/cassandra/service/cql"
 	serviceseedprovider "github.com/jetstack/navigator/pkg/controllers/cassandra/service/seedprovider"
+	"github.com/jetstack/navigator/pkg/controllers/cassandra/serviceaccount"
+	rbacinformers "k8s.io/client-go/informers/rbac/v1beta1"
 )
 
 // NewCassandra returns a new CassandraController that can be used
@@ -35,16 +39,19 @@ import (
 // It accepts a list of informers that are then used to monitor the state of the
 // target cluster.
 type CassandraController struct {
-	control                 ControlInterface
-	cassLister              listersv1alpha1.CassandraClusterLister
-	statefulSetLister       appslisters.StatefulSetLister
-	cassListerSynced        cache.InformerSynced
-	serviceListerSynced     cache.InformerSynced
-	statefulSetListerSynced cache.InformerSynced
-	pilotsListerSynced      cache.InformerSynced
-	podsListerSynced        cache.InformerSynced
-	queue                   workqueue.RateLimitingInterface
-	recorder                record.EventRecorder
+	control                     ControlInterface
+	cassLister                  listersv1alpha1.CassandraClusterLister
+	statefulSetLister           appslisters.StatefulSetLister
+	cassListerSynced            cache.InformerSynced
+	serviceListerSynced         cache.InformerSynced
+	statefulSetListerSynced     cache.InformerSynced
+	pilotsListerSynced          cache.InformerSynced
+	podsListerSynced            cache.InformerSynced
+	serviceAccountsListerSynced cache.InformerSynced
+	rolesListerSynced           cache.InformerSynced
+	roleBindingsListerSynced    cache.InformerSynced
+	queue                       workqueue.RateLimitingInterface
+	recorder                    record.EventRecorder
 }
 
 func NewCassandra(
@@ -55,6 +62,9 @@ func NewCassandra(
 	statefulSets appsinformers.StatefulSetInformer,
 	pilots navigatorinformers.PilotInformer,
 	pods coreinformers.PodInformer,
+	serviceAccounts coreinformers.ServiceAccountInformer,
+	roles rbacinformers.RoleInformer,
+	roleBindings rbacinformers.RoleBindingInformer,
 	recorder record.EventRecorder,
 ) *CassandraController {
 	queue := workqueue.NewNamedRateLimitingQueue(
@@ -82,6 +92,9 @@ func NewCassandra(
 	cc.statefulSetListerSynced = statefulSets.Informer().HasSynced
 	cc.pilotsListerSynced = pilots.Informer().HasSynced
 	cc.podsListerSynced = pods.Informer().HasSynced
+	cc.serviceAccountsListerSynced = serviceAccounts.Informer().HasSynced
+	cc.rolesListerSynced = roles.Informer().HasSynced
+	cc.roleBindingsListerSynced = roleBindings.Informer().HasSynced
 	cc.control = NewControl(
 		serviceseedprovider.NewControl(
 			kubeClient,
@@ -103,6 +116,21 @@ func NewCassandra(
 			pilots.Lister(),
 			pods.Lister(),
 			statefulSets.Lister(),
+			recorder,
+		),
+		serviceaccount.NewControl(
+			kubeClient,
+			serviceAccounts.Lister(),
+			recorder,
+		),
+		role.NewControl(
+			kubeClient,
+			roles.Lister(),
+			recorder,
+		),
+		rolebinding.NewControl(
+			kubeClient,
+			roleBindings.Lister(),
 			recorder,
 		),
 		recorder,
@@ -274,6 +302,9 @@ func CassandraControllerFromContext(ctx *controllers.Context) *CassandraControll
 		ctx.KubeSharedInformerFactory.Apps().V1beta1().StatefulSets(),
 		ctx.SharedInformerFactory.Navigator().V1alpha1().Pilots(),
 		ctx.KubeSharedInformerFactory.Core().V1().Pods(),
+		ctx.KubeSharedInformerFactory.Core().V1().ServiceAccounts(),
+		ctx.KubeSharedInformerFactory.Rbac().V1beta1().Roles(),
+		ctx.KubeSharedInformerFactory.Rbac().V1beta1().RoleBindings(),
 		ctx.Recorder,
 	)
 }

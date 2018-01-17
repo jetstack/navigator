@@ -44,6 +44,14 @@ func CqlServiceName(c *v1alpha1.CassandraCluster) string {
 	return fmt.Sprintf("%s-cql", ResourceBaseName(c))
 }
 
+func ServiceAccountName(c *v1alpha1.CassandraCluster) string {
+	return ResourceBaseName(c)
+}
+
+func PilotRBACRoleName(c *v1alpha1.CassandraCluster) string {
+	return fmt.Sprintf("%s-pilot", ResourceBaseName(c))
+}
+
 func ClusterLabels(c *v1alpha1.CassandraCluster) map[string]string {
 	return map[string]string{
 		"app":               "cassandracluster",
