@@ -35,7 +35,27 @@ var (
 		Repository: validImageRepo,
 		PullPolicy: validImagePullPolicy,
 	}
+
+	validSpecPluginsList = []string{"anything"}
+	validSpecESImage     = navigator.ElasticsearchImage{
+		FsGroup:   int64(1000),
+		ImageSpec: validImageSpec,
+	}
+	validSpecPilotImage = navigator.ElasticsearchPilotImage{
+		ImageSpec: validImageSpec,
+	}
 )
+
+func newValidNodePool(name string, replicas int64, roles ...navigator.ElasticsearchClusterRole) navigator.ElasticsearchClusterNodePool {
+	return navigator.ElasticsearchClusterNodePool{
+		Name:         name,
+		Replicas:     replicas,
+		Roles:        roles,
+		NodeSelector: validNodePoolNodeSelector,
+		Resources:    validNodePoolResources,
+		Persistence:  validNodePoolPersistenceConfig,
+	}
+}
 
 func TestValidateImageSpec(t *testing.T) {
 	errorCases := map[string]navigator.ImageSpec{
@@ -312,52 +332,58 @@ func TestValidateElasticsearchPersistence(t *testing.T) {
 	}
 }
 func TestValidateElasticsearchClusterSpec(t *testing.T) {
-	validPluginsList := []string{"anything"}
-	validNodePool := navigator.ElasticsearchClusterNodePool{
-		Name:         validNodePoolName,
-		Replicas:     validNodePoolReplicas,
-		Roles:        validNodePoolRoles,
-		NodeSelector: validNodePoolNodeSelector,
-		Resources:    validNodePoolResources,
-		Persistence:  validNodePoolPersistenceConfig,
-	}
-	validESImage := navigator.ElasticsearchImage{
-		FsGroup:   int64(1000),
-		ImageSpec: validImageSpec,
-	}
-	validPilotImage := navigator.ElasticsearchPilotImage{
-		ImageSpec: validImageSpec,
-	}
 	errorCases := map[string]navigator.ElasticsearchClusterSpec{
 		"empty spec": {},
 		"valid node pools with duplicate names": {
-			Plugins:   validPluginsList,
-			NodePools: []navigator.ElasticsearchClusterNodePool{validNodePool, validNodePool},
-			Pilot:     validPilotImage,
-			Image:     validESImage,
+			Plugins: validSpecPluginsList,
+			NodePools: []navigator.ElasticsearchClusterNodePool{
+				newValidNodePool("test", 3, navigator.ElasticsearchRoleMaster),
+				newValidNodePool("test", 3, navigator.ElasticsearchRoleMaster),
+			},
+			Pilot:          validSpecPilotImage,
+			Image:          validSpecESImage,
+			MinimumMasters: 4,
 		},
 		"missing pilot image": {
-			Plugins:   validPluginsList,
-			NodePools: []navigator.ElasticsearchClusterNodePool{validNodePool, validNodePool},
-			Image:     validESImage,
+			Plugins:        validSpecPluginsList,
+			NodePools:      []navigator.ElasticsearchClusterNodePool{newValidNodePool("test", 3, navigator.ElasticsearchRoleMaster)},
+			Image:          validSpecESImage,
+			MinimumMasters: 2,
 		},
 		"missing elasticsearch image": {
-			Plugins:   validPluginsList,
-			NodePools: []navigator.ElasticsearchClusterNodePool{validNodePool, validNodePool},
-			Pilot:     validPilotImage,
+			Plugins:        validSpecPluginsList,
+			NodePools:      []navigator.ElasticsearchClusterNodePool{newValidNodePool("test", 3, navigator.ElasticsearchRoleMaster)},
+			Pilot:          validSpecPilotImage,
+			MinimumMasters: 2,
+		},
+		"minimum masters set to low": {
+			Plugins:        validSpecPluginsList,
+			NodePools:      []navigator.ElasticsearchClusterNodePool{newValidNodePool("test", 3, navigator.ElasticsearchRoleMaster)},
+			Pilot:          validSpecPilotImage,
+			Image:          validSpecESImage,
+			MinimumMasters: 1,
+		},
+		"minimum masters greater than total number of masters": {
+			Plugins:        validSpecPluginsList,
+			NodePools:      []navigator.ElasticsearchClusterNodePool{newValidNodePool("test", 3, navigator.ElasticsearchRoleMaster)},
+			Pilot:          validSpecPilotImage,
+			Image:          validSpecESImage,
+			MinimumMasters: 5,
 		},
 	}
 	successCases := []navigator.ElasticsearchClusterSpec{
 		{
-			NodePools: []navigator.ElasticsearchClusterNodePool{validNodePool},
-			Pilot:     validPilotImage,
-			Image:     validESImage,
+			NodePools:      []navigator.ElasticsearchClusterNodePool{newValidNodePool("test", 3, navigator.ElasticsearchRoleMaster)},
+			Pilot:          validSpecPilotImage,
+			Image:          validSpecESImage,
+			MinimumMasters: 2,
 		},
 		{
-			Plugins:   validPluginsList,
-			NodePools: []navigator.ElasticsearchClusterNodePool{validNodePool},
-			Pilot:     validPilotImage,
-			Image:     validESImage,
+			Plugins:        validSpecPluginsList,
+			NodePools:      []navigator.ElasticsearchClusterNodePool{newValidNodePool("test", 3, navigator.ElasticsearchRoleMaster)},
+			Pilot:          validSpecPilotImage,
+			Image:          validSpecESImage,
+			MinimumMasters: 2,
 		},
 	}
 	for i, successCase := range successCases {
