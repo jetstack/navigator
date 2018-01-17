@@ -259,13 +259,24 @@ func TestValidateElasticsearchPersistence(t *testing.T) {
 			Enabled: true,
 			Size:    *resource.NewQuantity(-1, resource.BinarySI),
 		},
+		"disabled but invalid size specified": navigator.ElasticsearchClusterPersistenceConfig{
+			Enabled: false,
+			Size:    *resource.NewQuantity(-1, resource.BinarySI),
+		},
+		"enabled but zero value for size specified": navigator.ElasticsearchClusterPersistenceConfig{
+			Enabled: true,
+			Size:    *resource.NewQuantity(0, resource.BinarySI),
+		},
 	}
 	successCases := []navigator.ElasticsearchClusterPersistenceConfig{
 		{},
+		// disabled, but valid size entered
 		{
-			Size: validSize,
+			Enabled: false,
+			Size:    validSize,
 		},
 		{
+			Enabled:      false,
 			StorageClass: "something",
 		},
 		{

@@ -79,7 +79,6 @@ func ValidateElasticsearchPersistence(cfg *navigator.ElasticsearchClusterPersist
 	if cfg.Size.Sign() == -1 {
 		el = append(el, field.Invalid(fldPath.Child("size"), cfg.Size, "must be greater than zero"))
 	}
-	// TODO: validate size quantity
 	return el
 }
 
