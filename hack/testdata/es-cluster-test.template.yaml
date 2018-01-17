@@ -13,15 +13,6 @@ spec:
     tag: ${NAVIGATOR_IMAGE_TAG}
     pullPolicy: ${NAVIGATOR_IMAGE_PULLPOLICY}
 
-  image:
-    repository: docker.elastic.co/elasticsearch/elasticsearch
-    tag: 5.6.2
-    pullPolicy: IfNotPresent
-    ## This sets the group of the persistent volume created for
-    ## the data nodes. This must be the same as the user that elasticsearch
-    ## runs as within the container.
-    fsGroup: 1000
-
   nodePools:
   - name: mixed
     replicas: 1
