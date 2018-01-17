@@ -137,6 +137,16 @@ function test_elasticsearchcluster() {
     then
         fail_test "Navigator controller failed to create SuccessSync event"
     fi
+    # Wait for Elasticsearch pod to enter 'Running' phase
+    if ! retry TIMEOUT=300 stdout_equals "Running" kubectl \
+        --namespace "${namespace}" \
+        get pod \
+        "es-test-mixed-0" \
+        "-o=go-template={{.status.phase}}"
+    then
+        fail_test "Elasticsearch pod did not enter 'Running' phase"
+    fi
+    # Ensure the Pilot updates the document count on the pilot resource
     if ! retry TIMEOUT=300 stdout_gt 0 kubectl \
          --namespace "${namespace}" \
          get pilot \
@@ -145,6 +155,7 @@ function test_elasticsearchcluster() {
     then
         fail_test "Elasticsearch pilot did not update the document count"
     fi
+    # Ensure the Pilot reports the overall cluster health back to the API
     if ! retry TIMEOUT=300 stdout_equals "Yellow" kubectl \
         --namespace "${namespace}" \
         get elasticsearchcluster \
