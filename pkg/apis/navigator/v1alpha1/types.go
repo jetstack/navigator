@@ -120,7 +120,7 @@ type ElasticsearchClusterSpec struct {
 	Pilot ElasticsearchPilotImage `json:"pilot"`
 
 	// Image describes the Elasticsearch image to use
-	Image ElasticsearchImage `json:"image"`
+	Image *ElasticsearchImage `json:"image,omitempty"`
 
 	// Sysctl can be used to specify a list of sysctl values to set on start-up
 	// This can be used to set for example the vm.max_map_count parameter.

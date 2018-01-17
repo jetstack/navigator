@@ -321,7 +321,15 @@ func (in *ElasticsearchClusterSpec) DeepCopyInto(out *ElasticsearchClusterSpec) 
 		}
 	}
 	out.Pilot = in.Pilot
-	out.Image = in.Image
+	if in.Image != nil {
+		in, out := &in.Image, &out.Image
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(ElasticsearchImage)
+			**out = **in
+		}
+	}
 	if in.Sysctl != nil {
 		in, out := &in.Sysctl, &out.Sysctl
 		*out = make([]string, len(*in))

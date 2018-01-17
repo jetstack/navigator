@@ -101,7 +101,7 @@ type ElasticsearchClusterList struct {
 type ElasticsearchClusterSpec struct {
 	Version string
 	Pilot   ElasticsearchPilotImage
-	Image   ElasticsearchImage
+	Image   *ElasticsearchImage
 	Sysctl  []string
 
 	Plugins        []string
