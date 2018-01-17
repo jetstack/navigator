@@ -5,12 +5,6 @@ import (
 	"hash/fnv"
 	"reflect"
 
-	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
-	navigator "github.com/jetstack/navigator/pkg/client/clientset/versioned"
-	navlisters "github.com/jetstack/navigator/pkg/client/listers/navigator/v1alpha1"
-	"github.com/jetstack/navigator/pkg/controllers"
-	"github.com/jetstack/navigator/pkg/controllers/cassandra/util"
-	hashutil "github.com/jetstack/navigator/pkg/util/hash"
 	"k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,6 +12,13 @@ import (
 	appslisters "k8s.io/client-go/listers/apps/v1beta1"
 	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/record"
+
+	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
+	navigator "github.com/jetstack/navigator/pkg/client/clientset/versioned"
+	navlisters "github.com/jetstack/navigator/pkg/client/listers/navigator/v1alpha1"
+	"github.com/jetstack/navigator/pkg/controllers"
+	"github.com/jetstack/navigator/pkg/controllers/cassandra/util"
+	hashutil "github.com/jetstack/navigator/pkg/util/hash"
 )
 
 const (

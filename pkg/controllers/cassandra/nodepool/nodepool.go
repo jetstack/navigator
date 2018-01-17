@@ -1,12 +1,13 @@
 package nodepool
 
 import (
-	v1alpha1 "github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
-	"github.com/jetstack/navigator/pkg/controllers/cassandra/util"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/kubernetes"
 	appslisters "k8s.io/client-go/listers/apps/v1beta1"
 	"k8s.io/client-go/tools/record"
+
+	v1alpha1 "github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
+	"github.com/jetstack/navigator/pkg/controllers/cassandra/util"
 )
 
 type Interface interface {

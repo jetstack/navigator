@@ -3,8 +3,9 @@ package main
 import (
 	"io"
 
-	"github.com/jetstack/navigator/pkg/pilot/cassandra/v3"
 	"github.com/spf13/cobra"
+
+	"github.com/jetstack/navigator/pkg/pilot/cassandra/v3"
 )
 
 // NewCommandStartPilot provides a CLI handler for the pilot

@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"testing"
 
+	apiv1 "k8s.io/api/core/v1"
+
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/service/seedprovider"
 	servicetesting "github.com/jetstack/navigator/pkg/controllers/cassandra/service/testing"
 	casstesting "github.com/jetstack/navigator/pkg/controllers/cassandra/testing"
-	apiv1 "k8s.io/api/core/v1"
 )
 
 func newFixture(t *testing.T) *casstesting.Fixture {
