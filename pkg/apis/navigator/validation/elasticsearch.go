@@ -1,12 +1,15 @@
 package validation
 
 import (
+	"fmt"
+
 	corev1 "k8s.io/api/core/v1"
 	apimachineryvalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/jetstack/navigator/pkg/apis/navigator"
+	"github.com/jetstack/navigator/pkg/util"
 )
 
 var supportedPullPolicies = []string{
@@ -96,6 +99,21 @@ func ValidateElasticsearchClusterSpec(spec *navigator.ElasticsearchClusterSpec, 
 		}
 		allErrs = append(allErrs, ValidateElasticsearchClusterNodePool(&np, idxPath)...)
 	}
+
+	numMasters := countElasticsearchMasters(spec.NodePools)
+	quorum := util.CalculateQuorum(numMasters)
+	switch {
+	case numMasters == 0:
+		allErrs = append(allErrs, field.Invalid(npPath, numMasters, "must be at least one master node"))
+	case spec.MinimumMasters == 0:
+		// do nothing, navigator-controller will automatically calculate &
+		// manage the minimumMasters required for the cluster
+	case spec.MinimumMasters < quorum:
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("minimumMasters"), spec.MinimumMasters, fmt.Sprintf("must be a minimum of %d to avoid a split brain scenario", quorum)))
+	case spec.MinimumMasters > numMasters:
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("minimumMasters"), spec.MinimumMasters, fmt.Sprintf("cannot be greater than the total number of master nodes")))
+	}
+
 	return allErrs
 }
 
@@ -103,4 +121,23 @@ func ValidateElasticsearchCluster(esc *navigator.ElasticsearchCluster) field.Err
 	allErrs := ValidateObjectMeta(&esc.ObjectMeta, true, apimachineryvalidation.NameIsDNSSubdomain, field.NewPath("metadata"))
 	allErrs = append(allErrs, ValidateElasticsearchClusterSpec(&esc.Spec, field.NewPath("spec"))...)
 	return allErrs
+}
+
+func countElasticsearchMasters(pools []navigator.ElasticsearchClusterNodePool) int64 {
+	masters := int64(0)
+	for _, pool := range pools {
+		if containsElasticsearchRole(pool.Roles, navigator.ElasticsearchRoleMaster) {
+			masters += pool.Replicas
+		}
+	}
+	return masters
+}
+
+func containsElasticsearchRole(set []navigator.ElasticsearchClusterRole, role navigator.ElasticsearchClusterRole) bool {
+	for _, s := range set {
+		if s == role {
+			return true
+		}
+	}
+	return false
 }

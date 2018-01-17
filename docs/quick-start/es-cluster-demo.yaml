@@ -3,6 +3,10 @@ kind: ElasticsearchCluster
 metadata:
   name: demo
 spec:
+  ## Omitting the minimumMasters fields will cause navigator to automatically
+  ## determine a quorum of masters to use.
+  # minimumMasters: 2
+
   sysctl:
   - vm.max_map_count=262144
 
@@ -27,22 +31,6 @@ spec:
     roles:
     - master
 
-    config:
-      elasticsearch.yml: |
-        node.data: ${NODE_DATA}
-        node.master: ${NODE_MASTER}
-        node.ingest: ${NODE_INGEST}
-        node.name: ${POD_NAME}
-
-        network.host: 0.0.0.0
-
-        discovery:
-          zen:
-            ping.unicast.hosts: ${DISCOVERY_URL}
-            minimum_master_nodes: 2
-
-        xpack.security.enabled: false
-
     resources:
       requests:
         cpu: '500m'
@@ -64,22 +52,6 @@ spec:
     roles:
     - data
     - ingest
-
-    config:
-      elasticsearch.yml: |
-        node.data: ${NODE_DATA}
-        node.master: ${NODE_MASTER}
-        node.ingest: ${NODE_INGEST}
-        node.name: ${POD_NAME}
-
-        network.host: 0.0.0.0
-
-        discovery:
-          zen:
-            ping.unicast.hosts: ${DISCOVERY_URL}
-            minimum_master_nodes: 2
-
-        xpack.security.enabled: false
 
     resources:
       requests:
