@@ -3,6 +3,7 @@ package validation
 import (
 	"fmt"
 
+	"github.com/coreos/go-semver/semver"
 	corev1 "k8s.io/api/core/v1"
 	apimachineryvalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -85,9 +86,13 @@ func ValidateElasticsearchPersistence(cfg *navigator.ElasticsearchClusterPersist
 	return el
 }
 
+var emptySemver = semver.Version{}
+
 func ValidateElasticsearchClusterSpec(spec *navigator.ElasticsearchClusterSpec, fldPath *field.Path) field.ErrorList {
-	allErrs := ValidateImageSpec(&spec.Image.ImageSpec, fldPath.Child("image"))
-	allErrs = append(allErrs, ValidateImageSpec(&spec.Pilot.ImageSpec, fldPath.Child("pilot"))...)
+	allErrs := ValidateImageSpec(&spec.Pilot.ImageSpec, fldPath.Child("pilot"))
+	if spec.Image != nil {
+		allErrs = append(allErrs, ValidateImageSpec(&spec.Image.ImageSpec, fldPath.Child("image"))...)
+	}
 	npPath := fldPath.Child("nodePools")
 	allNames := sets.String{}
 	for i, np := range spec.NodePools {
@@ -114,6 +119,9 @@ func ValidateElasticsearchClusterSpec(spec *navigator.ElasticsearchClusterSpec, 
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("minimumMasters"), spec.MinimumMasters, fmt.Sprintf("cannot be greater than the total number of master nodes")))
 	}
 
+	if spec.Version.Equal(emptySemver) {
+		allErrs = append(allErrs, field.Required(fldPath.Child("version"), "must be a semver version"))
+	}
 	return allErrs
 }
 

@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/coreos/go-semver/semver"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -332,6 +333,23 @@ func TestValidateElasticsearchPersistence(t *testing.T) {
 	}
 }
 func TestValidateElasticsearchClusterSpec(t *testing.T) {
+	validPluginsList := []string{"anything"}
+	validNodePool := navigator.ElasticsearchClusterNodePool{
+		Name:         validNodePoolName,
+		Replicas:     validNodePoolReplicas,
+		Roles:        validNodePoolRoles,
+		NodeSelector: validNodePoolNodeSelector,
+		Resources:    validNodePoolResources,
+		Persistence:  validNodePoolPersistenceConfig,
+	}
+	validESImage := &navigator.ElasticsearchImage{
+		FsGroup:   int64(1000),
+		ImageSpec: validImageSpec,
+	}
+	validPilotImage := navigator.ElasticsearchPilotImage{
+		ImageSpec: validImageSpec,
+	}
+	validSemver := *semver.New("5.6.2")
 	errorCases := map[string]navigator.ElasticsearchClusterSpec{
 		"empty spec": {},
 		"valid node pools with duplicate names": {
@@ -341,13 +359,13 @@ func TestValidateElasticsearchClusterSpec(t *testing.T) {
 				newValidNodePool("test", 3, navigator.ElasticsearchRoleMaster),
 			},
 			Pilot:          validSpecPilotImage,
-			Image:          validSpecESImage,
+			Image:          &validSpecESImage,
 			MinimumMasters: 4,
 		},
 		"missing pilot image": {
 			Plugins:        validSpecPluginsList,
 			NodePools:      []navigator.ElasticsearchClusterNodePool{newValidNodePool("test", 3, navigator.ElasticsearchRoleMaster)},
-			Image:          validSpecESImage,
+			Image:          &validSpecESImage,
 			MinimumMasters: 2,
 		},
 		"missing elasticsearch image": {
@@ -360,37 +378,59 @@ func TestValidateElasticsearchClusterSpec(t *testing.T) {
 			Plugins:        validSpecPluginsList,
 			NodePools:      []navigator.ElasticsearchClusterNodePool{newValidNodePool("test", 3, navigator.ElasticsearchRoleMaster)},
 			Pilot:          validSpecPilotImage,
-			Image:          validSpecESImage,
+			Image:          &validSpecESImage,
 			MinimumMasters: 1,
 		},
 		"minimum masters greater than total number of masters": {
 			Plugins:        validSpecPluginsList,
 			NodePools:      []navigator.ElasticsearchClusterNodePool{newValidNodePool("test", 3, navigator.ElasticsearchRoleMaster)},
 			Pilot:          validSpecPilotImage,
-			Image:          validSpecESImage,
+			Image:          &validSpecESImage,
 			MinimumMasters: 5,
+		},
+		"missing elasticsearch version": {
+			Plugins:   validPluginsList,
+			NodePools: []navigator.ElasticsearchClusterNodePool{validNodePool, validNodePool},
+			Pilot:     validPilotImage,
+			Image:     validESImage,
 		},
 	}
 	successCases := []navigator.ElasticsearchClusterSpec{
 		{
 			NodePools:      []navigator.ElasticsearchClusterNodePool{newValidNodePool("test", 3, navigator.ElasticsearchRoleMaster)},
 			Pilot:          validSpecPilotImage,
-			Image:          validSpecESImage,
+			Image:          &validSpecESImage,
 			MinimumMasters: 2,
+			Version:        validSemver,
 		},
 		{
 			Plugins:        validSpecPluginsList,
 			NodePools:      []navigator.ElasticsearchClusterNodePool{newValidNodePool("test", 3, navigator.ElasticsearchRoleMaster)},
 			Pilot:          validSpecPilotImage,
-			Image:          validSpecESImage,
+			Image:          &validSpecESImage,
 			MinimumMasters: 2,
+			Version:        validSemver,
 		},
 		{
 			Plugins:        validSpecPluginsList,
 			NodePools:      []navigator.ElasticsearchClusterNodePool{newValidNodePool("test", 3, navigator.ElasticsearchRoleMaster)},
 			Pilot:          validSpecPilotImage,
-			Image:          validSpecESImage,
+			Image:          &validSpecESImage,
 			MinimumMasters: 3,
+			Version:        validSemver,
+		},
+		{
+			NodePools: []navigator.ElasticsearchClusterNodePool{newValidNodePool("test", 3, navigator.ElasticsearchRoleMaster)},
+			Pilot:     validPilotImage,
+			Image:     validESImage,
+			Version:   validSemver,
+		},
+		{
+			NodePools: []navigator.ElasticsearchClusterNodePool{newValidNodePool("test", 3, navigator.ElasticsearchRoleMaster)},
+			Plugins:   validPluginsList,
+			Pilot:     validPilotImage,
+			Image:     validESImage,
+			Version:   validSemver,
 		},
 	}
 	for i, successCase := range successCases {
