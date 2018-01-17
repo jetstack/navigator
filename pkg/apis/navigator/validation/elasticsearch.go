@@ -9,6 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/jetstack/navigator/pkg/apis/navigator"
+	"github.com/jetstack/navigator/pkg/util"
 )
 
 var supportedPullPolicies = []string{
@@ -99,54 +100,44 @@ func ValidateElasticsearchClusterSpec(spec *navigator.ElasticsearchClusterSpec, 
 		allErrs = append(allErrs, ValidateElasticsearchClusterNodePool(&np, idxPath)...)
 	}
 
-	numMasters := countMasterReplicas(spec.NodePools)
-	quorom := calculateQuorom(numMasters)
+	numMasters := countElasticsearchMasters(spec.NodePools)
+	quorum := util.CalculateQuorum(numMasters)
 	switch {
 	case numMasters == 0:
 		allErrs = append(allErrs, field.Invalid(npPath, numMasters, "must be at least one master node"))
 	case spec.MinimumMasters == 0:
 		// do nothing, navigator-controller will automatically calculate &
 		// manage the minimumMasters required for the cluster
-	case spec.MinimumMasters < quorom:
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("minimumMasters"), spec.MinimumMasters, fmt.Sprintf("must be a minimum of %d to avoid a split brain scenario", quorom)))
-	case spec.MinimumMasters > quorom:
+	case spec.MinimumMasters < quorum:
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("minimumMasters"), spec.MinimumMasters, fmt.Sprintf("must be a minimum of %d to avoid a split brain scenario", quorum)))
+	case spec.MinimumMasters > numMasters:
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("minimumMasters"), spec.MinimumMasters, fmt.Sprintf("cannot be greater than the total number of master nodes")))
 	}
 
 	return allErrs
 }
 
-func calculateQuorom(num int64) int64 {
-	if num == 0 {
-		return 0
-	}
-	if num == 1 {
-		return 1
-	}
-	return (num / 2) + 1
+func ValidateElasticsearchCluster(esc *navigator.ElasticsearchCluster) field.ErrorList {
+	allErrs := ValidateObjectMeta(&esc.ObjectMeta, true, apimachineryvalidation.NameIsDNSSubdomain, field.NewPath("metadata"))
+	allErrs = append(allErrs, ValidateElasticsearchClusterSpec(&esc.Spec, field.NewPath("spec"))...)
+	return allErrs
 }
 
-func countMasterReplicas(pools []navigator.ElasticsearchClusterNodePool) int64 {
+func countElasticsearchMasters(pools []navigator.ElasticsearchClusterNodePool) int64 {
 	masters := int64(0)
 	for _, pool := range pools {
-		if hasRole(pool.Roles, navigator.ElasticsearchRoleMaster) {
+		if containsElasticsearchRole(pool.Roles, navigator.ElasticsearchRoleMaster) {
 			masters += pool.Replicas
 		}
 	}
 	return masters
 }
 
-func hasRole(set []navigator.ElasticsearchClusterRole, role navigator.ElasticsearchClusterRole) bool {
+func containsElasticsearchRole(set []navigator.ElasticsearchClusterRole, role navigator.ElasticsearchClusterRole) bool {
 	for _, s := range set {
 		if s == role {
 			return true
 		}
 	}
 	return false
-}
-
-func ValidateElasticsearchCluster(esc *navigator.ElasticsearchCluster) field.ErrorList {
-	allErrs := ValidateObjectMeta(&esc.ObjectMeta, true, apimachineryvalidation.NameIsDNSSubdomain, field.NewPath("metadata"))
-	allErrs = append(allErrs, ValidateElasticsearchClusterSpec(&esc.Spec, field.NewPath("spec"))...)
-	return allErrs
 }

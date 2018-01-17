@@ -123,9 +123,9 @@ type ElasticsearchClusterSpec struct {
 	// This can be used to set for example the vm.max_map_count parameter.
 	Sysctl []string `json:"sysctl"`
 
-	// The minimum number of masters required to form a quorom in the cluster.
-	// If omitted, this will be set to a quorom of the master nodes in the
-	// cluster. If set, the value *must* be greater than or equal to a quorom
+	// The minimum number of masters required to form a quorum in the cluster.
+	// If omitted, this will be set to a quorum of the master nodes in the
+	// cluster. If set, the value *must* be greater than or equal to a quorum
 	// of master nodes.
 	MinimumMasters int64 `json:"minimumMasters,omitempty"`
 }

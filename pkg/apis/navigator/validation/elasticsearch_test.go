@@ -356,7 +356,7 @@ func TestValidateElasticsearchClusterSpec(t *testing.T) {
 			Pilot:          validSpecPilotImage,
 			MinimumMasters: 2,
 		},
-		"minimum masters set to low": {
+		"minimum masters set too low": {
 			Plugins:        validSpecPluginsList,
 			NodePools:      []navigator.ElasticsearchClusterNodePool{newValidNodePool("test", 3, navigator.ElasticsearchRoleMaster)},
 			Pilot:          validSpecPilotImage,
@@ -384,6 +384,13 @@ func TestValidateElasticsearchClusterSpec(t *testing.T) {
 			Pilot:          validSpecPilotImage,
 			Image:          validSpecESImage,
 			MinimumMasters: 2,
+		},
+		{
+			Plugins:        validSpecPluginsList,
+			NodePools:      []navigator.ElasticsearchClusterNodePool{newValidNodePool("test", 3, navigator.ElasticsearchRoleMaster)},
+			Pilot:          validSpecPilotImage,
+			Image:          validSpecESImage,
+			MinimumMasters: 3,
 		},
 	}
 	for i, successCase := range successCases {

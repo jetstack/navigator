@@ -3,6 +3,10 @@ kind: ElasticsearchCluster
 metadata:
   name: demo
 spec:
+  ## Omitting the minimumMasters fields will cause navigator to automatically
+  ## determine a quorum of masters to use.
+  # minimumMasters: 2
+
   sysctl:
   - vm.max_map_count=262144
 
