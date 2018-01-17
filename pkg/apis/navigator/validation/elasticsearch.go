@@ -73,8 +73,11 @@ func ValidateElasticsearchClusterNodePool(np *navigator.ElasticsearchClusterNode
 
 func ValidateElasticsearchPersistence(cfg *navigator.ElasticsearchClusterPersistenceConfig, fldPath *field.Path) field.ErrorList {
 	el := field.ErrorList{}
-	if cfg.Enabled && len(cfg.Size) == 0 {
+	if cfg.Enabled && cfg.Size.IsZero() {
 		el = append(el, field.Required(fldPath.Child("size"), ""))
+	}
+	if cfg.Size.Sign() == -1 {
+		el = append(el, field.Invalid(fldPath.Child("size"), cfg.Size, "must be greater than zero"))
 	}
 	// TODO: validate size quantity
 	return el

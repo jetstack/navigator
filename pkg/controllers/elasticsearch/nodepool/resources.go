@@ -59,20 +59,9 @@ func nodePoolStatefulSet(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.Elastics
 
 	if np.Persistence.Enabled {
 		volumeClaimTemplateAnnotations := map[string]string{}
-		volumeResourceRequests := apiv1.ResourceList{}
 
 		if np.Persistence.StorageClass != "" {
 			volumeClaimTemplateAnnotations["volume.beta.kubernetes.io/storage-class"] = np.Persistence.StorageClass
-		}
-
-		if size := np.Persistence.Size; size != "" {
-			storageRequests, err := resource.ParseQuantity(size)
-
-			if err != nil {
-				return nil, fmt.Errorf("error parsing storage size quantity '%s': %s", size, err.Error())
-			}
-
-			volumeResourceRequests[apiv1.ResourceStorage] = storageRequests
 		}
 
 		ss.Spec.VolumeClaimTemplates = []apiv1.PersistentVolumeClaim{
@@ -86,7 +75,9 @@ func nodePoolStatefulSet(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.Elastics
 						apiv1.ReadWriteOnce,
 					},
 					Resources: apiv1.ResourceRequirements{
-						Requests: volumeResourceRequests,
+						Requests: apiv1.ResourceList{
+							apiv1.ResourceStorage: np.Persistence.Size,
+						},
 					},
 				},
 			},

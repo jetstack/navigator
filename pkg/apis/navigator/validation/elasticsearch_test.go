@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/jetstack/navigator/pkg/apis/navigator"
@@ -23,7 +24,7 @@ var (
 	validNodePoolResources         = &corev1.ResourceRequirements{}
 	validNodePoolPersistenceConfig = navigator.ElasticsearchClusterPersistenceConfig{
 		Enabled: true,
-		Size:    "10Gi",
+		Size:    resource.MustParse("10Gi"),
 	}
 
 	validImageTag        = "latest"
@@ -249,27 +250,27 @@ func TestValidateElasticsearchClusterNodePool(t *testing.T) {
 }
 
 func TestValidateElasticsearchPersistence(t *testing.T) {
+	validSize := resource.MustParse("10Gi")
 	errorCases := map[string]navigator.ElasticsearchClusterPersistenceConfig{
 		"enabled but no size specified": navigator.ElasticsearchClusterPersistenceConfig{
 			Enabled: true,
 		},
-		// TODO: enable this test once we have size validation
-		// "enabled but invalid size specified": navigator.ElasticsearchClusterPersistenceConfig{
-		// 	Enabled: true,
-		// 	Size:    "NaN",
-		// },
+		"enabled but invalid size specified": navigator.ElasticsearchClusterPersistenceConfig{
+			Enabled: true,
+			Size:    *resource.NewQuantity(-1, resource.BinarySI),
+		},
 	}
 	successCases := []navigator.ElasticsearchClusterPersistenceConfig{
 		{},
 		{
-			Size: "1Gi",
+			Size: validSize,
 		},
 		{
 			StorageClass: "something",
 		},
 		{
 			Enabled: true,
-			Size:    "10Gi",
+			Size:    validSize,
 		},
 	}
 

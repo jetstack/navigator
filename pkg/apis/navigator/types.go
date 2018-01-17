@@ -2,6 +2,7 @@ package navigator
 
 import (
 	"k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -119,7 +120,7 @@ const (
 
 type ElasticsearchClusterPersistenceConfig struct {
 	Enabled      bool
-	Size         string
+	Size         resource.Quantity
 	StorageClass string
 }
 
