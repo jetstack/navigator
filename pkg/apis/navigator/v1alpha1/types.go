@@ -2,6 +2,7 @@ package v1alpha1
 
 import (
 	"k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -172,7 +173,7 @@ type ElasticsearchClusterPersistenceConfig struct {
 
 	// Size of the persistent volume to provision (required if persistence is
 	// enabled).
-	Size string `json:"size"`
+	Size resource.Quantity `json:"size"`
 
 	// StorageClass to use for the persistent volume claim. If not set, the
 	// default cluster storage class will be used.
@@ -189,7 +190,7 @@ type ImageSpec struct {
 
 	// PullPolicy is the policy for pulling docker images. If not set, the
 	// cluster default will be used.
-	PullPolicy string `json:"pullPolicy"`
+	PullPolicy v1.PullPolicy `json:"pullPolicy"`
 }
 
 type ElasticsearchPilotImage struct {

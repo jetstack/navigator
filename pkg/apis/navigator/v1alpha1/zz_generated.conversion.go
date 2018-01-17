@@ -502,7 +502,7 @@ func Convert_navigator_ElasticsearchPilotStatus_To_v1alpha1_ElasticsearchPilotSt
 func autoConvert_v1alpha1_ImageSpec_To_navigator_ImageSpec(in *ImageSpec, out *navigator.ImageSpec, s conversion.Scope) error {
 	out.Repository = in.Repository
 	out.Tag = in.Tag
-	out.PullPolicy = in.PullPolicy
+	out.PullPolicy = v1.PullPolicy(in.PullPolicy)
 	return nil
 }
 
@@ -514,7 +514,7 @@ func Convert_v1alpha1_ImageSpec_To_navigator_ImageSpec(in *ImageSpec, out *navig
 func autoConvert_navigator_ImageSpec_To_v1alpha1_ImageSpec(in *navigator.ImageSpec, out *ImageSpec, s conversion.Scope) error {
 	out.Repository = in.Repository
 	out.Tag = in.Tag
-	out.PullPolicy = in.PullPolicy
+	out.PullPolicy = v1.PullPolicy(in.PullPolicy)
 	return nil
 }
 
