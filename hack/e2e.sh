@@ -145,7 +145,7 @@ function test_elasticsearchcluster() {
     then
         fail_test "Elasticsearch pilot did not update the document count"
     fi
-    if ! retry TIMEOUT=300 stdout_equals "yellow" kubectl \
+    if ! retry TIMEOUT=300 stdout_equals "Yellow" kubectl \
         --namespace "${namespace}" \
         get elasticsearchcluster \
         "test" \

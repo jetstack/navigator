@@ -3,6 +3,7 @@ package v5
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -105,10 +106,22 @@ func (p *Pilot) updateElasticsearchClusterStatus(ctx context.Context, esc *v1alp
 	}
 
 	escCopy := esc.DeepCopy()
-	escCopy.Status.Health = v1alpha1.ElasticsearchClusterHealth(currentHealth.Status)
+	escCopy.Status.Health = parseHealth(currentHealth.Status)
 	if _, err := p.navigatorClient.NavigatorV1alpha1().ElasticsearchClusters(escCopy.Namespace).UpdateStatus(escCopy); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func parseHealth(s string) v1alpha1.ElasticsearchClusterHealth {
+	switch strings.ToLower(s) {
+	case "green":
+		return v1alpha1.ElasticsearchClusterHealthGreen
+	case "yellow":
+		return v1alpha1.ElasticsearchClusterHealthYellow
+	case "red":
+		return v1alpha1.ElasticsearchClusterHealthRed
+	}
+	return v1alpha1.ElasticsearchClusterHealth(s)
 }
