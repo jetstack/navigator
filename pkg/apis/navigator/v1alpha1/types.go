@@ -180,7 +180,7 @@ type ImageSpec struct {
 
 	// PullPolicy is the policy for pulling docker images. If not set, the
 	// cluster default will be used.
-	PullPolicy string `json:"pullPolicy"`
+	PullPolicy v1.PullPolicy `json:"pullPolicy"`
 }
 
 type ElasticsearchPilotImage struct {
