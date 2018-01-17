@@ -101,11 +101,15 @@ func ValidateElasticsearchClusterSpec(spec *navigator.ElasticsearchClusterSpec, 
 
 	numMasters := countMasterReplicas(spec.NodePools)
 	quorom := calculateQuorom(numMasters)
-	if numMasters == 0 {
+	switch {
+	case numMasters == 0:
 		allErrs = append(allErrs, field.Invalid(npPath, numMasters, "must be at least one master node"))
-	} else if spec.MinimumMasters < quorom {
+	case spec.MinimumMasters == 0:
+		// do nothing, navigator-controller will automatically calculate &
+		// manage the minimumMasters required for the cluster
+	case spec.MinimumMasters < quorom:
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("minimumMasters"), spec.MinimumMasters, fmt.Sprintf("must be a minimum of %d to avoid a split brain scenario", quorom)))
-	} else if spec.MinimumMasters > numMasters {
+	case spec.MinimumMasters > quorom:
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("minimumMasters"), spec.MinimumMasters, fmt.Sprintf("cannot be greater than the total number of master nodes")))
 	}
 
@@ -113,6 +117,9 @@ func ValidateElasticsearchClusterSpec(spec *navigator.ElasticsearchClusterSpec, 
 }
 
 func calculateQuorom(num int64) int64 {
+	if num == 0 {
+		return 0
+	}
 	if num == 1 {
 		return 1
 	}

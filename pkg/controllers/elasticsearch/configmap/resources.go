@@ -42,5 +42,41 @@ func esConfigConfigMap(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.Elasticsea
 }
 
 func generateConfig(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.ElasticsearchClusterNodePool) string {
-	return fmt.Sprintf(configTemplate, c.Spec.MinimumMasters)
+	minimumMasters := c.Spec.MinimumMasters
+	if minimumMasters == 0 {
+		// auto-manage minimum master count
+		totalMasters := countMasterReplicas(c.Spec.NodePools)
+		minimumMasters = calculateQuorom(totalMasters)
+	}
+	return fmt.Sprintf(configTemplate, minimumMasters)
+}
+
+// TODO: move these functions into a shared package
+func calculateQuorom(num int64) int64 {
+	if num == 0 {
+		return 0
+	}
+	if num == 1 {
+		return 1
+	}
+	return (num / 2) + 1
+}
+
+func countMasterReplicas(pools []v1alpha1.ElasticsearchClusterNodePool) int64 {
+	masters := int64(0)
+	for _, pool := range pools {
+		if hasRole(pool.Roles, v1alpha1.ElasticsearchRoleMaster) {
+			masters += pool.Replicas
+		}
+	}
+	return masters
+}
+
+func hasRole(set []v1alpha1.ElasticsearchClusterRole, role v1alpha1.ElasticsearchClusterRole) bool {
+	for _, s := range set {
+		if s == role {
+			return true
+		}
+	}
+	return false
 }

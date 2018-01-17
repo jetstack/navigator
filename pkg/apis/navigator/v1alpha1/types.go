@@ -127,7 +127,7 @@ type ElasticsearchClusterSpec struct {
 	// If omitted, this will be set to a quorom of the master nodes in the
 	// cluster. If set, the value *must* be greater than or equal to a quorom
 	// of master nodes.
-	MinimumMasters int64 `json:"minimumMasters"`
+	MinimumMasters int64 `json:"minimumMasters,omitempty"`
 }
 
 // ElasticsearchClusterNodePool describes a node pool within an ElasticsearchCluster.
