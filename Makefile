@@ -88,13 +88,7 @@ go_test:
 	go test -v $$(go list ./... | grep -v '/vendor/')
 
 go_fmt:
-	@set -e; \
-	GO_FMT=$$(git ls-files *.go | grep -v 'vendor/' | xargs gofmt -d); \
-	if [ -n "$${GO_FMT}" ] ; then \
-		echo "Please run go fmt"; \
-		echo "$$GO_FMT"; \
-		exit 1; \
-	fi
+	./hack/verify-lint.sh
 
 # This section contains the code generation stuff
 #################################################
