@@ -4,13 +4,17 @@ import (
 	"testing"
 
 	navinformers "github.com/jetstack/navigator/pkg/client/informers/externalversions"
+	rbacv1 "k8s.io/api/rbac/v1beta1"
 
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/nodepool"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/pilot"
+	"github.com/jetstack/navigator/pkg/controllers/cassandra/role"
+	"github.com/jetstack/navigator/pkg/controllers/cassandra/rolebinding"
 	servicecql "github.com/jetstack/navigator/pkg/controllers/cassandra/service/cql"
 	serviceseedprovider "github.com/jetstack/navigator/pkg/controllers/cassandra/service/seedprovider"
+	"github.com/jetstack/navigator/pkg/controllers/cassandra/serviceaccount"
 
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -48,6 +52,9 @@ type Fixture struct {
 	CqlServiceControl          servicecql.Interface
 	NodepoolControl            nodepool.Interface
 	PilotControl               pilot.Interface
+	ServiceAccountControl      serviceaccount.Interface
+	RoleControl                role.Interface
+	RoleBindingControl         rolebinding.Interface
 	k8sClient                  *fake.Clientset
 	k8sObjects                 []runtime.Object
 	naviClient                 *navigatorfake.Clientset
@@ -114,12 +121,41 @@ func (f *Fixture) setupAndSync() error {
 			recorder,
 		)
 	}
+	serviceAccounts := k8sFactory.Core().V1().ServiceAccounts().Lister()
+	if f.ServiceAccountControl == nil {
+		f.ServiceAccountControl = serviceaccount.NewControl(
+			f.k8sClient,
+			serviceAccounts,
+			recorder,
+		)
+	}
+
+	roles := k8sFactory.Rbac().V1beta1().Roles().Lister()
+	if f.RoleControl == nil {
+		f.RoleControl = role.NewControl(
+			f.k8sClient,
+			roles,
+			recorder,
+		)
+	}
+
+	roleBindings := k8sFactory.Rbac().V1beta1().RoleBindings().Lister()
+	if f.RoleBindingControl == nil {
+		f.RoleBindingControl = rolebinding.NewControl(
+			f.k8sClient,
+			roleBindings,
+			recorder,
+		)
+	}
 
 	c := cassandra.NewControl(
 		f.SeedProviderServiceControl,
 		f.CqlServiceControl,
 		f.NodepoolControl,
 		f.PilotControl,
+		f.ServiceAccountControl,
+		f.RoleControl,
+		f.RoleBindingControl,
 		recorder,
 	)
 	stopCh := make(chan struct{})
@@ -132,6 +168,9 @@ func (f *Fixture) setupAndSync() error {
 		k8sFactory.Core().V1().Services().Informer().HasSynced,
 		k8sFactory.Apps().V1beta1().StatefulSets().Informer().HasSynced,
 		naviFactory.Navigator().V1alpha1().Pilots().Informer().HasSynced,
+		k8sFactory.Core().V1().ServiceAccounts().Informer().HasSynced,
+		k8sFactory.Rbac().V1beta1().Roles().Informer().HasSynced,
+		k8sFactory.Rbac().V1beta1().RoleBindings().Informer().HasSynced,
 	) {
 		f.t.Fatal("WaitForCacheSync failure")
 	}
@@ -170,6 +209,78 @@ func (f *Fixture) AssertServicesLength(l int) {
 		f.t.Log(services)
 		f.t.Errorf(
 			"Incorrect number of services: %#v", servicesLength,
+		)
+	}
+}
+
+func (f *Fixture) ServiceAccounts() *v1.ServiceAccountList {
+	serviceAccounts, err := f.k8sClient.
+		CoreV1().
+		ServiceAccounts(f.Cluster.Namespace).
+		List(metav1.ListOptions{})
+	if err != nil {
+		f.t.Fatal(err)
+	}
+	return serviceAccounts
+}
+
+func (f *Fixture) AssertServiceAccountsLength(l int) {
+	serviceAccounts := f.ServiceAccounts()
+	serviceAccountsLength := len(serviceAccounts.Items)
+	if serviceAccountsLength != l {
+		f.t.Log(serviceAccounts)
+		f.t.Errorf(
+			"Incorrect number of services accounts. Expected %d. Got %d.",
+			l,
+			serviceAccountsLength,
+		)
+	}
+}
+
+func (f *Fixture) Roles() *rbacv1.RoleList {
+	roles, err := f.k8sClient.
+		RbacV1beta1().
+		Roles(f.Cluster.Namespace).
+		List(metav1.ListOptions{})
+	if err != nil {
+		f.t.Fatal(err)
+	}
+	return roles
+}
+
+func (f *Fixture) AssertRolesLength(l int) {
+	roles := f.Roles()
+	rolesLength := len(roles.Items)
+	if rolesLength != l {
+		f.t.Log(roles)
+		f.t.Errorf(
+			"Incorrect number of roles. Expected %d. Got %d.",
+			l,
+			rolesLength,
+		)
+	}
+}
+
+func (f *Fixture) RoleBindings() *rbacv1.RoleBindingList {
+	roleBindings, err := f.k8sClient.
+		RbacV1beta1().
+		RoleBindings(f.Cluster.Namespace).
+		List(metav1.ListOptions{})
+	if err != nil {
+		f.t.Fatal(err)
+	}
+	return roleBindings
+}
+
+func (f *Fixture) AssertRoleBindingsLength(l int) {
+	roleBindings := f.RoleBindings()
+	roleBindingsLength := len(roleBindings.Items)
+	if roleBindingsLength != l {
+		f.t.Log(roleBindings)
+		f.t.Errorf(
+			"Incorrect number of role bindings. Expected %d. Got %d.",
+			l,
+			roleBindingsLength,
 		)
 	}
 }

@@ -207,12 +207,6 @@ function test_cassandracluster() {
 
     kubectl create namespace "${namespace}"
 
-    # XXX Temporary work around until cassandra controller manages RBAC
-    kubectl create --namespace "${namespace}" \
-            rolebinding "${namespace}-binding" \
-            --clusterrole=cluster-admin \
-            --serviceaccount="${namespace}:default"
-
     if ! kubectl get \
          --namespace "${namespace}" \
          CassandraClusters; then
