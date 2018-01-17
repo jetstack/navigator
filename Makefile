@@ -43,7 +43,7 @@ build: $(CMDS)
 
 generate: .generate_files
 
-verify: .hack_verify go_verify helm_verify
+verify: .hack_verify dep_verify go_verify helm_verify
 
 .hack_verify:
 	@echo Running repo-infra verify scripts
@@ -53,6 +53,9 @@ verify: .hack_verify go_verify helm_verify
 	@${HACK_DIR}/verify-errexit.sh
 	@echo Running generated client checker:
 	@${HACK_DIR}/verify-client-gen.sh
+
+dep_verify:
+	${HACK_DIR}/verify-deps.sh
 
 # Docker targets
 ################
