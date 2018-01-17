@@ -18,7 +18,7 @@ func esImageToUse(spec *v1alpha1.ElasticsearchClusterSpec) (*v1alpha1.Elasticsea
 
 const defaultElasticsearchImageRepository = "docker.elastic.co/elasticsearch/elasticsearch"
 const defaultElasticsearchRunAsUser = 1000
-const defaultElasticsearchImagePullPolicy = string(corev1.PullIfNotPresent)
+const defaultElasticsearchImagePullPolicy = corev1.PullIfNotPresent
 
 func defaultElasticsearchImageForVersion(v semver.Version) (*v1alpha1.ElasticsearchImage, error) {
 	if v.Major == 0 && v.Minor == 0 && v.Patch == 0 {

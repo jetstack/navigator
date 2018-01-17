@@ -42,7 +42,7 @@ func TestESImageToUse(t *testing.T) {
 					ImageSpec: v1alpha1.ImageSpec{
 						Repository: "abcd",
 						Tag:        "xyz",
-						PullPolicy: "www",
+						PullPolicy: defaultElasticsearchImagePullPolicy,
 					},
 				},
 			},
@@ -51,7 +51,7 @@ func TestESImageToUse(t *testing.T) {
 				ImageSpec: v1alpha1.ImageSpec{
 					Repository: "abcd",
 					Tag:        "xyz",
-					PullPolicy: "www",
+					PullPolicy: defaultElasticsearchImagePullPolicy,
 				},
 			},
 		},
@@ -63,7 +63,7 @@ func TestESImageToUse(t *testing.T) {
 					ImageSpec: v1alpha1.ImageSpec{
 						Repository: "abcd",
 						Tag:        "xyz",
-						PullPolicy: "www",
+						PullPolicy: defaultElasticsearchImagePullPolicy,
 					},
 				},
 			},
@@ -72,7 +72,7 @@ func TestESImageToUse(t *testing.T) {
 				ImageSpec: v1alpha1.ImageSpec{
 					Repository: "abcd",
 					Tag:        "xyz",
-					PullPolicy: "www",
+					PullPolicy: defaultElasticsearchImagePullPolicy,
 				},
 			},
 		},
