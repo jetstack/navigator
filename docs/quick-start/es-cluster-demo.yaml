@@ -27,22 +27,6 @@ spec:
     roles:
     - master
 
-    config:
-      elasticsearch.yml: |
-        node.data: ${NODE_DATA}
-        node.master: ${NODE_MASTER}
-        node.ingest: ${NODE_INGEST}
-        node.name: ${POD_NAME}
-
-        network.host: 0.0.0.0
-
-        discovery:
-          zen:
-            ping.unicast.hosts: ${DISCOVERY_URL}
-            minimum_master_nodes: 2
-
-        xpack.security.enabled: false
-
     resources:
       requests:
         cpu: '500m'
@@ -64,22 +48,6 @@ spec:
     roles:
     - data
     - ingest
-
-    config:
-      elasticsearch.yml: |
-        node.data: ${NODE_DATA}
-        node.master: ${NODE_MASTER}
-        node.ingest: ${NODE_INGEST}
-        node.name: ${POD_NAME}
-
-        network.host: 0.0.0.0
-
-        discovery:
-          zen:
-            ping.unicast.hosts: ${DISCOVERY_URL}
-            minimum_master_nodes: 2
-
-        xpack.security.enabled: false
 
     resources:
       requests:
