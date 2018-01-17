@@ -124,16 +124,9 @@ func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.Elasticsear
 	plugins := strings.Join(c.Spec.Plugins, ",")
 	nodePoolLabels := util.NodePoolLabels(c, np.Name, np.Roles...)
 
-	esImage := c.Spec.Image
-	if esImage.FsGroup == 0 &&
-		esImage.ImageSpec.PullPolicy == "" &&
-		esImage.ImageSpec.Repository == "" &&
-		esImage.ImageSpec.Tag == "" {
-		var err error
-		esImage, err = util.DefaultElasticsearchImageForVersion(c.Spec.Version)
-		if err != nil {
-			return nil, err
-		}
+	esImage, err := esImageToUse(&c.Spec)
+	if err != nil {
+		return nil, err
 	}
 
 	return &apiv1.PodTemplateSpec{
