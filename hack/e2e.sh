@@ -145,6 +145,14 @@ function test_elasticsearchcluster() {
     then
         fail_test "Elasticsearch pilot did not update the document count"
     fi
+    if ! retry TIMEOUT=300 stdout_equals "yellow" kubectl \
+        --namespace "${namespace}" \
+        get elasticsearchcluster \
+        "test" \
+        "-o=go-template={{.status.health}}"
+    then
+        fail_test "Elasticsearch cluster health status should reflect cluster state"
+    fi
 }
 
 if [[ "test_elasticsearchcluster" = "${TEST_PREFIX}"* ]]; then
