@@ -57,8 +57,11 @@ func StatefulSetForCluster(
 							},
 						},
 					},
+					SecurityContext: &apiv1.PodSecurityContext{
+						FSGroup: cluster.Spec.NavigatorClusterConfig.SecurityContext.RunAsUser,
+					},
 					InitContainers: []apiv1.Container{
-						pilotInstallationContainer(&cluster.Spec.PilotImage),
+						pilotInstallationContainer(&cluster.Spec.NavigatorClusterConfig.PilotImage),
 					},
 					Containers: []apiv1.Container{
 						{
@@ -132,6 +135,9 @@ func StatefulSetForCluster(
 								PeriodSeconds:    30,
 								SuccessThreshold: 1,
 								FailureThreshold: 6,
+							},
+							SecurityContext: &apiv1.SecurityContext{
+								RunAsUser: cluster.Spec.NavigatorClusterConfig.SecurityContext.RunAsUser,
 							},
 							Ports: []apiv1.ContainerPort{
 								{

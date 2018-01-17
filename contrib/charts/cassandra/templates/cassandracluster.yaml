@@ -9,7 +9,7 @@ metadata:
     heritage: {{ .Release.Service }}
 spec:
   cqlPort: {{ .Values.cqlPort }}
-  sysctl:
+  sysctls:
   - vm.max_map_count=0
   nodePools:
   - name: ringnodes

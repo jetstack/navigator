@@ -136,7 +136,7 @@ func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.Elasticsear
 			ServiceAccountName:            util.ServiceAccountName(c),
 			NodeSelector:                  np.NodeSelector,
 			SecurityContext: &apiv1.PodSecurityContext{
-				FSGroup: util.Int64Ptr(c.Spec.Image.FsGroup),
+				FSGroup: c.Spec.NavigatorClusterConfig.SecurityContext.RunAsUser,
 			},
 			Volumes:        volumes,
 			InitContainers: buildInitContainers(c, np),
@@ -196,6 +196,7 @@ func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.Elasticsear
 						},
 					},
 					SecurityContext: &apiv1.SecurityContext{
+						RunAsUser: c.Spec.NavigatorClusterConfig.SecurityContext.RunAsUser,
 						Capabilities: &apiv1.Capabilities{
 							Add: []apiv1.Capability{
 								apiv1.Capability("IPC_LOCK"),
@@ -262,11 +263,11 @@ func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.Elasticsear
 }
 
 func buildInitContainers(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.ElasticsearchClusterNodePool) []apiv1.Container {
-	containers := make([]apiv1.Container, len(c.Spec.Sysctl)+1)
+	containers := make([]apiv1.Container, len(c.Spec.Sysctls)+1)
 	containers[0] = apiv1.Container{
 		Name:            "install-pilot",
-		Image:           fmt.Sprintf("%s:%s", c.Spec.Pilot.Repository, c.Spec.Pilot.Tag),
-		ImagePullPolicy: apiv1.PullPolicy(c.Spec.Pilot.PullPolicy),
+		Image:           fmt.Sprintf("%s:%s", c.Spec.PilotImage.Repository, c.Spec.PilotImage.Tag),
+		ImagePullPolicy: apiv1.PullPolicy(c.Spec.PilotImage.PullPolicy),
 		Command:         []string{"cp", "/pilot", fmt.Sprintf("%s/pilot", sharedVolumeMountPath)},
 		VolumeMounts: []apiv1.VolumeMount{
 			{
@@ -282,7 +283,7 @@ func buildInitContainers(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.Elastics
 			},
 		},
 	}
-	for i, sysctl := range c.Spec.Sysctl {
+	for i, sysctl := range c.Spec.Sysctls {
 		containers[i+1] = apiv1.Container{
 			Name:            fmt.Sprintf("tune-sysctl-%d", i),
 			Image:           "busybox:latest",
