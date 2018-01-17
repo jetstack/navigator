@@ -1,12 +1,20 @@
 package validation
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	apimachineryvalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/jetstack/navigator/pkg/apis/navigator"
 )
+
+var supportedPullPolicies = []string{
+	string(corev1.PullNever),
+	string(corev1.PullIfNotPresent),
+	string(corev1.PullAlways),
+	"",
+}
 
 func ValidateImageSpec(img *navigator.ImageSpec, fldPath *field.Path) field.ErrorList {
 	el := field.ErrorList{}
@@ -15,6 +23,12 @@ func ValidateImageSpec(img *navigator.ImageSpec, fldPath *field.Path) field.Erro
 	}
 	if img.Repository == "" {
 		el = append(el, field.Required(fldPath.Child("repository"), ""))
+	}
+	if img.PullPolicy != corev1.PullNever &&
+		img.PullPolicy != corev1.PullIfNotPresent &&
+		img.PullPolicy != corev1.PullAlways &&
+		img.PullPolicy != "" {
+		el = append(el, field.NotSupported(fldPath.Child("pullPolicy"), img.PullPolicy, supportedPullPolicies))
 	}
 	return el
 }
@@ -37,10 +51,13 @@ func ValidateElasticsearchClusterRole(r navigator.ElasticsearchClusterRole, fldP
 	return el
 }
 
-func ValidatElasticsearchClusterNodePool(np *navigator.ElasticsearchClusterNodePool, fldPath *field.Path) field.ErrorList {
+func ValidateElasticsearchClusterNodePool(np *navigator.ElasticsearchClusterNodePool, fldPath *field.Path) field.ErrorList {
 	el := ValidateDNS1123Subdomain(np.Name, fldPath.Child("name"))
-	el = ValidateElasticsearchPersistence(&np.Persistence, fldPath.Child("persistence"))
+	el = append(el, ValidateElasticsearchPersistence(&np.Persistence, fldPath.Child("persistence"))...)
 	rolesPath := fldPath.Child("roles")
+	if len(np.Roles) == 0 {
+		el = append(el, field.Required(rolesPath, "at least one role must be specified"))
+	}
 	for i, r := range np.Roles {
 		idxPath := rolesPath.Index(i)
 		el = append(el, ValidateElasticsearchClusterRole(r, idxPath)...)
@@ -75,7 +92,7 @@ func ValidateElasticsearchClusterSpec(spec *navigator.ElasticsearchClusterSpec, 
 		} else {
 			allNames.Insert(np.Name)
 		}
-		allErrs = append(allErrs, ValidatElasticsearchClusterNodePool(&np, idxPath)...)
+		allErrs = append(allErrs, ValidateElasticsearchClusterNodePool(&np, idxPath)...)
 	}
 	return allErrs
 }
