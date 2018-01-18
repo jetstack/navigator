@@ -4,11 +4,16 @@ metadata:
   name: test
 spec:
   minimumMasters: 1
+
   version: 5.6.2
-  sysctl:
+
+  sysctls:
   - vm.max_map_count=262144
 
-  pilot:
+  securityContext:
+    runAsUser: 1000
+
+  pilotImage:
     repository: ${NAVIGATOR_IMAGE_REPOSITORY}/navigator-pilot-elasticsearch
     tag: ${NAVIGATOR_IMAGE_TAG}
     pullPolicy: ${NAVIGATOR_IMAGE_PULLPOLICY}

@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/golang/glog"
+
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 )
 

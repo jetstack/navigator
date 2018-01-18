@@ -4,7 +4,7 @@ metadata:
   name: demo
 spec:
   cqlPort: 9042
-  sysctl:
+  sysctls:
   - vm.max_map_count=0
   nodePools:
   - name: RingNodes

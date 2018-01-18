@@ -25,11 +25,11 @@ type CassandraCluster struct {
 }
 
 type CassandraClusterSpec struct {
-	Sysctl     []string
-	NodePools  []CassandraClusterNodePool
-	Image      ImageSpec
-	PilotImage ImageSpec
-	CqlPort    int32
+	NavigatorClusterConfig
+
+	NodePools []CassandraClusterNodePool
+	Image     ImageSpec
+	CqlPort   int32
 }
 
 type CassandraClusterNodePool struct {
@@ -100,11 +100,10 @@ type ElasticsearchClusterList struct {
 }
 
 type ElasticsearchClusterSpec struct {
-	Version semver.Version
-	Pilot   ElasticsearchPilotImage
-	Image   *ElasticsearchImage
-	Sysctl  []string
+	NavigatorClusterConfig
 
+	Version        semver.Version
+	Image          *ImageSpec
 	Plugins        []string
 	NodePools      []ElasticsearchClusterNodePool
 	MinimumMasters int64
@@ -139,13 +138,16 @@ type ImageSpec struct {
 	PullPolicy v1.PullPolicy
 }
 
-type ElasticsearchPilotImage struct {
-	ImageSpec
+type NavigatorClusterConfig struct {
+	PilotImage ImageSpec
+
+	SecurityContext NavigatorSecurityContext
+
+	Sysctls []string
 }
 
-type ElasticsearchImage struct {
-	ImageSpec
-	FsGroup int64
+type NavigatorSecurityContext struct {
+	RunAsUser *int64
 }
 
 // +genclient

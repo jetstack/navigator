@@ -3,12 +3,13 @@ package nodepool
 import (
 	"fmt"
 
-	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
-	"github.com/jetstack/navigator/pkg/controllers/cassandra/util"
 	apps "k8s.io/api/apps/v1beta1"
 	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
+	"github.com/jetstack/navigator/pkg/controllers/cassandra/util"
 )
 
 const (
@@ -56,8 +57,11 @@ func StatefulSetForCluster(
 							},
 						},
 					},
+					SecurityContext: &apiv1.PodSecurityContext{
+						FSGroup: cluster.Spec.NavigatorClusterConfig.SecurityContext.RunAsUser,
+					},
 					InitContainers: []apiv1.Container{
-						pilotInstallationContainer(&cluster.Spec.PilotImage),
+						pilotInstallationContainer(&cluster.Spec.NavigatorClusterConfig.PilotImage),
 					},
 					Containers: []apiv1.Container{
 						{
@@ -131,6 +135,9 @@ func StatefulSetForCluster(
 								PeriodSeconds:    30,
 								SuccessThreshold: 1,
 								FailureThreshold: 6,
+							},
+							SecurityContext: &apiv1.SecurityContext{
+								RunAsUser: cluster.Spec.NavigatorClusterConfig.SecurityContext.RunAsUser,
 							},
 							Ports: []apiv1.ContainerPort{
 								{

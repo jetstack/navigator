@@ -1,11 +1,12 @@
 package cql
 
 import (
-	v1alpha1 "github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
-	serviceutil "github.com/jetstack/navigator/pkg/controllers/cassandra/service/util"
 	"k8s.io/client-go/kubernetes"
 	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/record"
+
+	v1alpha1 "github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
+	serviceutil "github.com/jetstack/navigator/pkg/controllers/cassandra/service/util"
 )
 
 type Interface interface {

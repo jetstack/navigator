@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/coreos/go-semver/semver"
-	corev1 "k8s.io/api/core/v1"
 	apimachineryvalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -12,30 +11,6 @@ import (
 	"github.com/jetstack/navigator/pkg/apis/navigator"
 	"github.com/jetstack/navigator/pkg/util"
 )
-
-var supportedPullPolicies = []string{
-	string(corev1.PullNever),
-	string(corev1.PullIfNotPresent),
-	string(corev1.PullAlways),
-	"",
-}
-
-func ValidateImageSpec(img *navigator.ImageSpec, fldPath *field.Path) field.ErrorList {
-	el := field.ErrorList{}
-	if img.Tag == "" {
-		el = append(el, field.Required(fldPath.Child("tag"), ""))
-	}
-	if img.Repository == "" {
-		el = append(el, field.Required(fldPath.Child("repository"), ""))
-	}
-	if img.PullPolicy != corev1.PullNever &&
-		img.PullPolicy != corev1.PullIfNotPresent &&
-		img.PullPolicy != corev1.PullAlways &&
-		img.PullPolicy != "" {
-		el = append(el, field.NotSupported(fldPath.Child("pullPolicy"), img.PullPolicy, supportedPullPolicies))
-	}
-	return el
-}
 
 var supportedESClusterRoles = []string{
 	string(navigator.ElasticsearchRoleData),
@@ -89,9 +64,9 @@ func ValidateElasticsearchPersistence(cfg *navigator.ElasticsearchClusterPersist
 var emptySemver = semver.Version{}
 
 func ValidateElasticsearchClusterSpec(spec *navigator.ElasticsearchClusterSpec, fldPath *field.Path) field.ErrorList {
-	allErrs := ValidateImageSpec(&spec.Pilot.ImageSpec, fldPath.Child("pilot"))
+	allErrs := ValidateNavigatorClusterConfig(&spec.NavigatorClusterConfig, fldPath)
 	if spec.Image != nil {
-		allErrs = append(allErrs, ValidateImageSpec(&spec.Image.ImageSpec, fldPath.Child("image"))...)
+		allErrs = append(allErrs, ValidateImageSpec(spec.Image, fldPath.Child("image"))...)
 	}
 	npPath := fldPath.Child("nodePools")
 	allNames := sets.String{}

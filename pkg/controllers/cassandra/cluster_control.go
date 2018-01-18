@@ -2,6 +2,9 @@ package cassandra
 
 import (
 	"github.com/golang/glog"
+	apiv1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/tools/record"
+
 	v1alpha1 "github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/nodepool"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/pilot"
@@ -10,8 +13,6 @@ import (
 	servicecql "github.com/jetstack/navigator/pkg/controllers/cassandra/service/cql"
 	serviceseedprovider "github.com/jetstack/navigator/pkg/controllers/cassandra/service/seedprovider"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/serviceaccount"
-	apiv1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/tools/record"
 )
 
 const (

@@ -27,6 +27,7 @@ import (
 	"k8s.io/apiserver/pkg/storage/names"
 
 	"github.com/jetstack/navigator/pkg/apis/navigator"
+	"github.com/jetstack/navigator/pkg/apis/navigator/validation"
 )
 
 func NewStrategy(typer runtime.ObjectTyper) cassandraClusterStrategy {
@@ -72,7 +73,8 @@ func (cassandraClusterStrategy) PrepareForUpdate(ctx genericapirequest.Context, 
 }
 
 func (cassandraClusterStrategy) Validate(ctx genericapirequest.Context, obj runtime.Object) field.ErrorList {
-	return field.ErrorList{}
+	cass := obj.(*navigator.CassandraCluster)
+	return validation.ValidateCassandraCluster(cass)
 }
 
 func (cassandraClusterStrategy) AllowCreateOnUpdate() bool {
@@ -87,7 +89,8 @@ func (cassandraClusterStrategy) Canonicalize(obj runtime.Object) {
 }
 
 func (cassandraClusterStrategy) ValidateUpdate(ctx genericapirequest.Context, obj, old runtime.Object) field.ErrorList {
-	return field.ErrorList{}
+	cass := obj.(*navigator.CassandraCluster)
+	return validation.ValidateCassandraCluster(cass)
 }
 
 // implements interface RESTUpdateStrategy. This implementation validates updates to

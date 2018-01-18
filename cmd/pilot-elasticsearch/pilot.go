@@ -1,9 +1,11 @@
 package main
 
 import (
-	"github.com/jetstack/navigator/pkg/pilot/elasticsearch/v5"
-	"github.com/spf13/cobra"
 	"io"
+
+	"github.com/spf13/cobra"
+
+	"github.com/jetstack/navigator/pkg/pilot/elasticsearch/v5"
 )
 
 // NewCommandStartPilot provides a CLI handler for the pilot

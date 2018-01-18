@@ -6,9 +6,10 @@ import (
 	"runtime"
 
 	"github.com/golang/glog"
-	"github.com/jetstack/navigator/pkg/pilot/genericpilot/signals"
 	"k8s.io/apiserver/pkg/util/logs"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
+
+	"github.com/jetstack/navigator/pkg/pilot/genericpilot/signals"
 )
 
 func main() {
