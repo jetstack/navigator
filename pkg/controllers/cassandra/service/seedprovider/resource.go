@@ -1,10 +1,11 @@
 package seedprovider
 
 import (
+	apiv1 "k8s.io/api/core/v1"
+
 	v1alpha1 "github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	serviceutil "github.com/jetstack/navigator/pkg/controllers/cassandra/service/util"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/util"
-	apiv1 "k8s.io/api/core/v1"
 )
 
 const (

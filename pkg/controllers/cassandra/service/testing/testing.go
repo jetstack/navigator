@@ -3,8 +3,9 @@ package testing
 import (
 	"testing"
 
-	casstesting "github.com/jetstack/navigator/pkg/controllers/cassandra/testing"
 	apiv1 "k8s.io/api/core/v1"
+
+	casstesting "github.com/jetstack/navigator/pkg/controllers/cassandra/testing"
 )
 
 type FixtureFactory func(t *testing.T) *casstesting.Fixture

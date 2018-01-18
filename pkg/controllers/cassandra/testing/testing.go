@@ -3,8 +3,9 @@ package testing
 import (
 	"testing"
 
-	navinformers "github.com/jetstack/navigator/pkg/client/informers/externalversions"
 	rbacv1 "k8s.io/api/rbac/v1beta1"
+
+	navinformers "github.com/jetstack/navigator/pkg/client/informers/externalversions"
 
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra"
@@ -19,13 +20,14 @@ import (
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	navigatorfake "github.com/jetstack/navigator/pkg/client/clientset/versioned/fake"
 	apps "k8s.io/api/apps/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
+
+	navigatorfake "github.com/jetstack/navigator/pkg/client/clientset/versioned/fake"
 )
 
 func ClusterForTest() *v1alpha1.CassandraCluster {

@@ -18,6 +18,8 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 
+	rbacinformers "k8s.io/client-go/informers/rbac/v1beta1"
+
 	navigatorclientset "github.com/jetstack/navigator/pkg/client/clientset/versioned"
 	navigatorinformers "github.com/jetstack/navigator/pkg/client/informers/externalversions/navigator/v1alpha1"
 	listersv1alpha1 "github.com/jetstack/navigator/pkg/client/listers/navigator/v1alpha1"
@@ -29,7 +31,6 @@ import (
 	servicecql "github.com/jetstack/navigator/pkg/controllers/cassandra/service/cql"
 	serviceseedprovider "github.com/jetstack/navigator/pkg/controllers/cassandra/service/seedprovider"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/serviceaccount"
-	rbacinformers "k8s.io/client-go/informers/rbac/v1beta1"
 )
 
 // NewCassandra returns a new CassandraController that can be used

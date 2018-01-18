@@ -1,13 +1,14 @@
 package rolebinding
 
 import (
-	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
-	"github.com/jetstack/navigator/pkg/controllers/cassandra/util"
 	rbacv1 "k8s.io/api/rbac/v1beta1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	rbaclisters "k8s.io/client-go/listers/rbac/v1beta1"
+
+	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
+	"github.com/jetstack/navigator/pkg/controllers/cassandra/util"
 
 	"k8s.io/client-go/tools/record"
 )
