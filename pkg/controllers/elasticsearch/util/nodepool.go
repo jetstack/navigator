@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"hash/fnv"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 
@@ -20,17 +21,25 @@ const (
 // ComputeHash returns a hash value calculated from pod template and a collisionCount to avoid hash collision
 func ComputeNodePoolHash(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.ElasticsearchClusterNodePool, collisionCount *int32) string {
 	hashVar := struct {
-		Plugins    []string
-		ESImage    v1alpha1.ElasticsearchImage
-		PilotImage v1alpha1.ElasticsearchPilotImage
-		Sysctl     []string
-		NodePool   *v1alpha1.ElasticsearchClusterNodePool
+		MinimumMasters int64
+		ESImage        v1alpha1.ImageSpec
+		PilotImage     v1alpha1.ImageSpec
+		Sysctl         []string
+		Plugins        []string
+		Replicas       int64
+		Resources      *corev1.ResourceRequirements
+		NodeSelector   map[string]string
+		Roles          []v1alpha1.ElasticsearchClusterRole
 	}{
-		Plugins:    c.Spec.Plugins,
-		ESImage:    c.Spec.Image,
-		PilotImage: c.Spec.Pilot,
-		Sysctl:     c.Spec.Sysctl,
-		NodePool:   np,
+		MinimumMasters: c.Spec.MinimumMasters,
+		ESImage:        c.Spec.Image,
+		PilotImage:     c.Spec.NavigatorClusterConfig.PilotImage,
+		Sysctl:         c.Spec.NavigatorClusterConfig.Sysctls,
+		Plugins:        c.Spec.Plugins,
+		Replicas:       np.Replicas,
+		Resources:      np.Resources,
+		NodeSelector:   np.NodeSelector,
+		Roles:          np.Roles,
 	}
 
 	hasher := fnv.New32a()

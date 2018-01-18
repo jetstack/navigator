@@ -24,11 +24,11 @@ type CassandraCluster struct {
 }
 
 type CassandraClusterSpec struct {
-	Sysctl     []string                   `json:"sysctl"`
-	NodePools  []CassandraClusterNodePool `json:"nodePools"`
-	Image      ImageSpec                  `json:"image"`
-	PilotImage ImageSpec                  `json:"pilotImage"`
-	CqlPort    int32                      `json:"cqlPort"`
+	NavigatorClusterConfig `json:",inline"`
+
+	NodePools []CassandraClusterNodePool `json:"nodePools"`
+	Image     ImageSpec                  `json:"image"`
+	CqlPort   int32                      `json:"cqlPort"`
 }
 
 // CassandraClusterNodePool describes a node pool within a CassandraCluster.
@@ -105,6 +105,8 @@ type ElasticsearchClusterList struct {
 
 // ElasticsearchClusterSpec describes a specification for an ElasticsearchCluster
 type ElasticsearchClusterSpec struct {
+	NavigatorClusterConfig `json:",inline"`
+
 	// A list of plugins to install on nodes in the cluster.
 	Plugins []string `json:"plugins"`
 
@@ -112,16 +114,8 @@ type ElasticsearchClusterSpec struct {
 	// There must be at least one master node specified.
 	NodePools []ElasticsearchClusterNodePool `json:"nodePools"`
 
-	// Pilot describes the image containing the pilot-elasticsearch binary to
-	// run
-	Pilot ElasticsearchPilotImage `json:"pilot"`
-
 	// Image describes the Elasticsearch image to use
-	Image ElasticsearchImage `json:"image"`
-
-	// Sysctl can be used to specify a list of sysctl values to set on start-up
-	// This can be used to set for example the vm.max_map_count parameter.
-	Sysctl []string `json:"sysctl"`
+	Image ImageSpec `json:"image"`
 
 	// The minimum number of masters required to form a quorum in the cluster.
 	// If omitted, this will be set to a quorum of the master nodes in the
@@ -194,14 +188,22 @@ type ImageSpec struct {
 	PullPolicy v1.PullPolicy `json:"pullPolicy"`
 }
 
-type ElasticsearchPilotImage struct {
-	ImageSpec `json:",inline"`
+type NavigatorClusterConfig struct {
+	// Pilot describes the pilot image to use
+	PilotImage ImageSpec `json:"pilotImage"`
+
+	// Security related options that are common to all cluster kinds
+	SecurityContext NavigatorSecurityContext `json:"securityContext,omitempty"`
+
+	// Sysctl can be used to specify a list of sysctl values to set on start-up
+	// This can be used to set for example the vm.max_map_count parameter.
+	Sysctls []string `json:"sysctls"`
 }
 
-type ElasticsearchImage struct {
-	ImageSpec `json:",inline"`
-	// FsGroup specifies the user that the should be set for the pods fsGroup
-	FsGroup int64 `json:"fsGroup"`
+type NavigatorSecurityContext struct {
+	// Optional user to run the pilot process as. This will also be used as the
+	// FSGroup parameter for created pods.
+	RunAsUser *int64 `json:"runAsUser,omitempty"`
 }
 
 // +genclient

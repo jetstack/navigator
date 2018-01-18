@@ -7,10 +7,13 @@ spec:
   ## determine a quorum of masters to use.
   # minimumMasters: 2
 
-  sysctl:
+  sysctls:
   - vm.max_map_count=262144
 
-  pilot:
+  securityContext:
+    runAsUser: 1000
+
+  pilotImage:
     repository: jetstackexperimental/navigator-pilot-elasticsearch
     tag: latest
     pullPolicy: Always
@@ -19,10 +22,6 @@ spec:
     repository: docker.elastic.co/elasticsearch/elasticsearch
     tag: 5.6.2
     pullPolicy: Always
-    ## This sets the group of the persistent volume created for
-    ## the data nodes. This must be the same as the user that elasticsearch
-    ## runs as within the container.
-    fsGroup: 1000
 
   nodePools:
   - name: master
