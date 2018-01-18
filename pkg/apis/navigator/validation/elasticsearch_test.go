@@ -367,12 +367,7 @@ func TestValidateElasticsearchClusterSpec(t *testing.T) {
 			NodePools:      []navigator.ElasticsearchClusterNodePool{newValidNodePool("test", 3, navigator.ElasticsearchRoleMaster)},
 			Image:          &validSpecESImage,
 			MinimumMasters: 2,
-		},
-		"missing elasticsearch image": {
-			Plugins:        validSpecPluginsList,
-			NodePools:      []navigator.ElasticsearchClusterNodePool{newValidNodePool("test", 3, navigator.ElasticsearchRoleMaster)},
-			Pilot:          validSpecPilotImage,
-			MinimumMasters: 2,
+			Version:        validSemver,
 		},
 		"minimum masters set too low": {
 			Plugins:        validSpecPluginsList,
@@ -380,6 +375,7 @@ func TestValidateElasticsearchClusterSpec(t *testing.T) {
 			Pilot:          validSpecPilotImage,
 			Image:          &validSpecESImage,
 			MinimumMasters: 1,
+			Version:        validSemver,
 		},
 		"minimum masters greater than total number of masters": {
 			Plugins:        validSpecPluginsList,
@@ -387,6 +383,7 @@ func TestValidateElasticsearchClusterSpec(t *testing.T) {
 			Pilot:          validSpecPilotImage,
 			Image:          &validSpecESImage,
 			MinimumMasters: 5,
+			Version:        validSemver,
 		},
 		"missing elasticsearch version": {
 			Plugins:   validPluginsList,
