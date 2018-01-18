@@ -143,7 +143,7 @@ type ElasticsearchPilotImage struct {
 
 type ElasticsearchImage struct {
 	ImageSpec
-	FsGroup int64
+	RunAsUser int64
 }
 
 // +genclient

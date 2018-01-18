@@ -453,7 +453,7 @@ func autoConvert_v1alpha1_ElasticsearchImage_To_navigator_ElasticsearchImage(in 
 	if err := Convert_v1alpha1_ImageSpec_To_navigator_ImageSpec(&in.ImageSpec, &out.ImageSpec, s); err != nil {
 		return err
 	}
-	out.FsGroup = in.FsGroup
+	out.RunAsUser = in.RunAsUser
 	return nil
 }
 
@@ -466,7 +466,7 @@ func autoConvert_navigator_ElasticsearchImage_To_v1alpha1_ElasticsearchImage(in 
 	if err := Convert_navigator_ImageSpec_To_v1alpha1_ImageSpec(&in.ImageSpec, &out.ImageSpec, s); err != nil {
 		return err
 	}
-	out.FsGroup = in.FsGroup
+	out.RunAsUser = in.RunAsUser
 	return nil
 }
 
