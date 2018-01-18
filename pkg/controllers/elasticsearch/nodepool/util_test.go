@@ -15,7 +15,7 @@ func TestESImageToUse(t *testing.T) {
 	type testT struct {
 		name          string
 		spec          *v1alpha1.ElasticsearchClusterSpec
-		expectedImage *v1alpha1.ElasticsearchImage
+		expectedImage *v1alpha1.ImageSpec
 		expectedError bool
 	}
 	tests := []testT{
@@ -24,56 +24,41 @@ func TestESImageToUse(t *testing.T) {
 			spec: &v1alpha1.ElasticsearchClusterSpec{
 				Version: *validESVersion,
 			},
-			expectedImage: &v1alpha1.ElasticsearchImage{
-				FsGroup: 1000,
-				ImageSpec: v1alpha1.ImageSpec{
-					Repository: defaultElasticsearchImageRepository,
-					Tag:        "6.1.1",
-					PullPolicy: defaultElasticsearchImagePullPolicy,
-				},
+			expectedImage: &v1alpha1.ImageSpec{
+				Repository: defaultElasticsearchImageRepository,
+				Tag:        "6.1.1",
+				PullPolicy: defaultElasticsearchImagePullPolicy,
 			},
 		},
 		{
 			name: "version specified with manual image spec",
 			spec: &v1alpha1.ElasticsearchClusterSpec{
 				Version: *validESVersion,
-				Image: &v1alpha1.ElasticsearchImage{
-					FsGroup: 1234,
-					ImageSpec: v1alpha1.ImageSpec{
-						Repository: "abcd",
-						Tag:        "xyz",
-						PullPolicy: defaultElasticsearchImagePullPolicy,
-					},
-				},
-			},
-			expectedImage: &v1alpha1.ElasticsearchImage{
-				FsGroup: 1234,
-				ImageSpec: v1alpha1.ImageSpec{
+				Image: &v1alpha1.ImageSpec{
 					Repository: "abcd",
 					Tag:        "xyz",
 					PullPolicy: defaultElasticsearchImagePullPolicy,
 				},
+			},
+			expectedImage: &v1alpha1.ImageSpec{
+				Repository: "abcd",
+				Tag:        "xyz",
+				PullPolicy: defaultElasticsearchImagePullPolicy,
 			},
 		},
 		{
 			name: "no version specified with manual image spec",
 			spec: &v1alpha1.ElasticsearchClusterSpec{
-				Image: &v1alpha1.ElasticsearchImage{
-					FsGroup: 1234,
-					ImageSpec: v1alpha1.ImageSpec{
-						Repository: "abcd",
-						Tag:        "xyz",
-						PullPolicy: defaultElasticsearchImagePullPolicy,
-					},
-				},
-			},
-			expectedImage: &v1alpha1.ElasticsearchImage{
-				FsGroup: 1234,
-				ImageSpec: v1alpha1.ImageSpec{
+				Image: &v1alpha1.ImageSpec{
 					Repository: "abcd",
 					Tag:        "xyz",
 					PullPolicy: defaultElasticsearchImagePullPolicy,
 				},
+			},
+			expectedImage: &v1alpha1.ImageSpec{
+				Repository: "abcd",
+				Tag:        "xyz",
+				PullPolicy: defaultElasticsearchImagePullPolicy,
 			},
 		},
 		{
