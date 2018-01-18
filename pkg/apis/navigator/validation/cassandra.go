@@ -1,9 +1,10 @@
 package validation
 
 import (
-	"github.com/jetstack/navigator/pkg/apis/navigator"
 	apimachineryvalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+
+	"github.com/jetstack/navigator/pkg/apis/navigator"
 )
 
 func ValidateCassandraCluster(esc *navigator.CassandraCluster) field.ErrorList {
