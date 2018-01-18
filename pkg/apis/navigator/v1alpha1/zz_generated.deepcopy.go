@@ -304,6 +304,7 @@ func (in *ElasticsearchClusterPersistenceConfig) DeepCopy() *ElasticsearchCluste
 func (in *ElasticsearchClusterSpec) DeepCopyInto(out *ElasticsearchClusterSpec) {
 	*out = *in
 	in.NavigatorClusterConfig.DeepCopyInto(&out.NavigatorClusterConfig)
+	out.Version = in.Version
 	if in.Plugins != nil {
 		in, out := &in.Plugins, &out.Plugins
 		*out = make([]string, len(*in))
@@ -316,7 +317,15 @@ func (in *ElasticsearchClusterSpec) DeepCopyInto(out *ElasticsearchClusterSpec) 
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
-	out.Image = in.Image
+	if in.Image != nil {
+		in, out := &in.Image, &out.Image
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(ImageSpec)
+			**out = **in
+		}
+	}
 	return
 }
 

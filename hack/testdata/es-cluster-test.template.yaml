@@ -5,6 +5,8 @@ metadata:
 spec:
   minimumMasters: 1
 
+  version: 5.6.2
+
   sysctls:
   - vm.max_map_count=262144
 
@@ -15,11 +17,6 @@ spec:
     repository: ${NAVIGATOR_IMAGE_REPOSITORY}/navigator-pilot-elasticsearch
     tag: ${NAVIGATOR_IMAGE_TAG}
     pullPolicy: ${NAVIGATOR_IMAGE_PULLPOLICY}
-
-  image:
-    repository: docker.elastic.co/elasticsearch/elasticsearch
-    tag: 5.6.2
-    pullPolicy: IfNotPresent
 
   nodePools:
   - name: mixed

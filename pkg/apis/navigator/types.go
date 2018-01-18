@@ -1,6 +1,7 @@
 package navigator
 
 import (
+	"github.com/coreos/go-semver/semver"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -101,7 +102,8 @@ type ElasticsearchClusterList struct {
 type ElasticsearchClusterSpec struct {
 	NavigatorClusterConfig
 
-	Image          ImageSpec
+	Version        semver.Version
+	Image          *ImageSpec
 	Plugins        []string
 	NodePools      []ElasticsearchClusterNodePool
 	MinimumMasters int64

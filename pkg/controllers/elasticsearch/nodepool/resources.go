@@ -124,6 +124,11 @@ func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.Elasticsear
 	plugins := strings.Join(c.Spec.Plugins, ",")
 	nodePoolLabels := util.NodePoolLabels(c, np.Name, np.Roles...)
 
+	esImage, err := esImageToUse(&c.Spec)
+	if err != nil {
+		return nil, err
+	}
+
 	return &apiv1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: nodePoolLabels,
@@ -143,8 +148,8 @@ func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.Elasticsear
 			Containers: []apiv1.Container{
 				{
 					Name:            "elasticsearch",
-					Image:           c.Spec.Image.Repository + ":" + c.Spec.Image.Tag,
-					ImagePullPolicy: apiv1.PullPolicy(c.Spec.Image.PullPolicy),
+					Image:           esImage.Repository + ":" + esImage.Tag,
+					ImagePullPolicy: apiv1.PullPolicy(esImage.PullPolicy),
 					Command:         []string{fmt.Sprintf("%s/pilot", sharedVolumeMountPath)},
 					Args: []string{
 						"--v=4",

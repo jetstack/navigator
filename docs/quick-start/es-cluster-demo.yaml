@@ -6,6 +6,7 @@ spec:
   ## Omitting the minimumMasters fields will cause navigator to automatically
   ## determine a quorum of masters to use.
   # minimumMasters: 2
+  version: 5.6.2
 
   sysctls:
   - vm.max_map_count=262144
@@ -16,11 +17,6 @@ spec:
   pilotImage:
     repository: jetstackexperimental/navigator-pilot-elasticsearch
     tag: latest
-    pullPolicy: Always
-
-  image:
-    repository: docker.elastic.co/elasticsearch/elasticsearch
-    tag: 5.6.2
     pullPolicy: Always
 
   nodePools:

@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/coreos/go-semver/semver"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -325,15 +326,26 @@ func TestValidateElasticsearchPersistence(t *testing.T) {
 	}
 }
 func TestValidateElasticsearchClusterSpec(t *testing.T) {
+	validPluginsList := []string{"anything"}
+	validNodePool := navigator.ElasticsearchClusterNodePool{
+		Name:         validNodePoolName,
+		Replicas:     validNodePoolReplicas,
+		Roles:        validNodePoolRoles,
+		NodeSelector: validNodePoolNodeSelector,
+		Resources:    validNodePoolResources,
+		Persistence:  validNodePoolPersistenceConfig,
+	}
+	validSemver := *semver.New("5.6.2")
 	errorCases := map[string]navigator.ElasticsearchClusterSpec{
 		"empty spec": {},
 		"valid node pools with duplicate names": {
+			Version: validSemver,
 			Plugins: validSpecPluginsList,
 			NodePools: []navigator.ElasticsearchClusterNodePool{
 				newValidNodePool("test", 3, navigator.ElasticsearchRoleMaster),
 				newValidNodePool("test", 3, navigator.ElasticsearchRoleMaster),
 			},
-			Image:          validImageSpec,
+			Image:          &validImageSpec,
 			MinimumMasters: 4,
 			NavigatorClusterConfig: navigator.NavigatorClusterConfig{
 				PilotImage: validImageSpec,
@@ -342,22 +354,16 @@ func TestValidateElasticsearchClusterSpec(t *testing.T) {
 		"missing pilot image": {
 			Plugins:        validSpecPluginsList,
 			NodePools:      []navigator.ElasticsearchClusterNodePool{newValidNodePool("test", 3, navigator.ElasticsearchRoleMaster)},
-			Image:          validImageSpec,
+			Image:          &validImageSpec,
 			MinimumMasters: 2,
-		},
-		"missing elasticsearch image": {
-			Plugins:        validSpecPluginsList,
-			NodePools:      []navigator.ElasticsearchClusterNodePool{newValidNodePool("test", 3, navigator.ElasticsearchRoleMaster)},
-			MinimumMasters: 2,
-			NavigatorClusterConfig: navigator.NavigatorClusterConfig{
-				PilotImage: validImageSpec,
-			},
+			Version:        validSemver,
 		},
 		"minimum masters set too low": {
 			Plugins:        validSpecPluginsList,
 			NodePools:      []navigator.ElasticsearchClusterNodePool{newValidNodePool("test", 3, navigator.ElasticsearchRoleMaster)},
-			Image:          validImageSpec,
+			Image:          &validImageSpec,
 			MinimumMasters: 1,
+			Version:        validSemver,
 			NavigatorClusterConfig: navigator.NavigatorClusterConfig{
 				PilotImage: validImageSpec,
 			},
@@ -365,7 +371,17 @@ func TestValidateElasticsearchClusterSpec(t *testing.T) {
 		"minimum masters greater than total number of masters": {
 			Plugins:        validSpecPluginsList,
 			NodePools:      []navigator.ElasticsearchClusterNodePool{newValidNodePool("test", 3, navigator.ElasticsearchRoleMaster)},
-			Image:          validImageSpec,
+			Image:          &validImageSpec,
+			MinimumMasters: 5,
+			Version:        validSemver,
+			NavigatorClusterConfig: navigator.NavigatorClusterConfig{
+				PilotImage: validImageSpec,
+			},
+		},
+		"missing elasticsearch version": {
+			Plugins:        validPluginsList,
+			NodePools:      []navigator.ElasticsearchClusterNodePool{validNodePool, validNodePool},
+			Image:          &validImageSpec,
 			MinimumMasters: 5,
 			NavigatorClusterConfig: navigator.NavigatorClusterConfig{
 				PilotImage: validImageSpec,
@@ -375,8 +391,9 @@ func TestValidateElasticsearchClusterSpec(t *testing.T) {
 	successCases := []navigator.ElasticsearchClusterSpec{
 		{
 			NodePools:      []navigator.ElasticsearchClusterNodePool{newValidNodePool("test", 3, navigator.ElasticsearchRoleMaster)},
-			Image:          validImageSpec,
+			Image:          &validImageSpec,
 			MinimumMasters: 2,
+			Version:        validSemver,
 			NavigatorClusterConfig: navigator.NavigatorClusterConfig{
 				PilotImage: validImageSpec,
 			},
@@ -384,8 +401,9 @@ func TestValidateElasticsearchClusterSpec(t *testing.T) {
 		{
 			Plugins:        validSpecPluginsList,
 			NodePools:      []navigator.ElasticsearchClusterNodePool{newValidNodePool("test", 3, navigator.ElasticsearchRoleMaster)},
-			Image:          validImageSpec,
+			Image:          &validImageSpec,
 			MinimumMasters: 2,
+			Version:        validSemver,
 			NavigatorClusterConfig: navigator.NavigatorClusterConfig{
 				PilotImage: validImageSpec,
 			},
@@ -393,7 +411,25 @@ func TestValidateElasticsearchClusterSpec(t *testing.T) {
 		{
 			Plugins:        validSpecPluginsList,
 			NodePools:      []navigator.ElasticsearchClusterNodePool{newValidNodePool("test", 3, navigator.ElasticsearchRoleMaster)},
-			Image:          validImageSpec,
+			Image:          &validImageSpec,
+			MinimumMasters: 3,
+			Version:        validSemver,
+			NavigatorClusterConfig: navigator.NavigatorClusterConfig{
+				PilotImage: validImageSpec,
+			},
+		},
+		{
+			NodePools: []navigator.ElasticsearchClusterNodePool{newValidNodePool("test", 3, navigator.ElasticsearchRoleMaster)},
+			Image:     &validImageSpec,
+			Version:   validSemver,
+			NavigatorClusterConfig: navigator.NavigatorClusterConfig{
+				PilotImage: validImageSpec,
+			},
+		},
+		{
+			NodePools:      []navigator.ElasticsearchClusterNodePool{newValidNodePool("test", 3, navigator.ElasticsearchRoleMaster)},
+			Plugins:        validPluginsList,
+			Version:        validSemver,
 			MinimumMasters: 3,
 			NavigatorClusterConfig: navigator.NavigatorClusterConfig{
 				PilotImage: validImageSpec,

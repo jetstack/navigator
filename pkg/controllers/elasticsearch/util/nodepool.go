@@ -22,7 +22,7 @@ const (
 func ComputeNodePoolHash(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.ElasticsearchClusterNodePool, collisionCount *int32) string {
 	hashVar := struct {
 		MinimumMasters int64
-		ESImage        v1alpha1.ImageSpec
+		ESImage        *v1alpha1.ImageSpec
 		PilotImage     v1alpha1.ImageSpec
 		Sysctl         []string
 		Plugins        []string
@@ -30,6 +30,7 @@ func ComputeNodePoolHash(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.Elastics
 		Resources      *corev1.ResourceRequirements
 		NodeSelector   map[string]string
 		Roles          []v1alpha1.ElasticsearchClusterRole
+		Version        string
 	}{
 		MinimumMasters: c.Spec.MinimumMasters,
 		ESImage:        c.Spec.Image,
@@ -40,6 +41,7 @@ func ComputeNodePoolHash(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.Elastics
 		Resources:      np.Resources,
 		NodeSelector:   np.NodeSelector,
 		Roles:          np.Roles,
+		Version:        c.Spec.Version.String(),
 	}
 
 	hasher := fnv.New32a()
