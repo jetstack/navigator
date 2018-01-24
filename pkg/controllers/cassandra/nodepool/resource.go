@@ -226,7 +226,7 @@ func StatefulSetForCluster(
 								{
 									Name: "LEADER_ELECTION_CONFIG_MAP",
 									// TODO: trim the length of this string
-									Value: fmt.Sprintf("cassandra-%s-leaderelection", c.Name),
+									Value: fmt.Sprintf("cassandra-%s-leaderelection", cluster.Name),
 								},
 							},
 						},
