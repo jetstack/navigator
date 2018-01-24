@@ -1,9 +1,13 @@
 package processmanager
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"os/exec"
+	"sync"
+
+	"github.com/golang/glog"
 )
 
 type Interface interface {
@@ -41,13 +45,56 @@ type adapter struct {
 
 	doneCh  chan struct{}
 	doneErr error
+	wg      sync.WaitGroup
 }
 
 var _ Interface = &adapter{}
 
+func (p *adapter) startCommandOutputLoggers() error {
+	stdout, err := p.cmd.StdoutPipe()
+	if err != nil {
+		return err
+	}
+	p.wg.Add(1)
+	go func() {
+		defer p.wg.Done()
+		in := bufio.NewScanner(stdout)
+		for in.Scan() {
+			glog.Infoln(in.Text())
+		}
+		err := in.Err()
+		if err != nil {
+			glog.Error(err)
+		}
+	}()
+
+	stderr, err := p.cmd.StderrPipe()
+	if err != nil {
+		return err
+	}
+	p.wg.Add(1)
+	go func() {
+		defer p.wg.Done()
+		in := bufio.NewScanner(stderr)
+		for in.Scan() {
+			glog.Errorln(in.Text())
+		}
+		err := in.Err()
+		if err != nil {
+			glog.Error(err)
+		}
+	}()
+	return nil
+}
+
 // Start will start the underlying subprocess
 func (p *adapter) Start() error {
-	if err := p.cmd.Start(); err != nil {
+	err := p.startCommandOutputLoggers()
+	if err != nil {
+		return err
+	}
+
+	if err = p.cmd.Start(); err != nil {
 		return fmt.Errorf("error starting process: %s", err.Error())
 	}
 	go p.startWait()
@@ -71,6 +118,7 @@ func (p *adapter) Stop() error {
 // If the subprocess has not been started yet, the returned chan will
 // not close until the subprocess has been started and then stopped.
 func (p *adapter) Wait() <-chan struct{} {
+	defer p.wg.Wait()
 	return p.doneCh
 }
 

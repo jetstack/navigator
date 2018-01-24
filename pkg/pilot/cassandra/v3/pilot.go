@@ -2,7 +2,6 @@ package v3
 
 import (
 	"fmt"
-	"os"
 	"os/exec"
 
 	"k8s.io/client-go/tools/cache"
@@ -56,8 +55,6 @@ func (p *Pilot) CmdFunc(pilot *v1alpha1.Pilot) (*exec.Cmd, error) {
 	// The /run.sh script is unique to gcr.io/google-samples/cassandra:v12.
 	// TODO: Add support for other Cassandra images with different entry points.
 	cmd := exec.Command("/run.sh")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
 	return cmd, nil
 }
 

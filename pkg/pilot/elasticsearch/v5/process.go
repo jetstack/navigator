@@ -14,8 +14,6 @@ func (p *Pilot) CmdFunc(pilot *v1alpha1.Pilot) (*exec.Cmd, error) {
 	}
 
 	cmd := exec.Command("elasticsearch")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
 	cmd.Env = p.env().Strings()
 
 	return cmd, nil
