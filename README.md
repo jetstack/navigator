@@ -29,10 +29,11 @@ to others that are interested in our efforts & would like to see a new applicati
 Please search for or create an issue for the application in question you'd like to see a part of Navigator,
 and we can begin discussion on implementation & planning.
 
-| Name          | Version   | Status      | Notes                                                             |
-| ------------- | --------- | ----------- | ----------------------------------------------------------------- |
+| Name          | Version   | Status      | Notes                                                       |
+| ------------- | --------- | ----------- | ----------------------------------------------------------- |
 | Elasticsearch | 5.x       | Alpha       | [more info](docs/supported-types/elasticsearch-cluster.md)  |
-| Couchbase     |           | Coming soon |                                                                   |
+| Cassandra     | 3.x       | Alpha       | [more info](docs/supported-types/cassandra-cluster.md)      |
+| Couchbase     |           | Coming soon |                                                             |
 
 ## Links
 
