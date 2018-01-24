@@ -186,18 +186,37 @@ function cql_connect() {
     local host="${2}"
     local port="${3}"
     # Attempt to negotiate a CQL connection.
-    # No queries are performed.
-    # stdin=false (the default) ensures that cqlsh does not go into interactive
-    # mode.
     kubectl \
         run \
-        "cql-responding-${RANDOM}" \
+        "cql-connect-${RANDOM}" \
         --namespace="${namespace}" \
         --command=true \
         --image=cassandra:3 \
         --restart=Never \
         --rm \
         --stdin=false \
+        --attach=true \
+        -- \
+        /usr/bin/cqlsh --debug "${host}" "${port}"
+}
+
+function cql_execute() {
+    local namespace="${1}"
+    local host="${2}"
+    local port="${3}"
+    # Attempt to negotiate a CQL connection.
+    # XXX: This uses the standard Cassandra Docker image rather than the
+    # gcr.io/google-samples/cassandra image used in the Cassandra chart, becasue
+    # cqlsh is missing some dependencies in that image.
+    kubectl \
+        run \
+        "cql-execute-${RANDOM}" \
+        --namespace="${namespace}" \
+        --command=true \
+        --image=cassandra:latest \
+        --restart=Never \
+        --rm \
+        --stdin=true \
         --attach=true \
         -- \
         /usr/bin/cqlsh --debug "${host}" "${port}"
@@ -225,12 +244,12 @@ function test_cassandracluster() {
          --values "${CHART_VALUES_CASSANDRA}" \
          --set replicaCount=1
 
-    # A Pilot is elected leader
-    if ! retry TIMEOUT=300 kube_event_exists "${namespace}" \
-         "generic-pilot:ConfigMap:Normal:LeaderElection"
-    then
-        fail_test "Cassandra pilots did not elect a leader"
-    fi
+    # # A Pilot is elected leader
+    # if ! retry TIMEOUT=300 kube_event_exists "${namespace}" \
+    #      "generic-pilot:ConfigMap:Normal:LeaderElection"
+    # then
+    #     fail_test "Cassandra pilots did not elect a leader"
+    # fi
 
     # Wait 5 minutes for cassandra to start and listen for CQL queries.
     if ! retry TIMEOUT=300 cql_connect \
@@ -289,6 +308,17 @@ function test_cassandracluster() {
          9043; then
         fail_test "Cassandra readiness probe failed to bypass dead node"
     fi
+
+    cql_execute \
+        "${namespace}" \
+        "cass-${CHART_NAME}-cassandra-cql" \
+        9043 \
+        <<EOF
+CREATE KEYSPACE space1 WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 3 };
+USE space1;
+CREATE TABLE testtable1 (key varchar, value varchar, PRIMARY KEY(key));
+INSERT INTO space1.testtable1(key, value) VALUES('testkey1', 'testvalue1');
+EOF
 }
 
 if [[ "test_cassandracluster" = "${TEST_PREFIX}"* ]]; then
@@ -297,5 +327,5 @@ if [[ "test_cassandracluster" = "${TEST_PREFIX}"* ]]; then
     if [ "${FAILURE_COUNT}" -gt "0" ]; then
         fail_and_exit "${CASS_TEST_NS}"
     fi
-    kube_delete_namespace_and_wait "${CASS_TEST_NS}"
+    # kube_delete_namespace_and_wait "${CASS_TEST_NS}"
 fi
