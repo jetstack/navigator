@@ -128,6 +128,7 @@ func startLeaderElection(opts *options.ControllerOptions, leaderElectionClient k
 	}
 
 	// Lock required for leader election
+	// TODO Switch to ConfigMap based leader election for consistency with Pilot leader election.
 	rl := resourcelock.EndpointsLock{
 		EndpointsMeta: metav1.ObjectMeta{
 			Namespace: opts.LeaderElectionNamespace,
