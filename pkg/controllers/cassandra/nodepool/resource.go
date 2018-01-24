@@ -74,6 +74,7 @@ func StatefulSetForCluster(
 								"--logtostderr",
 								"--pilot-name=$(POD_NAME)",
 								"--pilot-namespace=$(POD_NAMESPACE)",
+								"--leader-election-config-map=$(LEADER_ELECTION_CONFIG_MAP)",
 							},
 							Image: fmt.Sprintf(
 								"%s:%s",
@@ -221,6 +222,11 @@ func StatefulSetForCluster(
 											FieldPath: "metadata.namespace",
 										},
 									},
+								},
+								{
+									Name: "LEADER_ELECTION_CONFIG_MAP",
+									// TODO: trim the length of this string
+									Value: fmt.Sprintf("cassandra-%s-leaderelection", cluster.Name),
 								},
 							},
 						},

@@ -146,6 +146,12 @@ function test_elasticsearchcluster() {
     then
         fail_test "Elasticsearch pod did not enter 'Running' phase"
     fi
+    # A Pilot is elected leader
+    if ! retry TIMEOUT=300 kube_event_exists "${namespace}" \
+         "generic-pilot:ConfigMap:Normal:LeaderElection"
+    then
+        fail_test "Elasticsearch pilots did not elect a leader"
+    fi
     # Ensure the Pilot updates the document count on the pilot resource
     if ! retry TIMEOUT=300 stdout_gt 0 kubectl \
          --namespace "${namespace}" \
@@ -221,6 +227,13 @@ function test_cassandracluster() {
          contrib/charts/cassandra \
          --values "${CHART_VALUES_CASSANDRA}" \
          --set replicaCount=1
+
+    # A Pilot is elected leader
+    if ! retry TIMEOUT=300 kube_event_exists "${namespace}" \
+         "generic-pilot:ConfigMap:Normal:LeaderElection"
+    then
+        fail_test "Cassandra pilots did not elect a leader"
+    fi
 
     # Wait 5 minutes for cassandra to start and listen for CQL queries.
     if ! retry TIMEOUT=300 cql_connect \
