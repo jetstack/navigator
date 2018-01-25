@@ -236,7 +236,7 @@ function test_cassandracluster() {
         "${namespace}" \
         "cass-${CHART_NAME}-cassandra-cql" \
         9042 \
-        --execute="INSERT INTO space1.testtable1(key, value) VALUES('testkey1', 'testvalue1');"
+        --execute="INSERT INTO space1.testtable1(key, value) VALUES('testkey1', 'testvalue1')"
 
     # Kill the cassandra process gracefully.
     # Allow it to flush its data to disk.
@@ -252,7 +252,7 @@ function test_cassandracluster() {
          "${namespace}" \
          "cass-${CHART_NAME}-cassandra-cql" \
          9042 \
-         --execute='SELECT value FROM space1.testtable1;' \
+         --execute="SELECT value FROM space1.testtable1" \
             | egrep testvalue1
     then
         fail_test "Cassandra data was lost"
