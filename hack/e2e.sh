@@ -247,11 +247,12 @@ function test_cassandracluster() {
         "SIGTERM"
 
     # Expect the database to be restarted and the data to still be there
-    if ! retry TIMEOUT=300 cql_connect \
+    if ! retry TIMEOUT=300 \
+         cql_connect \
          "${namespace}" \
          "cass-${CHART_NAME}-cassandra-cql" \
          9042 \
-         --execute='SELECT * FROM space1.testtable1;' \
+         --execute='SELECT value FROM space1.testtable1;' \
             | egrep testvalue1
     then
         fail_test "Cassandra data was lost"
