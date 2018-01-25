@@ -16,6 +16,9 @@ import (
 const (
 	sharedVolumeName      = "shared"
 	sharedVolumeMountPath = "/shared"
+
+	cassDataVolumeName      = "cassandra-data"
+	cassDataVolumeMountPath = "/cassandra_data"
 )
 
 func StatefulSetForCluster(
@@ -53,6 +56,12 @@ func StatefulSetForCluster(
 					Volumes: []apiv1.Volume{
 						apiv1.Volume{
 							Name: sharedVolumeName,
+							VolumeSource: apiv1.VolumeSource{
+								EmptyDir: &apiv1.EmptyDirVolumeSource{},
+							},
+						},
+						apiv1.Volume{
+							Name: cassDataVolumeName,
 							VolumeSource: apiv1.VolumeSource{
 								EmptyDir: &apiv1.EmptyDirVolumeSource{},
 							},
@@ -147,6 +156,11 @@ func StatefulSetForCluster(
 									Name:      sharedVolumeName,
 									MountPath: sharedVolumeMountPath,
 									ReadOnly:  true,
+								},
+								{
+									Name:      cassDataVolumeName,
+									MountPath: cassDataVolumeMountPath,
+									ReadOnly:  false,
 								},
 							},
 							Env: []apiv1.EnvVar{

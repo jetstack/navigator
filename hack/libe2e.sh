@@ -171,5 +171,5 @@ function cql_connect() {
         --stdin=true \
         --attach=true \
         -- \
-        /usr/bin/cqlsh --debug "$@"
+        /usr/bin/cqlsh "$@"
 }
