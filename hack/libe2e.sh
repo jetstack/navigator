@@ -1,5 +1,5 @@
 function not() {
-    if ! $@; then
+    if ! "$@"; then
         return 0
     fi
     return 1
@@ -25,7 +25,7 @@ function retry() {
     local start_time="$(date +"%s")"
     local end_time="$(($start_time + ${TIMEOUT}))"
     while true; do
-        if $@; then
+        if "$@"; then
             return 0
         fi
         local current_time="$(date +"%s")"
