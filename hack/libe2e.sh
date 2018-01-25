@@ -1,5 +1,3 @@
-#!/bin/bash
-
 function not() {
     if ! $@; then
         return 0

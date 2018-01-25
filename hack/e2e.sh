@@ -1,5 +1,8 @@
 #!/bin/bash
-set -eux
+
+set -o errexit
+set -o nounset
+set -o pipefail
 
 # Close stdin
 exec 0<&-
