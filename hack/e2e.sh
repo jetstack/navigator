@@ -208,12 +208,12 @@ function test_cassandracluster() {
          --values "${CHART_VALUES_CASSANDRA}" \
          --set replicaCount=1
 
-    # # A Pilot is elected leader
-    # if ! retry TIMEOUT=300 kube_event_exists "${namespace}" \
-    #      "generic-pilot:ConfigMap:Normal:LeaderElection"
-    # then
-    #     fail_test "Cassandra pilots did not elect a leader"
-    # fi
+    # A Pilot is elected leader
+    if ! retry TIMEOUT=300 kube_event_exists "${namespace}" \
+         "generic-pilot:ConfigMap:Normal:LeaderElection"
+    then
+        fail_test "Cassandra pilots did not elect a leader"
+    fi
 
     # Wait 5 minutes for cassandra to start and listen for CQL queries.
     if ! retry TIMEOUT=300 cql_connect \
@@ -312,5 +312,5 @@ if [[ "test_cassandracluster" = "${TEST_PREFIX}"* ]]; then
     if [ "${FAILURE_COUNT}" -gt "0" ]; then
         fail_and_exit "${CASS_TEST_NS}"
     fi
-    # kube_delete_namespace_and_wait "${CASS_TEST_NS}"
+    kube_delete_namespace_and_wait "${CASS_TEST_NS}"
 fi
