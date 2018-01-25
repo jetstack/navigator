@@ -1,5 +1,4 @@
 #!/bin/bash
-set -eux
 
 function not() {
     if ! $@; then
@@ -151,4 +150,26 @@ function fail_and_exit() {
     dump_debug_logs "${namespace}"
 
     exit 1
+}
+
+function cql_connect() {
+    local namespace="${1}"
+    shift
+
+    # Attempt to negotiate a CQL connection.
+    # XXX: This uses the standard Cassandra Docker image rather than the
+    # gcr.io/google-samples/cassandra image used in the Cassandra chart, becasue
+    # cqlsh is missing some dependencies in that image.
+    kubectl \
+        run \
+        "cql-connect-${RANDOM}" \
+        --namespace="${namespace}" \
+        --command=true \
+        --image=cassandra:latest \
+        --restart=Never \
+        --rm \
+        --stdin=true \
+        --attach=true \
+        -- \
+        /usr/bin/cqlsh --debug "$@"
 }

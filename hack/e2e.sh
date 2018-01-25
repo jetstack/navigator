@@ -1,6 +1,8 @@
 #!/bin/bash
 set -eux
 
+# Close stdin
+exec 0<&-
 
 : ${TEST_PREFIX:=""}
 
@@ -181,25 +183,6 @@ if [[ "test_elasticsearchcluster" = "${TEST_PREFIX}"* ]]; then
     kube_delete_namespace_and_wait "${ES_TEST_NS}"
 fi
 
-function cql_connect() {
-    local namespace="${1}"
-    shift
-
-    # Attempt to negotiate a CQL connection.
-    kubectl \
-        run \
-        "cql-connect-${RANDOM}" \
-        --namespace="${namespace}" \
-        --command=true \
-        --image=cassandra:3 \
-        --restart=Never \
-        --rm \
-        --stdin=false \
-        --attach=true \
-        -- \
-        /usr/bin/cqlsh --debug "$@"
-}
-
 function test_cassandracluster() {
     echo "Testing CassandraCluster"
     local namespace="${1}"
@@ -247,7 +230,7 @@ function test_cassandracluster() {
         "${namespace}" \
         "cass-${CHART_NAME}-cassandra-cql" \
         9042 \
-        --file="${SCRIPT_DIR}/testdata/cassandra_database1.cql"
+        < "${SCRIPT_DIR}/testdata/cassandra_test_database1.cql"
 
     # Insert a record
     cql_connect \
@@ -261,14 +244,15 @@ function test_cassandracluster() {
         "${namespace}" \
         "cass-${CHART_NAME}-cassandra-ringnodes-0" \
         "cassandra" \
-        "SIGTERM"
+        "SIGKILL"
 
     # Expect the database to be restarted and the data to still be there
     if ! retry cql_connect \
          "${namespace}" \
          "cass-${CHART_NAME}-cassandra-cql" \
-         9043 \
-         --execute="SELECT value FROM space1.testtable1 WHERE key='testkey1'"
+         9042 \
+         --execute="SELECT JSON value FROM space1.testtable1 WHERE key='testkey1'" \
+            | egrep '{"value": "testvalue1"}'
     then
         fail_test "Cassandra data was lost"
     fi
