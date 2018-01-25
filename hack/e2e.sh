@@ -183,8 +183,8 @@ fi
 
 function cql_connect() {
     local namespace="${1}"
-    local host="${2}"
-    local port="${3}"
+    shift
+
     # Attempt to negotiate a CQL connection.
     kubectl \
         run \
@@ -197,29 +197,7 @@ function cql_connect() {
         --stdin=false \
         --attach=true \
         -- \
-        /usr/bin/cqlsh --debug "${host}" "${port}"
-}
-
-function cql_execute() {
-    local namespace="${1}"
-    local host="${2}"
-    local port="${3}"
-    # Attempt to negotiate a CQL connection.
-    # XXX: This uses the standard Cassandra Docker image rather than the
-    # gcr.io/google-samples/cassandra image used in the Cassandra chart, becasue
-    # cqlsh is missing some dependencies in that image.
-    kubectl \
-        run \
-        "cql-execute-${RANDOM}" \
-        --namespace="${namespace}" \
-        --command=true \
-        --image=cassandra:latest \
-        --restart=Never \
-        --rm \
-        --stdin=true \
-        --attach=true \
-        -- \
-        /usr/bin/cqlsh --debug "${host}" "${port}"
+        /usr/bin/cqlsh --debug "$@"
 }
 
 function test_cassandracluster() {
@@ -263,6 +241,37 @@ function test_cassandracluster() {
     kubectl log \
             --namespace "${namespace}" \
             "statefulset/cass-${CHART_NAME}-cassandra-ringnodes"
+
+    # Create a database
+    cql_connect \
+        "${namespace}" \
+        "cass-${CHART_NAME}-cassandra-cql" \
+        9042 \
+        --file="${SCRIPT_DIR}/testdata/cassandra_database1.cql"
+
+    # Insert a record
+    cql_connect \
+        "${namespace}" \
+        "cass-${CHART_NAME}-cassandra-cql" \
+        9042 \
+        --execute="INSERT INTO space1.testtable1(key, value) VALUES('testkey1', 'testvalue1');"
+
+    # Cause the pod to be restarted
+    signal_cassandra_process \
+        "${namespace}" \
+        "cass-${CHART_NAME}-cassandra-ringnodes-0" \
+        "cassandra" \
+        "SIGTERM"
+
+    # Expect the database to be restarted and the data to still be there
+    if ! retry cql_connect \
+         "${namespace}" \
+         "cass-${CHART_NAME}-cassandra-cql" \
+         9043 \
+         --execute="SELECT value FROM space1.testtable1 WHERE key='testkey1'"
+    then
+        fail_test "Cassandra data was lost"
+    fi
 
     # Change the CQL port
     helm --debug upgrade \
@@ -308,17 +317,6 @@ function test_cassandracluster() {
          9043; then
         fail_test "Cassandra readiness probe failed to bypass dead node"
     fi
-
-    cql_execute \
-        "${namespace}" \
-        "cass-${CHART_NAME}-cassandra-cql" \
-        9043 \
-        <<EOF
-CREATE KEYSPACE space1 WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 3 };
-USE space1;
-CREATE TABLE testtable1 (key varchar, value varchar, PRIMARY KEY(key));
-INSERT INTO space1.testtable1(key, value) VALUES('testkey1', 'testvalue1');
-EOF
 }
 
 if [[ "test_cassandracluster" = "${TEST_PREFIX}"* ]]; then
