@@ -171,3 +171,25 @@ function cql_connect() {
         -- \
         /usr/bin/cqlsh "$@"
 }
+
+function kill_cassandra_process() {
+    local namespace=$1
+    local pod=$2
+    local container=$3
+    local signal=$4
+
+    local current_restart_count=$(
+        kubectl --namespace "${namespace}" get pod "${pod}" -o \
+            'jsonpath={.status.containerStatuses[?(@.name=="cassandra")].restartCount}')
+
+    signal_cassandra_process \
+        "${namespace}" \
+        "${pod}" \
+        "${container}" \
+        "${signal}"
+
+    retry \
+        stdout_gt "${current_restart_count}" \
+        kubectl --namespace "${namespace}" get pod "${pod}" -o \
+        'jsonpath={.status.containerStatuses[?(@.name=="cassandra")].restartCount}'
+}

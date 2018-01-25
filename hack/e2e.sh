@@ -3,6 +3,7 @@
 set -o errexit
 set -o nounset
 set -o pipefail
+set -o xtrace
 
 # Close stdin
 exec 0<&-
@@ -223,11 +224,6 @@ function test_cassandracluster() {
         fail_test "Navigator controller failed to create cassandracluster service"
     fi
 
-    # TODO Fail test if there are unexpected cassandra errors.
-    kubectl log \
-            --namespace "${namespace}" \
-            "statefulset/cass-${CHART_NAME}-cassandra-ringnodes"
-
     # Create a database
     cql_connect \
         "${namespace}" \
@@ -242,20 +238,21 @@ function test_cassandracluster() {
         9042 \
         --execute="INSERT INTO space1.testtable1(key, value) VALUES('testkey1', 'testvalue1');"
 
-    # Cause the pod to be restarted
-    signal_cassandra_process \
+    # Kill the cassandra process gracefully.
+    # Allow it to flush its data to disk.
+    kill_cassandra_process \
         "${namespace}" \
         "cass-${CHART_NAME}-cassandra-ringnodes-0" \
         "cassandra" \
-        "SIGKILL"
+        "SIGTERM"
 
     # Expect the database to be restarted and the data to still be there
-    if ! retry cql_connect \
+    if ! retry TIMEOUT=300 cql_connect \
          "${namespace}" \
          "cass-${CHART_NAME}-cassandra-cql" \
          9042 \
-         --execute="SELECT JSON value FROM space1.testtable1 WHERE key='testkey1'" \
-            | egrep '{"value": "testvalue1"}'
+         --execute="SELECT * FROM space1.testtable1;" \
+            | egrep testvalue1
     then
         fail_test "Cassandra data was lost"
     fi
