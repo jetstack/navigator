@@ -251,7 +251,7 @@ function test_cassandracluster() {
          "${namespace}" \
          "cass-${CHART_NAME}-cassandra-cql" \
          9042 \
-         --execute="SELECT * FROM space1.testtable1;" \
+         --execute='SELECT * FROM space1.testtable1;' \
             | egrep testvalue1
     then
         fail_test "Cassandra data was lost"
