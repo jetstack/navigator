@@ -1,20 +1,27 @@
 package elasticsearch
 
 import (
+	"fmt"
+
+	"github.com/golang/glog"
 	apiv1 "k8s.io/api/core/v1"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/kubernetes"
 	appslisters "k8s.io/client-go/listers/apps/v1beta1"
 	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/record"
 
-	v1alpha1 "github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
+	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	clientset "github.com/jetstack/navigator/pkg/client/clientset/versioned"
+	listers "github.com/jetstack/navigator/pkg/client/listers/navigator/v1alpha1"
+	"github.com/jetstack/navigator/pkg/controllers"
 	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/configmap"
 	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/nodepool"
 	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/role"
 	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/rolebinding"
 	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/service"
 	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/serviceaccount"
+	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/util"
 )
 
 const (
@@ -44,6 +51,9 @@ type defaultElasticsearchClusterControl struct {
 	statefulSetLister    appslisters.StatefulSetLister
 	serviceAccountLister corelisters.ServiceAccountLister
 	serviceLister        corelisters.ServiceLister
+	configMapLister      corelisters.ConfigMapLister
+	pilotLister          listers.PilotLister
+	podLister            corelisters.PodLister
 
 	nodePoolControl       nodepool.Interface
 	configMapControl      configmap.Interface
@@ -63,6 +73,9 @@ func NewController(
 	statefulSetLister appslisters.StatefulSetLister,
 	serviceAccountLister corelisters.ServiceAccountLister,
 	serviceLister corelisters.ServiceLister,
+	configMapLister corelisters.ConfigMapLister,
+	pilotLister listers.PilotLister,
+	podLister corelisters.PodLister,
 	nodePoolControl nodepool.Interface,
 	configMapControl configmap.Interface,
 	serviceAccountControl serviceaccount.Interface,
@@ -77,6 +90,9 @@ func NewController(
 		statefulSetLister:     statefulSetLister,
 		serviceAccountLister:  serviceAccountLister,
 		serviceLister:         serviceLister,
+		configMapLister:       configMapLister,
+		pilotLister:           pilotLister,
+		podLister:             podLister,
 		nodePoolControl:       nodePoolControl,
 		configMapControl:      configMapControl,
 		serviceAccountControl: serviceAccountControl,
@@ -93,12 +109,6 @@ func (e *defaultElasticsearchClusterControl) Sync(c *v1alpha1.ElasticsearchClust
 
 	if _, err = e.serviceAccountControl.Sync(c); err != nil {
 		e.recorder.Eventf(c, apiv1.EventTypeWarning, errorSync, messageErrorSyncServiceAccount, err.Error())
-		return c.Status, err
-	}
-
-	// TODO: handle status
-	if c.Status, err = e.configMapControl.Sync(c); err != nil {
-		e.recorder.Eventf(c, apiv1.EventTypeWarning, errorSync, messageErrorSyncConfigMap, err.Error())
 		return c.Status, err
 	}
 
@@ -121,12 +131,133 @@ func (e *defaultElasticsearchClusterControl) Sync(c *v1alpha1.ElasticsearchClust
 	}
 
 	// TODO: handle status
-	if err = e.nodePoolControl.Sync(c); err != nil {
+	if c.Status, err = e.configMapControl.Sync(c); err != nil {
+		e.recorder.Eventf(c, apiv1.EventTypeWarning, errorSync, messageErrorSyncConfigMap, err.Error())
+		return c.Status, err
+	}
+
+	state := &controllers.State{
+		Clientset:          e.kubeClient,
+		NavigatorClientset: e.navigatorClient,
+		StatefulSetLister:  e.statefulSetLister,
+		ConfigMapLister:    e.configMapLister,
+		PilotLister:        e.pilotLister,
+		PodLister:          e.podLister,
+	}
+
+	// for each node pool
+	// - check if ConfigMap is up to date
+	//   - if not, we need to create one
+	//     - create configmap
+	//     - update ElasticsearchCluster.status.nodePool[].desiredConfigMap with current configmap name
+	// - check if statefulset uses correct configmap
+	//   - if not, update statefulset with configmap name
+	//     - if desiredStatefulSetHash != current hash for statefulset,
+	//     - update ElasticsearchCluster.status.nodePool[].desiredStatefulSetHash with new statefulset hash from status
+	nextAction, err := e.nextAction(c)
+	if err != nil {
 		e.recorder.Eventf(c, apiv1.EventTypeWarning, errorSync, messageErrorSyncNodePools, err.Error())
 		return c.Status, err
+	}
+
+	if nextAction != nil {
+		glog.Infof("Executing action %q", nextAction.Name())
+		err = nextAction.Execute(state)
+		glog.Infof("Finished executing action %q", nextAction.Name())
+		if err != nil {
+			e.recorder.Eventf(c, apiv1.EventTypeWarning, errorSync, messageErrorSyncNodePools, err.Error())
+			return c.Status, err
+		}
 	}
 
 	e.recorder.Eventf(c, apiv1.EventTypeNormal, successSync, messageSuccessSync)
 
 	return c.Status, nil
+}
+
+func (e *defaultElasticsearchClusterControl) nextAction(c *v1alpha1.ElasticsearchCluster) (controllers.Action, error) {
+	for _, np := range c.Spec.NodePools {
+		action, err := e.nextActionForNodePool(c, &np)
+		if err != nil {
+			return nil, err
+		}
+		if action != nil {
+			return action, nil
+		}
+	}
+	return nil, nil
+}
+
+func (e *defaultElasticsearchClusterControl) nextActionForNodePool(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.ElasticsearchClusterNodePool) (controllers.Action, error) {
+	statefulSetName := util.NodePoolResourceName(c, np)
+	statefulSet, err := e.statefulSetLister.StatefulSets(c.Namespace).Get(statefulSetName)
+	// create the node pool if it does not exist
+	if k8sErrors.IsNotFound(err) {
+		return &CreateNodePool{c, np}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// check if pilots for this statefulset are up to date
+	needsUpdate, err := e.pilotsNeedUpdateForNodePool(c, np)
+	if err != nil {
+		return nil, err
+	}
+	if needsUpdate {
+		return &CreatePilot{c, np}, nil
+	}
+
+	currentVersionStr, ok := statefulSet.Annotations[v1alpha1.ElasticsearchNodePoolVersionAnnotation]
+	if !ok {
+		return nil, fmt.Errorf("cannot determine existing Elasticsearch version of statefulset %q", statefulSet.Name)
+	}
+	if c.Spec.Version.String() != currentVersionStr {
+		return &UpdateVersion{c, np}, nil
+	}
+
+	currentDesiredReplicas := statefulSet.Spec.Replicas
+	if currentDesiredReplicas == nil {
+		return nil, fmt.Errorf("current number of replicas on statefulset cannot be nil")
+	}
+	// if the current number of desired replicas on the statefulset does
+	// not equal the number on the node pool, we need to scale
+	if *currentDesiredReplicas != int32(np.Replicas) {
+		return &Scale{c, np, int32(np.Replicas)}, nil
+	}
+
+	return nil, nil
+}
+
+func (e *defaultElasticsearchClusterControl) pilotsNeedUpdateForNodePool(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.ElasticsearchClusterNodePool) (bool, error) {
+	selector, err := util.SelectorForNodePool(c.Name, np.Name)
+	if err != nil {
+		return false, err
+	}
+
+	allPods, err := e.podLister.Pods(c.Namespace).List(selector)
+	if err != nil {
+		return false, err
+	}
+
+	for _, pod := range allPods {
+		isMember, err := controllers.PodControlledByCluster(c, pod, e.statefulSetLister)
+		if err != nil {
+			return false, fmt.Errorf("error checking if pod is controller by elasticsearch cluster: %s", err.Error())
+		}
+
+		// skip this pod if it's not a member of the cluster
+		if !isMember {
+			continue
+		}
+
+		_, err = e.pilotLister.Pilots(pod.Namespace).Get(pod.Name)
+		if k8sErrors.IsNotFound(err) {
+			return true, nil
+		}
+		if err != nil {
+			return false, err
+		}
+	}
+	return false, nil
 }

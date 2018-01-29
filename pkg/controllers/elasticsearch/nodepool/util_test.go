@@ -69,7 +69,7 @@ func TestESImageToUse(t *testing.T) {
 	}
 	testF := func(test testT) func(*testing.T) {
 		return func(t *testing.T) {
-			img, err := esImageToUse(test.spec)
+			img, err := ESImageToUse(test.spec)
 			if err != nil && !test.expectedError {
 				t.Errorf("expected no error but got: %s", err)
 			}

@@ -150,6 +150,9 @@ func NewElasticsearch(
 		elasticsearchController.statefulSetLister,
 		elasticsearchController.serviceAccountLister,
 		elasticsearchController.serviceLister,
+		elasticsearchController.configMapLister,
+		elasticsearchController.pilotLister,
+		elasticsearchController.podLister,
 		nodepool.NewController(
 			cl,
 			navigatorCl,

@@ -25,7 +25,7 @@ const (
 	esConfigVolumeMountPath = "/etc/pilot/elasticsearch/config"
 )
 
-func nodePoolStatefulSet(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.ElasticsearchClusterNodePool) (*apps.StatefulSet, error) {
+func NodePoolStatefulSet(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.ElasticsearchClusterNodePool) (*apps.StatefulSet, error) {
 	statefulSetName := util.NodePoolResourceName(c, np)
 
 	elasticsearchPodTemplate, err := elasticsearchPodTemplateSpec(statefulSetName, c, np)
@@ -40,7 +40,8 @@ func nodePoolStatefulSet(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.Elastics
 			OwnerReferences: []metav1.OwnerReference{util.NewControllerRef(c)},
 			Labels:          elasticsearchPodTemplate.Labels,
 			Annotations: map[string]string{
-				util.NodePoolHashAnnotationKey: util.ComputeNodePoolHash(c, np, util.Int32Ptr(0)),
+				v1alpha1.ElasticsearchNodePoolHashAnnotation:    util.ComputeNodePoolHash(c, np, util.Int32Ptr(0)),
+				v1alpha1.ElasticsearchNodePoolVersionAnnotation: c.Spec.Version.String(),
 			},
 		},
 		Spec: apps.StatefulSetSpec{
@@ -124,7 +125,7 @@ func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.Elasticsear
 	plugins := strings.Join(c.Spec.Plugins, ",")
 	nodePoolLabels := util.NodePoolLabels(c, np.Name, np.Roles...)
 
-	esImage, err := esImageToUse(&c.Spec)
+	esImage, err := ESImageToUse(&c.Spec)
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +134,7 @@ func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.Elasticsear
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: nodePoolLabels,
 			Annotations: map[string]string{
-				util.NodePoolHashAnnotationKey: util.ComputeNodePoolHash(c, np, util.Int32Ptr(0)),
+				v1alpha1.ElasticsearchNodePoolHashAnnotation: util.ComputeNodePoolHash(c, np, util.Int32Ptr(0)),
 			},
 		},
 		Spec: apiv1.PodSpec{
