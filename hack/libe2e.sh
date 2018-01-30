@@ -21,9 +21,10 @@ function retry() {
                 ;;
         esac
     done
-
-    local start_time="$(date +"%s")"
-    local end_time="$(($start_time + ${TIMEOUT}))"
+    local start_time
+    start_time="$(date +"%s")"
+    local end_time
+    end_time="$(($start_time + ${TIMEOUT}))"
     until "${@}"
     do
         local exit_code="${?}"
@@ -107,7 +108,8 @@ function signal_cassandra_process() {
 function stdout_equals() {
     local expected="${1}"
     shift
-    local actual=$("${@}")
+    local actual
+    actual=$("${@}")
     if [[ "${expected}" == "${actual}" ]]; then
         return 0
     fi
@@ -117,6 +119,7 @@ function stdout_equals() {
 function stdout_matches() {
     local expected="${1}"
     shift
+    local actual
     actual=$("${@}")
     grep --quiet "${expected}" <<<"${actual}"
 }
@@ -124,7 +127,8 @@ function stdout_matches() {
 function stdout_gt() {
     local expected="${1}"
     shift
-    local actual=$("${@}")
+    local actual
+    actual=$("${@}")
     re='^[0-9]+$'
     if ! [[ "${actual}" =~ $re ]]; then
         echo "${actual} is not a number"
@@ -186,8 +190,8 @@ function kill_cassandra_process() {
     local pod=$2
     local container=$3
     local signal=$4
-
-    local current_restart_count=$(
+    local current_restart_count
+    current_restart_count=$(
         kubectl --namespace "${namespace}" get pod "${pod}" -o \
             'jsonpath={.status.containerStatuses[?(@.name=="cassandra")].restartCount}')
 
