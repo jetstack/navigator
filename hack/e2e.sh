@@ -252,8 +252,8 @@ function test_cassandracluster() {
          "${namespace}" \
          "cass-${CHART_NAME}-cassandra-cql" \
          9042 \
-         --execute="SELECT value FROM space1.testtable1" \
-            | egrep testvalue1
+         --execute="SELECT key, value FROM space1.testtable1" \
+            | tee /dev/stderr | egrep --silent testvalue1
     then
         fail_test "Cassandra data was lost"
     fi
@@ -307,6 +307,7 @@ function test_cassandracluster() {
 if [[ "test_cassandracluster" = "${TEST_PREFIX}"* ]]; then
     CASS_TEST_NS="test-cassandra-${TEST_ID}"
     test_cassandracluster "${CASS_TEST_NS}"
+    dump_debug_logs "${CASS_TEST_NS}"
     if [ "${FAILURE_COUNT}" -gt "0" ]; then
         fail_and_exit "${CASS_TEST_NS}"
     fi

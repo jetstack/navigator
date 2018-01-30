@@ -134,9 +134,12 @@ function stdout_gt() {
 function dump_debug_logs() {
     local namespace="${1}"
     local output_dir="$(pwd)/_artifacts/${namespace}"
+
     echo "Dumping cluster state to ${output_dir}"
     mkdir -p "${output_dir}"
-    kubectl cluster-info dump --namespaces "${namespace}" > "${output_dir}/dump.txt" || true
+    kubectl cluster-info dump \
+            --namespaces "${namespace}" \
+            --output-directory "${output_dir}" || true
 }
 
 function fail_and_exit() {
