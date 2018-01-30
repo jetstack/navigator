@@ -178,14 +178,14 @@ function test_elasticsearchcluster() {
     fi
 }
 
-# if [[ "test_elasticsearchcluster" = "${TEST_PREFIX}"* ]]; then
-#     ES_TEST_NS="test-elasticsearchcluster-${TEST_ID}"
-#     test_elasticsearchcluster "${ES_TEST_NS}"
-#     if [ "${FAILURE_COUNT}" -gt "0" ]; then
-#         fail_and_exit "${ES_TEST_NS}"
-#     fi
-#     kube_delete_namespace_and_wait "${ES_TEST_NS}"
-# fi
+if [[ "test_elasticsearchcluster" = "${TEST_PREFIX}"* ]]; then
+    ES_TEST_NS="test-elasticsearchcluster-${TEST_ID}"
+    test_elasticsearchcluster "${ES_TEST_NS}"
+    if [ "${FAILURE_COUNT}" -gt "0" ]; then
+        fail_and_exit "${ES_TEST_NS}"
+    fi
+    kube_delete_namespace_and_wait "${ES_TEST_NS}"
+fi
 
 function test_cassandracluster() {
     echo "Testing CassandraCluster"
@@ -216,7 +216,7 @@ function test_cassandracluster() {
         fail_test "Cassandra pilots did not elect a leader"
     fi
 
-    echo Wait 5 minutes for cassandra to start and listen for CQL queries.
+    # Wait 5 minutes for cassandra to start and listen for CQL queries.
     if ! retry TIMEOUT=300 cql_connect \
          "${namespace}" \
          "cass-${CHART_NAME}-cassandra-cql" \
@@ -224,7 +224,7 @@ function test_cassandracluster() {
         fail_test "Navigator controller failed to create cassandracluster service"
     fi
 
-    echo Create a database
+    # Create a database
     cql_connect \
         "${namespace}" \
         "cass-${CHART_NAME}-cassandra-cql" \
@@ -232,7 +232,7 @@ function test_cassandracluster() {
         --debug \
         < "${SCRIPT_DIR}/testdata/cassandra_test_database1.cql"
 
-    echo Insert a record
+    # Insert a record
     cql_connect \
         "${namespace}" \
         "cass-${CHART_NAME}-cassandra-cql" \
@@ -240,47 +240,22 @@ function test_cassandracluster() {
         --debug \
         --execute="INSERT INTO space1.testtable1(key, value) VALUES('testkey1', 'testvalue1')"
 
-    echo Expect the record to be selectable
-    cql_connect \
-        "${namespace}" \
-        "cass-${CHART_NAME}-cassandra-cql" \
-        9042 \
-        --debug \
-        --execute='SELECT * FROM space1.testtable1'
-
-    echo Kill the cassandra process gracefully.
-    echo Allow it to flush its data to disk.
+    # Kill the cassandra process gracefully which allows it to flush its data to disk.
     kill_cassandra_process \
         "${namespace}" \
         "cass-${CHART_NAME}-cassandra-ringnodes-0" \
         "cassandra" \
         "SIGTERM"
 
-    echo Expect the database to be restarted and the data to still be there
-    retry SLEEP=1 TIMEOUT=300 \
+    # The data is still there after the Cassandra process restarts
+    stdout_contains "testvalue1" \
+    retry TIMEOUT=300 \
           cql_connect \
           "${namespace}" \
           "cass-${CHART_NAME}-cassandra-cql" \
           9042 \
           --debug \
           --execute='SELECT * FROM space1.testtable1'
-
-    echo SLEEPING
-    sleep 10
-
-    echo Perhaps the server is responding to queries before its loaded the data
-    retry SLEEP=1 \
-          stdout_contains "testvalue1" \
-          cql_connect \
-          "${namespace}" \
-          "cass-${CHART_NAME}-cassandra-cql" \
-          9042 \
-          --execute="SELECT key, value FROM space1.testtable1"
-
-    kubectl --namespace "${namespace}" logs --previous  "cass-${CHART_NAME}-cassandra-ringnodes-0"
-    kubectl --namespace "${namespace}" logs "cass-${CHART_NAME}-cassandra-ringnodes-0"
-
-    return 0
 
     # Change the CQL port
     helm --debug upgrade \
@@ -335,5 +310,5 @@ if [[ "test_cassandracluster" = "${TEST_PREFIX}"* ]]; then
     if [ "${FAILURE_COUNT}" -gt "0" ]; then
         fail_and_exit "${CASS_TEST_NS}"
     fi
-    # kube_delete_namespace_and_wait "${CASS_TEST_NS}"
+    kube_delete_namespace_and_wait "${CASS_TEST_NS}"
 fi

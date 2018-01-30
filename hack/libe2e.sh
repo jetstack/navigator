@@ -120,7 +120,6 @@ function stdout_contains() {
     local expected="${1}"
     shift
     local actual=$("${@}")
-    echo "${actual}"
     grep --quiet "${expected}" <<<${actual}
 }
 
