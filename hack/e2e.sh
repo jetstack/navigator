@@ -248,14 +248,17 @@ function test_cassandracluster() {
         "SIGTERM"
 
     # The data is still there after the Cassandra process restarts
-    stdout_contains "testvalue1" \
-    retry TIMEOUT=300 \
-          cql_connect \
-          "${namespace}" \
-          "cass-${CHART_NAME}-cassandra-cql" \
-          9042 \
-          --debug \
-          --execute='SELECT * FROM space1.testtable1'
+    if ! stdout_matches "testvalue1" \
+         retry TIMEOUT=300 \
+         cql_connect \
+         "${namespace}" \
+         "cass-${CHART_NAME}-cassandra-cql" \
+         9042 \
+         --debug \
+         --execute='SELECT * FROM space1.testtable1'
+    then
+        fail_test "Cassandra data was lost"
+    fi
 
     # Change the CQL port
     helm --debug upgrade \

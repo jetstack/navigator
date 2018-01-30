@@ -24,14 +24,13 @@ function retry() {
 
     local start_time="$(date +"%s")"
     local end_time="$(($start_time + ${TIMEOUT}))"
-    while true; do
-        if "$@"; then
-            return 0
-        fi
+    until "${@}"
+    do
+        local exit_code="${?}"
         local current_time="$(date +"%s")"
         local remaining_time="$((end_time - current_time))"
-        if [[ "${remaining_time}" -lt 0 ]]; then
-            return 1
+        if [[ "${remaining_time}" -le 0 ]]; then
+            return "${exit_code}"
         fi
         local sleep_time="${SLEEP}"
         if [[ "${remaining_time}" -lt "${SLEEP}" ]]; then
@@ -39,7 +38,6 @@ function retry() {
         fi
         sleep "${sleep_time}"
     done
-    return 1
 }
 
 function kube_delete_namespace_and_wait() {
@@ -116,11 +114,11 @@ function stdout_equals() {
     return 1
 }
 
-function stdout_contains() {
+function stdout_matches() {
     local expected="${1}"
     shift
-    local actual=$("${@}")
-    grep --quiet "${expected}" <<<${actual}
+    actual=$("${@}")
+    grep --quiet "${expected}" <<<"${actual}"
 }
 
 function stdout_gt() {
