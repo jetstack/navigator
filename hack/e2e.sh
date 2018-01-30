@@ -247,9 +247,15 @@ function test_cassandracluster() {
         "cassandra" \
         "SIGTERM"
 
-    # The data is still there after the Cassandra process restarts
-    if ! stdout_matches "testvalue1" \
-         retry TIMEOUT=300 \
+    # Test that the data is still there after the Cassandra process restarts
+    #
+    # XXX: The first successful connection to the database should return the testvalue1.
+    # I.e. The `stdout_matches` should come before `retry`
+    # In practice I'm finding that `kubectl run cqlsh` sometimes succeeds,
+    # but does not relay the pod output.
+    # Maybe due to https://github.com/kubernetes/kubernetes/issues/27264
+    if ! retry TIMEOUT=300 \
+         stdout_matches "testvalue1" \
          cql_connect \
          "${namespace}" \
          "cass-${CHART_NAME}-cassandra-cql" \
