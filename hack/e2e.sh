@@ -216,7 +216,7 @@ function test_cassandracluster() {
         fail_test "Cassandra pilots did not elect a leader"
     fi
 
-    # Wait 5 minutes for cassandra to start and listen for CQL queries.
+    echo Wait 5 minutes for cassandra to start and listen for CQL queries.
     if ! retry TIMEOUT=300 cql_connect \
          "${namespace}" \
          "cass-${CHART_NAME}-cassandra-cql" \
@@ -224,59 +224,61 @@ function test_cassandracluster() {
         fail_test "Navigator controller failed to create cassandracluster service"
     fi
 
-    # Create a database
+    echo Create a database
     cql_connect \
         "${namespace}" \
         "cass-${CHART_NAME}-cassandra-cql" \
         9042 \
+        --debug \
         < "${SCRIPT_DIR}/testdata/cassandra_test_database1.cql"
 
-    # Insert a record
+    echo Insert a record
     cql_connect \
         "${namespace}" \
         "cass-${CHART_NAME}-cassandra-cql" \
         9042 \
+        --debug \
         --execute="INSERT INTO space1.testtable1(key, value) VALUES('testkey1', 'testvalue1')"
 
-    # Expect the database to be restarted and the data to still be there
-    if ! retry TIMEOUT=300 \
-         cql_connect \
-         "${namespace}" \
-         "cass-${CHART_NAME}-cassandra-cql" \
-         9042 \
-         --execute="SELECT key, value FROM space1.testtable1" \
-            | tee /dev/stderr | egrep --silent testvalue1
-    then
-        fail_test "Cassandra data was not inserted"
-    fi
+    echo Expect the record to be selectable
+    cql_connect \
+        "${namespace}" \
+        "cass-${CHART_NAME}-cassandra-cql" \
+        9042 \
+        --debug \
+        --execute='SELECT * FROM space1.testtable1'
 
-    # Kill the cassandra process gracefully.
-    # Allow it to flush its data to disk.
+    echo Kill the cassandra process gracefully.
+    echo Allow it to flush its data to disk.
     kill_cassandra_process \
         "${namespace}" \
         "cass-${CHART_NAME}-cassandra-ringnodes-0" \
         "cassandra" \
         "SIGTERM"
 
-    # Expect the database to be restarted and the data to still be there
-    if ! retry TIMEOUT=300 \
-         cql_connect \
-         "${namespace}" \
-         "cass-${CHART_NAME}-cassandra-cql" \
-         9042 \
-         --execute="SELECT key, value FROM space1.testtable1" \
-            | tee /dev/stderr | egrep --silent testvalue1
-    then
-        fail_test "Cassandra data was lost"
-    fi
+    echo Expect the database to be restarted and the data to still be there
+    retry SLEEP=1 TIMEOUT=300 \
+          cql_connect \
+          "${namespace}" \
+          "cass-${CHART_NAME}-cassandra-cql" \
+          9042 \
+          --debug \
+          --execute='SELECT * FROM space1.testtable1'
+
+    echo SLEEPING
     sleep 10
 
-    # Perhaps the server is responding to queries before it's loaded the data
-    cql_connect \
-        "${namespace}" \
-        "cass-${CHART_NAME}-cassandra-cql" \
-        9042 \
-        --execute="SELECT key, value FROM space1.testtable1"
+    echo Perhaps the server is responding to queries before its loaded the data
+    retry SLEEP=1 \
+          stdout_contains "testvalue1" \
+          cql_connect \
+          "${namespace}" \
+          "cass-${CHART_NAME}-cassandra-cql" \
+          9042 \
+          --execute="SELECT key, value FROM space1.testtable1"
+
+    kubectl --namespace "${namespace}" logs --previous  "cass-${CHART_NAME}-cassandra-ringnodes-0"
+    kubectl --namespace "${namespace}" logs "cass-${CHART_NAME}-cassandra-ringnodes-0"
 
     return 0
 

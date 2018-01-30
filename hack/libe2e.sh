@@ -116,6 +116,14 @@ function stdout_equals() {
     return 1
 }
 
+function stdout_contains() {
+    local expected="${1}"
+    shift
+    local actual=$("${@}")
+    echo "${actual}"
+    grep --quiet "${expected}" <<<${actual}
+}
+
 function stdout_gt() {
     local expected="${1}"
     shift
@@ -171,6 +179,7 @@ function cql_connect() {
         --rm \
         --stdin=true \
         --attach=true \
+        --quiet \
         -- \
         /usr/bin/cqlsh "$@"
 }
