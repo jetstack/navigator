@@ -89,11 +89,11 @@ function simulate_unresponsive_cassandra_process() {
     local namespace=$1
     local pod=$2
     local container=$3
-    # Send STOP signal to all the cassandra user's processes
+    # Decommission causes cassandra to stop accepting CQL connections.
     kubectl \
         --namespace="${namespace}" \
         exec "${pod}" --container="${container}" -- \
-        bash -c 'kill -SIGSTOP -- $(ps -u cassandra -o pid=) && ps faux'
+        nodetool decommission
 }
 
 function stdout_equals() {

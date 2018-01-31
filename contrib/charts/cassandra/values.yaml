@@ -4,8 +4,8 @@
 replicaCount: 1
 cqlPort: 9042
 image:
-  repository: gcr.io/google-samples/cassandra
-  tag: v12
+  repository: cassandra
+  tag: "3"
   pullPolicy: IfNotPresent
 pilotImage:
   repository: jetstackexperimental/navigator-pilot-cassandra

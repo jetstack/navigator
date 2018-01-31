@@ -7,6 +7,7 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/util"
@@ -86,28 +87,17 @@ func StatefulSetForCluster(
 							),
 							ReadinessProbe: &apiv1.Probe{
 								Handler: apiv1.Handler{
-									Exec: &apiv1.ExecAction{
-										// XXX The ready-probe.sh script is only
-										// available in the
-										// gcr.io/google-samples/cassandra image.
-										// Replace this when we have a Cassandra pilot.
-										// It can perform similar ready probe.
-										Command: []string{
-											"/usr/bin/timeout",
-											"10",
-											"/ready-probe.sh",
-										},
+									TCPSocket: &apiv1.TCPSocketAction{
+										Port: intstr.FromInt(9042),
 									},
 								},
 								// Test logs show that Cassandra begins
 								// listening for CQL connections ~45s after startup.
 								InitialDelaySeconds: 60,
-								// XXX Kubernetes ignores the TimeoutSeconds for Exec probes.
-								// See https://github.com/kubernetes/kubernetes/issues/26895
-								TimeoutSeconds:   10,
-								PeriodSeconds:    15,
-								SuccessThreshold: 3,
-								FailureThreshold: 1,
+								TimeoutSeconds:      10,
+								PeriodSeconds:       15,
+								SuccessThreshold:    3,
+								FailureThreshold:    1,
 							},
 							// XXX: You might imagine that LivenessProbes begin
 							// only after a successful ReadinessProbe,
@@ -118,24 +108,18 @@ func StatefulSetForCluster(
 							// See: https://github.com/kubernetes/kubernetes/issues/27114
 							LivenessProbe: &apiv1.Probe{
 								Handler: apiv1.Handler{
-									Exec: &apiv1.ExecAction{
-										Command: []string{
-											"/usr/bin/timeout",
-											"10",
-											"/ready-probe.sh",
-										},
+									TCPSocket: &apiv1.TCPSocketAction{
+										Port: intstr.FromInt(9042),
 									},
 								},
 								// Don't start performing liveness probes until
 								// readiness probe has had a chance to succeed
 								// at least 3 times.
 								InitialDelaySeconds: 90,
-								// XXX Kubernetes ignores the TimeoutSeconds for Exec probes.
-								// See https://github.com/kubernetes/kubernetes/issues/26895
-								TimeoutSeconds:   10,
-								PeriodSeconds:    30,
-								SuccessThreshold: 1,
-								FailureThreshold: 6,
+								TimeoutSeconds:      10,
+								PeriodSeconds:       30,
+								SuccessThreshold:    1,
+								FailureThreshold:    6,
 							},
 							SecurityContext: &apiv1.SecurityContext{
 								RunAsUser: cluster.Spec.NavigatorClusterConfig.SecurityContext.RunAsUser,
@@ -194,10 +178,6 @@ func StatefulSetForCluster(
 								{
 									Name:  "CASSANDRA_RACK",
 									Value: "Rack1-K8Demo",
-								},
-								{
-									Name:  "CASSANDRA_AUTO_BOOTSTRAP",
-									Value: "false",
 								},
 								{
 									Name: "POD_IP",
