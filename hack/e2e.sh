@@ -193,6 +193,32 @@ function test_cassandracluster() {
     local CHART_NAME="cassandra-${TEST_ID}"
 
     kubectl create namespace "${namespace}"
+    kubectl create --namespace "${namespace}" --filename - <<EOF
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv0001
+spec:
+  accessModes:
+    - ReadWriteOnce
+  capacity:
+    storage: 5Gi
+  hostPath:
+    path: /data/pv0001/
+EOF
+    kubectl create --namespace "${namespace}" --filename - <<EOF
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv0002
+spec:
+  accessModes:
+    - ReadWriteOnce
+  capacity:
+    storage: 5Gi
+  hostPath:
+    path: /data/pv0002/
+EOF
 
     if ! kubectl get \
          --namespace "${namespace}" \

@@ -47,6 +47,26 @@ func StatefulSetForCluster(
 				Type: apps.RollingUpdateStatefulSetStrategyType,
 			},
 			PodManagementPolicy: apps.ParallelPodManagement,
+			VolumeClaimTemplates: []apiv1.PersistentVolumeClaim{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: cassDataVolumeName,
+						Annotations: map[string]string{
+							"volume.beta.kubernetes.io/storage-class": "default",
+						},
+					},
+					Spec: apiv1.PersistentVolumeClaimSpec{
+						AccessModes: []apiv1.PersistentVolumeAccessMode{
+							apiv1.ReadWriteOnce,
+						},
+						Resources: apiv1.ResourceRequirements{
+							Requests: apiv1.ResourceList{
+								apiv1.ResourceStorage: resource.MustParse("5Gi"),
+							},
+						},
+					},
+				},
+			},
 			Template: apiv1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: nodePoolLabels,
@@ -56,12 +76,6 @@ func StatefulSetForCluster(
 					Volumes: []apiv1.Volume{
 						apiv1.Volume{
 							Name: sharedVolumeName,
-							VolumeSource: apiv1.VolumeSource{
-								EmptyDir: &apiv1.EmptyDirVolumeSource{},
-							},
-						},
-						apiv1.Volume{
-							Name: cassDataVolumeName,
 							VolumeSource: apiv1.VolumeSource{
 								EmptyDir: &apiv1.EmptyDirVolumeSource{},
 							},
