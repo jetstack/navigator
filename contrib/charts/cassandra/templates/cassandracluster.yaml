@@ -14,6 +14,9 @@ spec:
   nodePools:
   - name: ringnodes
     replicas: {{ .Values.replicaCount }}
+    persistence:
+      size: {{ .Values.persistence.size }}
+      storageClass: {{ .Values.persistence.storageClass }}
   image:
     repository: {{ .Values.image.repository | quote }}
     tag: {{ .Values.image.tag | quote }}

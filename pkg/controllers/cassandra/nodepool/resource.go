@@ -16,6 +16,9 @@ import (
 const (
 	sharedVolumeName      = "shared"
 	sharedVolumeMountPath = "/shared"
+
+	cassDataVolumeName      = "cassandra-data"
+	cassDataVolumeMountPath = "/var/lib/cassandra"
 )
 
 func StatefulSetForCluster(
@@ -44,6 +47,26 @@ func StatefulSetForCluster(
 				Type: apps.RollingUpdateStatefulSetStrategyType,
 			},
 			PodManagementPolicy: apps.ParallelPodManagement,
+			VolumeClaimTemplates: []apiv1.PersistentVolumeClaim{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: cassDataVolumeName,
+						Annotations: map[string]string{
+							"volume.beta.kubernetes.io/storage-class": np.Persistence.StorageClass,
+						},
+					},
+					Spec: apiv1.PersistentVolumeClaimSpec{
+						AccessModes: []apiv1.PersistentVolumeAccessMode{
+							apiv1.ReadWriteOnce,
+						},
+						Resources: apiv1.ResourceRequirements{
+							Requests: apiv1.ResourceList{
+								apiv1.ResourceStorage: np.Persistence.Size,
+							},
+						},
+					},
+				},
+			},
 			Template: apiv1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: nodePoolLabels,
@@ -147,6 +170,11 @@ func StatefulSetForCluster(
 									Name:      sharedVolumeName,
 									MountPath: sharedVolumeMountPath,
 									ReadOnly:  true,
+								},
+								{
+									Name:      cassDataVolumeName,
+									MountPath: cassDataVolumeMountPath,
+									ReadOnly:  false,
 								},
 							},
 							Env: []apiv1.EnvVar{

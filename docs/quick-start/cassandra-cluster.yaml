@@ -9,6 +9,9 @@ spec:
   nodePools:
   - name: "RingNodes"
     replicas: 3
+    persistence:
+      size: 5Gi
+      storageClass: default
   image:
     repository: "cassandra"
     tag: "3"
