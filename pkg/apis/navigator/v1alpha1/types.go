@@ -32,10 +32,26 @@ type CassandraClusterSpec struct {
 	CqlPort   int32                      `json:"cqlPort"`
 }
 
+// CassandraClusterPersistenceConfig contains persistent volume
+// configuration.
+type CassandraClusterPersistenceConfig struct {
+	// Size of the persistent volume to provision (required if persistence is
+	// enabled).
+	Size resource.Quantity `json:"size"`
+
+	// StorageClass to use for the persistent volume claim. If not set, the
+	// default cluster storage class will be used.
+	StorageClass string `json:"storageClass"`
+}
+
 // CassandraClusterNodePool describes a node pool within a CassandraCluster.
 type CassandraClusterNodePool struct {
 	Name     string `json:"name"`
 	Replicas int64  `json:"replicas"`
+
+	// Persistence specifies the configuration for persistent data for this
+	// node.
+	Persistence CassandraClusterPersistenceConfig `json:"persistence,omitempty"`
 }
 
 type CassandraClusterStatus struct {

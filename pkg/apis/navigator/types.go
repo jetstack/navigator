@@ -32,9 +32,15 @@ type CassandraClusterSpec struct {
 	CqlPort   int32
 }
 
+type CassandraClusterPersistenceConfig struct {
+	Size         resource.Quantity
+	StorageClass string
+}
+
 type CassandraClusterNodePool struct {
-	Name     string
-	Replicas int64
+	Name        string
+	Replicas    int64
+	Persistence CassandraClusterPersistenceConfig
 }
 
 type CassandraClusterStatus struct {

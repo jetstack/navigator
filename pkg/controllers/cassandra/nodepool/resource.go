@@ -52,7 +52,7 @@ func StatefulSetForCluster(
 					ObjectMeta: metav1.ObjectMeta{
 						Name: cassDataVolumeName,
 						Annotations: map[string]string{
-							"volume.beta.kubernetes.io/storage-class": "default",
+							"volume.beta.kubernetes.io/storage-class": np.Persistence.StorageClass,
 						},
 					},
 					Spec: apiv1.PersistentVolumeClaimSpec{
@@ -61,7 +61,7 @@ func StatefulSetForCluster(
 						},
 						Resources: apiv1.ResourceRequirements{
 							Requests: apiv1.ResourceList{
-								apiv1.ResourceStorage: resource.MustParse("5Gi"),
+								apiv1.ResourceStorage: np.Persistence.Size,
 							},
 						},
 					},
