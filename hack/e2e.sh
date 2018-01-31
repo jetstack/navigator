@@ -189,15 +189,12 @@ function cql_connect() {
     # No queries are performed.
     # stdin=false (the default) ensures that cqlsh does not go into interactive
     # mode.
-    # XXX: This uses the standard Cassandra Docker image rather than the
-    # gcr.io/google-samples/cassandra image used in the Cassandra chart, becasue
-    # cqlsh is missing some dependencies in that image.
     kubectl \
         run \
         "cql-responding-${RANDOM}" \
         --namespace="${namespace}" \
         --command=true \
-        --image=cassandra:latest \
+        --image=cassandra:3 \
         --restart=Never \
         --rm \
         --stdin=false \

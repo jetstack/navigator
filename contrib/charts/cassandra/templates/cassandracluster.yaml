@@ -5,8 +5,8 @@ metadata:
   labels:
     app: {{ template "name"  . }}
     chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name | quote }}
+    heritage: {{ .Release.Service | quote }}
 spec:
   cqlPort: {{ .Values.cqlPort }}
   sysctls:
@@ -15,10 +15,10 @@ spec:
   - name: ringnodes
     replicas: {{ .Values.replicaCount }}
   image:
-    repository: {{ .Values.image.repository }}
-    tag: {{ .Values.image.tag }}
-    pullPolicy: {{ .Values.image.pullPolicy }}
+    repository: {{ .Values.image.repository | quote }}
+    tag: {{ .Values.image.tag | quote }}
+    pullPolicy: {{ .Values.image.pullPolicy | quote }}
   pilotImage:
-    repository: {{ .Values.pilotImage.repository }}
-    tag: {{ .Values.pilotImage.tag }}
-    pullPolicy: {{ .Values.pilotImage.pullPolicy }}
+    repository: {{ .Values.pilotImage.repository | quote }}
+    tag: {{ .Values.pilotImage.tag | quote }}
+    pullPolicy: {{ .Values.pilotImage.pullPolicy | quote }}

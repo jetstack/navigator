@@ -1,15 +1,15 @@
 apiVersion: navigator.jetstack.io/v1alpha1
 kind: CassandraCluster
 metadata:
-  name: demo
+  name: "demo"
 spec:
   cqlPort: 9042
   sysctls:
   - vm.max_map_count=0
   nodePools:
-  - name: RingNodes
+  - name: "RingNodes"
     replicas: 3
   image:
-    repository: gcr.io/google-samples/cassandra
-    tag: v12
-    pullPolicy: IfNotPresent
+    repository: "cassandra"
+    tag: "3"
+    pullPolicy: "IfNotPresent"
