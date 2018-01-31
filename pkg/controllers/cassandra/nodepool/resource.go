@@ -18,7 +18,7 @@ const (
 	sharedVolumeMountPath = "/shared"
 
 	cassDataVolumeName      = "cassandra-data"
-	cassDataVolumeMountPath = "/cassandra_data"
+	cassDataVolumeMountPath = "/var/lib/cassandra"
 )
 
 func StatefulSetForCluster(
