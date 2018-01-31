@@ -240,12 +240,23 @@ function test_cassandracluster() {
         --debug \
         --execute="INSERT INTO space1.testtable1(key, value) VALUES('testkey1', 'testvalue1')"
 
-    # Kill the cassandra process gracefully which allows it to flush its data to disk.
-    kill_cassandra_process \
+    # Delete the Cassandra pod and wait for the CQL service to become
+    # unavailable (readiness probe fails)
+
+    kubectl --namespace "${namespace}" delete pod "cass-${CHART_NAME}-cassandra-ringnodes-0"
+    retry \
+        not \
+        cql_connect \
         "${namespace}" \
-        "cass-${CHART_NAME}-cassandra-ringnodes-0" \
-        "cassandra" \
-        "SIGTERM"
+        "cass-${CHART_NAME}-cassandra-cql" \
+        9042 \
+        --debug
+    # Kill the cassandra process gracefully which allows it to flush its data to disk.
+    # kill_cassandra_process \
+    #     "${namespace}" \
+    #     "cass-${CHART_NAME}-cassandra-ringnodes-0" \
+    #     "cassandra" \
+    #     "SIGTERM"
 
     # Test that the data is still there after the Cassandra process restarts
     #
