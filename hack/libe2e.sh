@@ -81,7 +81,7 @@ function kube_event_exists() {
     return 1
 }
 
-function simulate_unresponsice_cassandra_process() {
+function simulate_unresponsive_cassandra_process() {
     local namespace=$1
     local pod=$2
     local container=$3
