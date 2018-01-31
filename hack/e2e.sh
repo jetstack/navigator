@@ -193,32 +193,6 @@ function test_cassandracluster() {
     local CHART_NAME="cassandra-${TEST_ID}"
 
     kubectl create namespace "${namespace}"
-    kubectl create --namespace "${namespace}" --filename - <<EOF
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: pv0001
-spec:
-  accessModes:
-    - ReadWriteOnce
-  capacity:
-    storage: 5Gi
-  hostPath:
-    path: /data/pv0001/
-EOF
-    kubectl create --namespace "${namespace}" --filename - <<EOF
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: pv0002
-spec:
-  accessModes:
-    - ReadWriteOnce
-  capacity:
-    storage: 5Gi
-  hostPath:
-    path: /data/pv0002/
-EOF
 
     if ! kubectl get \
          --namespace "${namespace}" \
@@ -340,6 +314,11 @@ EOF
 
 if [[ "test_cassandracluster" = "${TEST_PREFIX}"* ]]; then
     CASS_TEST_NS="test-cassandra-${TEST_ID}"
+
+    for i in {1..2}; do
+        kube_create_pv "${CASS_TEST_NS}-pv${i}" 5Gi default
+    done
+
     test_cassandracluster "${CASS_TEST_NS}"
     dump_debug_logs "${CASS_TEST_NS}"
     if [ "${FAILURE_COUNT}" -gt "0" ]; then

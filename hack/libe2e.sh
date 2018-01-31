@@ -206,3 +206,29 @@ function kill_cassandra_process() {
         kubectl --namespace "${namespace}" get pod "${pod}" -o \
         'jsonpath={.status.containerStatuses[?(@.name=="cassandra")].restartCount}'
 }
+
+
+function kube_create_pv() {
+    local name="${1}"
+    local capacity="${2}"
+    local storage_class="${3}"
+
+    kubectl create --filename - <<EOF
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: ${name}
+  labels:
+    purpose: test
+spec:
+  accessModes:
+    - ReadWriteOnce
+  capacity:
+    storage: ${capacity}
+  hostPath:
+    path: /data/${name}/
+  storageClassName: ${storage_class}
+  persistentVolumeReclaimPolicy: Delete
+EOF
+
+}
