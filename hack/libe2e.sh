@@ -226,7 +226,7 @@ spec:
   capacity:
     storage: ${capacity}
   hostPath:
-    path: /data/${name}/
+    path: /tmp/hostpath_pvs/${name}/
   storageClassName: ${storage_class}
   persistentVolumeReclaimPolicy: Delete
 EOF
