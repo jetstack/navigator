@@ -30,7 +30,7 @@ func TestScale(t *testing.T) {
 	tests := map[string]testT{
 		"should not scale statefulset if documents still remain": {
 			kubeObjects: []runtime.Object{
-				statefulSetWithNameReplicas("es-test-data", 3),
+				generateStatefulSet(statefulSetGeneratorConfig{name: "es-test-data", replicas: int32Ptr(3)}),
 			},
 			navObjects: []runtime.Object{
 				pilotWithNameDocuments("es-test-data-0", "test", "data", 0),
@@ -41,12 +41,12 @@ func TestScale(t *testing.T) {
 			nodePool:            nodePoolPtrWithNameReplicasRoles("data", 2, v1alpha1.ElasticsearchRoleData),
 			replicas:            2,
 			shouldUpdate:        false,
-			expectedStatefulSet: statefulSetWithNameReplicas("es-test-data", 3),
+			expectedStatefulSet: generateStatefulSet(statefulSetGeneratorConfig{name: "es-test-data", replicas: int32Ptr(3)}),
 			err:                 true,
 		},
 		"should scale statefulset if no documents remain": {
 			kubeObjects: []runtime.Object{
-				statefulSetWithNameReplicas("es-test-data", 3),
+				generateStatefulSet(statefulSetGeneratorConfig{name: "es-test-data", replicas: int32Ptr(3)}),
 			},
 			navObjects: []runtime.Object{
 				pilotWithNameDocuments("es-test-data-0", "test", "data", 0),
@@ -57,12 +57,12 @@ func TestScale(t *testing.T) {
 			nodePool:            nodePoolPtrWithNameReplicasRoles("data", 2, v1alpha1.ElasticsearchRoleData),
 			replicas:            2,
 			shouldUpdate:        true,
-			expectedStatefulSet: statefulSetWithNameReplicas("es-test-data", 2),
+			expectedStatefulSet: generateStatefulSet(statefulSetGeneratorConfig{name: "es-test-data", replicas: int32Ptr(2)}),
 			err:                 false,
 		},
 		"should not scale statefulset if a pilot that should exist is missing": {
 			kubeObjects: []runtime.Object{
-				statefulSetWithNameReplicas("es-test-data", 3),
+				generateStatefulSet(statefulSetGeneratorConfig{name: "es-test-data", replicas: int32Ptr(3)}),
 			},
 			navObjects: []runtime.Object{
 				pilotWithNameDocuments("es-test-data-0", "test", "data", 0),
@@ -72,7 +72,7 @@ func TestScale(t *testing.T) {
 			nodePool:            nodePoolPtrWithNameReplicasRoles("data", 2, v1alpha1.ElasticsearchRoleData),
 			replicas:            2,
 			shouldUpdate:        false,
-			expectedStatefulSet: statefulSetWithNameReplicas("es-test-data", 3),
+			expectedStatefulSet: generateStatefulSet(statefulSetGeneratorConfig{name: "es-test-data", replicas: int32Ptr(3)}),
 			err:                 true,
 		},
 		"should error if statefulset doesn't exist": {
@@ -91,7 +91,7 @@ func TestScale(t *testing.T) {
 		},
 		"should not update if replica difference is zero": {
 			kubeObjects: []runtime.Object{
-				statefulSetWithNameReplicas("es-test-data", 3),
+				generateStatefulSet(statefulSetGeneratorConfig{name: "es-test-data", replicas: int32Ptr(3)}),
 			},
 			navObjects: []runtime.Object{
 				pilotWithNameDocuments("es-test-data-0", "test", "data", 0),
@@ -102,7 +102,7 @@ func TestScale(t *testing.T) {
 			nodePool:            nodePoolPtrWithNameReplicasRoles("data", 3, v1alpha1.ElasticsearchRoleData),
 			replicas:            3,
 			shouldUpdate:        false,
-			expectedStatefulSet: statefulSetWithNameReplicas("es-test-data", 3),
+			expectedStatefulSet: generateStatefulSet(statefulSetGeneratorConfig{name: "es-test-data", replicas: int32Ptr(3)}),
 			err:                 false,
 		},
 	}
@@ -171,7 +171,7 @@ func TestPilotsForStatefulSet(t *testing.T) {
 			},
 			cluster:     clusterWithNodePools("test", nodePoolWithNameReplicasRoles("data", 2, v1alpha1.ElasticsearchRoleData)),
 			nodePool:    nodePoolPtrWithNameReplicasRoles("data", 2, v1alpha1.ElasticsearchRoleData),
-			statefulSet: statefulSetWithNameReplicas("es-test-data", 3),
+			statefulSet: generateStatefulSet(statefulSetGeneratorConfig{name: "es-test-data", replicas: int32Ptr(3)}),
 			expectedPilots: []*v1alpha1.Pilot{
 				pilotWithNameDocuments("es-test-data-0", "test", "data", 10),
 				pilotWithNameDocuments("es-test-data-1", "test", "data", 10),
@@ -185,7 +185,7 @@ func TestPilotsForStatefulSet(t *testing.T) {
 			},
 			cluster:     clusterWithNodePools("test", nodePoolWithNameReplicasRoles("data", 2, v1alpha1.ElasticsearchRoleData)),
 			nodePool:    nodePoolPtrWithNameReplicasRoles("data", 2, v1alpha1.ElasticsearchRoleData),
-			statefulSet: statefulSetWithNameReplicas("es-test-data", 3),
+			statefulSet: generateStatefulSet(statefulSetGeneratorConfig{name: "es-test-data", replicas: int32Ptr(3)}),
 			err:         true,
 		},
 		{
@@ -199,7 +199,7 @@ func TestPilotsForStatefulSet(t *testing.T) {
 			},
 			cluster:     clusterWithNodePools("test", nodePoolWithNameReplicasRoles("data", 2, v1alpha1.ElasticsearchRoleData), nodePoolWithNameReplicasRoles("master", 3, v1alpha1.ElasticsearchRoleMaster)),
 			nodePool:    nodePoolPtrWithNameReplicasRoles("data", 2, v1alpha1.ElasticsearchRoleData),
-			statefulSet: statefulSetWithNameReplicas("es-test-data", 3),
+			statefulSet: generateStatefulSet(statefulSetGeneratorConfig{name: "es-test-data", replicas: int32Ptr(3)}),
 			expectedPilots: []*v1alpha1.Pilot{
 				pilotWithNameDocuments("es-test-data-0", "test", "data", 0),
 				pilotWithNameDocuments("es-test-data-1", "test", "data", 1),
@@ -256,7 +256,7 @@ func TestCanScaleNodePool(t *testing.T) {
 			},
 			cluster:          clusterWithNodePools("test", nodePoolWithNameReplicasRoles("data", 2, v1alpha1.ElasticsearchRoleData)),
 			nodePool:         nodePoolPtrWithNameReplicasRoles("data", 2, v1alpha1.ElasticsearchRoleData),
-			statefulSet:      statefulSetWithNameReplicas("es-test-data", 3),
+			statefulSet:      generateStatefulSet(statefulSetGeneratorConfig{name: "es-test-data", replicas: int32Ptr(3)}),
 			replicaDiff:      -1,
 			expectedCanScale: true,
 		},
@@ -268,7 +268,7 @@ func TestCanScaleNodePool(t *testing.T) {
 			},
 			cluster:          clusterWithNodePools("test", nodePoolWithNameReplicasRoles("data", 2, v1alpha1.ElasticsearchRoleData)),
 			nodePool:         nodePoolPtrWithNameReplicasRoles("data", 2, v1alpha1.ElasticsearchRoleData),
-			statefulSet:      statefulSetWithNameReplicas("es-test-data", 3),
+			statefulSet:      generateStatefulSet(statefulSetGeneratorConfig{name: "es-test-data", replicas: int32Ptr(3)}),
 			replicaDiff:      -1,
 			expectedCanScale: false,
 		},
@@ -280,7 +280,7 @@ func TestCanScaleNodePool(t *testing.T) {
 			},
 			cluster:          clusterWithNodePools("test", nodePoolWithNameReplicasRoles("data", 4, v1alpha1.ElasticsearchRoleData)),
 			nodePool:         nodePoolPtrWithNameReplicasRoles("data", 4, v1alpha1.ElasticsearchRoleData),
-			statefulSet:      statefulSetWithNameReplicas("es-test-data", 3),
+			statefulSet:      generateStatefulSet(statefulSetGeneratorConfig{name: "es-test-data", replicas: int32Ptr(3)}),
 			replicaDiff:      1,
 			expectedCanScale: true,
 		},
@@ -332,40 +332,40 @@ func TestDeterminePilotsToBeRemoved(t *testing.T) {
 	tests := []testT{
 		{
 			inputList:      []*v1alpha1.Pilot{pilotWithName("es-test-0"), pilotWithName("es-test-1"), pilotWithName("es-test-2")},
-			statefulSet:    statefulSetWithNameReplicas("es-test", 3),
+			statefulSet:    generateStatefulSet(statefulSetGeneratorConfig{name: "es-test", replicas: int32Ptr(3)}),
 			replicaDiff:    -1,
 			expectedOutput: []*v1alpha1.Pilot{pilotWithName("es-test-2")},
 			err:            false,
 		},
 		{
 			inputList:      []*v1alpha1.Pilot{pilotWithName("es-test-0"), pilotWithName("es-mixed-1"), pilotWithName("es-test-1")},
-			statefulSet:    statefulSetWithNameReplicas("es-test", 2),
+			statefulSet:    generateStatefulSet(statefulSetGeneratorConfig{name: "es-test", replicas: int32Ptr(2)}),
 			replicaDiff:    -1,
 			expectedOutput: []*v1alpha1.Pilot{pilotWithName("es-test-1")},
 			err:            false,
 		},
 		{
 			inputList:   []*v1alpha1.Pilot{pilotWithName("es-test-0")},
-			statefulSet: statefulSetWithNameReplicas("es-test", 2),
+			statefulSet: generateStatefulSet(statefulSetGeneratorConfig{name: "es-test", replicas: int32Ptr(2)}),
 			replicaDiff: 0,
 			err:         false,
 		},
 		{
 			inputList:   []*v1alpha1.Pilot{pilotWithName("es-test-0")},
-			statefulSet: statefulSetWithNameReplicas("es-test", 1),
+			statefulSet: generateStatefulSet(statefulSetGeneratorConfig{name: "es-test", replicas: int32Ptr(1)}),
 			replicaDiff: 0,
 			err:         false,
 		},
 		{
 			inputList:      []*v1alpha1.Pilot{pilotWithName("es-test-0"), pilotWithName("es-test-1")},
-			statefulSet:    statefulSetWithNameReplicas("es-test", 2),
+			statefulSet:    generateStatefulSet(statefulSetGeneratorConfig{name: "es-test", replicas: int32Ptr(2)}),
 			replicaDiff:    -1,
 			expectedOutput: []*v1alpha1.Pilot{pilotWithName("es-test-1")},
 			err:            false,
 		},
 		{
 			inputList:   []*v1alpha1.Pilot{pilotWithName("es-test-0"), pilotWithName("es-test-1")},
-			statefulSet: statefulSetWithNameReplicas("es-test", 2),
+			statefulSet: generateStatefulSet(statefulSetGeneratorConfig{name: "es-test", replicas: int32Ptr(2)}),
 			replicaDiff: 1,
 			err:         false,
 		},
@@ -415,14 +415,21 @@ func pilotWithNameDocuments(name, clusterName, nodePoolName string, documents in
 	return p
 }
 
-func statefulSetWithNameReplicas(name string, replicas int32) *apps.StatefulSet {
-	return &apps.StatefulSet{
+func clusterWithVersionNodePools(name string, version string, pools ...v1alpha1.ElasticsearchClusterNodePool) *v1alpha1.ElasticsearchCluster {
+	return &v1alpha1.ElasticsearchCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: "default",
 		},
-		Spec: apps.StatefulSetSpec{
-			Replicas: &replicas,
+		Spec: v1alpha1.ElasticsearchClusterSpec{
+			NavigatorClusterConfig: v1alpha1.NavigatorClusterConfig{
+				PilotImage: v1alpha1.ImageSpec{
+					Repository: "something",
+					Tag:        "latest",
+				},
+			},
+			Version:   *semver.New(version),
+			NodePools: pools,
 		},
 	}
 }
