@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	apps "k8s.io/api/apps/v1beta1"
+	utilerror "k8s.io/apimachinery/pkg/util/errors"
 
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers"
@@ -95,7 +96,7 @@ func (s *Scale) canScaleNodePool(state *controllers.State, statefulSet *apps.Sta
 	// - if excludeShards is false on those pilots, return false
 	// - if documentCount is >0 on those pilots, return false
 	// - otherwise return true
-	allPilots, err := s.pilotsForNodePool(state, s.Cluster.Name, s.NodePool.Name)
+	allPilots, err := s.pilotsForStatefulSet(state, statefulSet)
 	if err != nil {
 		return false, err
 	}
@@ -148,10 +149,39 @@ func pilotNameForStatefulSetReplica(setName string, replica int32) string {
 	return fmt.Sprintf("%s-%d", setName, replica)
 }
 
-func (s *Scale) pilotsForNodePool(state *controllers.State, clusterName, poolName string) ([]*v1alpha1.Pilot, error) {
-	selector, err := util.SelectorForNodePool(clusterName, poolName)
+func (s *Scale) pilotsForStatefulSet(state *controllers.State, statefulSet *apps.StatefulSet) ([]*v1alpha1.Pilot, error) {
+	replicasPtr := statefulSet.Spec.Replicas
+	if replicasPtr == nil {
+		return nil, fmt.Errorf("statefulset.spec.replicas cannot be nil")
+	}
+	replicas := *replicasPtr
+	// TODO: read the cluster name and node pool name from the statefulset
+	// metadata instead of the Scale structure so we can make this a package
+	// function. For now, this way is safest until we are sure these
+	// labels are going to remain stable
+	selector, err := util.SelectorForNodePool(s.Cluster.Name, s.NodePool.Name)
 	if err != nil {
 		return nil, err
 	}
-	return state.PilotLister.Pilots(s.Cluster.Namespace).List(selector)
+	pilots, err := state.PilotLister.Pilots(s.Cluster.Namespace).List(selector)
+	if err != nil {
+		return nil, err
+	}
+	var errs []error
+	var output []*v1alpha1.Pilot
+Outer:
+	for i := int32(0); i < replicas; i++ {
+		pilotName := pilotNameForStatefulSetReplica(statefulSet.Name, i)
+		for _, p := range pilots {
+			if p.Name == pilotName {
+				output = append(output, p)
+				continue Outer
+			}
+		}
+		errs = append(errs, fmt.Errorf("pilot %q not found", pilotName))
+	}
+	if len(errs) > 0 {
+		return nil, utilerror.NewAggregate(errs)
+	}
+	return output, nil
 }
