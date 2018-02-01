@@ -1,4 +1,4 @@
-package nodepool
+package actions
 
 import (
 	"fmt"
@@ -9,8 +9,7 @@ import (
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 )
 
-// TODO: move out of here
-func ESImageToUse(spec *v1alpha1.ElasticsearchClusterSpec) (*v1alpha1.ImageSpec, error) {
+func esImageToUse(spec *v1alpha1.ElasticsearchClusterSpec) (*v1alpha1.ImageSpec, error) {
 	if spec.Image == nil {
 		return defaultElasticsearchImageForVersion(spec.Version)
 	}

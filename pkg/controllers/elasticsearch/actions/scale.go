@@ -27,6 +27,10 @@ func (c *Scale) Name() string {
 	return "Scale"
 }
 
+func (c *Scale) Message() string {
+	return fmt.Sprintf("Scaled node pool %q to %d replicas", c.NodePool.Name, c.NodePool.Replicas)
+}
+
 // Execute will scale the s.NodePool statefulset to the desired number of
 // replicas. It will refuse to scale if the cluster is not in a 'state to scale'
 // as defined by s.canScaleNodePool.
@@ -52,13 +56,9 @@ func (s *Scale) Execute(state *controllers.State) error {
 		return nil
 	}
 
-	shouldProceed, err := s.canScaleNodePool(state, statefulSet, replicaDiff)
+	err = s.canScaleNodePool(state, statefulSet, replicaDiff)
 	if err != nil {
 		return err
-	}
-
-	if !shouldProceed {
-		return fmt.Errorf("cluster not ready to apply scale")
 	}
 
 	ssCopy := statefulSet.DeepCopy()
@@ -79,15 +79,15 @@ func (s *Scale) Execute(state *controllers.State) error {
 // - if all pilots effected by the scale (e.g. those that would be removed)
 //   have been drained of all shards, we can scale down.
 // - otherwise reject the scale down.
-func (s *Scale) canScaleNodePool(state *controllers.State, statefulSet *apps.StatefulSet, replicaDiff int32) (bool, error) {
+func (s *Scale) canScaleNodePool(state *controllers.State, statefulSet *apps.StatefulSet, replicaDiff int32) error {
 	// always allow scale up, or staying the same (no-op)
 	if replicaDiff >= 0 {
-		return true, nil
+		return nil
 	}
 	// we can always scale down non-data roles, as validation should
 	// ensure that at least one data, ingest and master node exists already
 	if !utilapi.ContainsElasticsearchRole(s.NodePool.Roles, v1alpha1.ElasticsearchRoleData) {
-		return true, nil
+		return nil
 	}
 
 	// outline of what goes on here:
@@ -96,22 +96,27 @@ func (s *Scale) canScaleNodePool(state *controllers.State, statefulSet *apps.Sta
 	// - if excludeShards is false on those pilots, return false
 	// - if documentCount is >0 on those pilots, return false
 	// - otherwise return true
-	allPilots, err := s.pilotsForStatefulSet(state, statefulSet)
+	allPilots, err := pilotsForStatefulSet(state, s.Cluster, s.NodePool, statefulSet)
 	if err != nil {
-		return false, err
+		return err
 	}
 	toRemove, err := determinePilotsToBeRemoved(allPilots, statefulSet, replicaDiff)
 	if err != nil {
-		return false, err
+		return err
 	}
 	for _, p := range toRemove {
+		if p.Status.Elasticsearch == nil {
+			return fmt.Errorf("pilot %q document count unknown", p.Name)
+		}
 		documentCount := p.Status.Elasticsearch.Documents
-		if documentCount == nil ||
-			*documentCount > 0 {
-			return false, nil
+		if documentCount == nil {
+			return fmt.Errorf("pilot %q document count unknown", p.Name)
+		}
+		if *documentCount > 0 {
+			return fmt.Errorf("pilot %q still contains %d documents, will not remove until empty", p.Name, *documentCount)
 		}
 	}
-	return true, nil
+	return nil
 }
 
 // determinePilotsToBeRemoved will return which pilots would be removed after
@@ -149,7 +154,7 @@ func pilotNameForStatefulSetReplica(setName string, replica int32) string {
 	return fmt.Sprintf("%s-%d", setName, replica)
 }
 
-func (s *Scale) pilotsForStatefulSet(state *controllers.State, statefulSet *apps.StatefulSet) ([]*v1alpha1.Pilot, error) {
+func pilotsForStatefulSet(state *controllers.State, cluster *v1alpha1.ElasticsearchCluster, nodePool *v1alpha1.ElasticsearchClusterNodePool, statefulSet *apps.StatefulSet) ([]*v1alpha1.Pilot, error) {
 	replicasPtr := statefulSet.Spec.Replicas
 	if replicasPtr == nil {
 		return nil, fmt.Errorf("statefulset.spec.replicas cannot be nil")
@@ -159,11 +164,11 @@ func (s *Scale) pilotsForStatefulSet(state *controllers.State, statefulSet *apps
 	// metadata instead of the Scale structure so we can make this a package
 	// function. For now, this way is safest until we are sure these
 	// labels are going to remain stable
-	selector, err := util.SelectorForNodePool(s.Cluster.Name, s.NodePool.Name)
+	selector, err := util.SelectorForNodePool(cluster.Name, nodePool.Name)
 	if err != nil {
 		return nil, err
 	}
-	pilots, err := state.PilotLister.Pilots(s.Cluster.Namespace).List(selector)
+	pilots, err := state.PilotLister.Pilots(cluster.Namespace).List(selector)
 	if err != nil {
 		return nil, err
 	}

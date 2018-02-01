@@ -28,11 +28,19 @@ func (p *Pilot) syncFunc(pilot *v1alpha1.Pilot) error {
 		return nil
 	}
 
-	err := p.updateNodeStats(pilot)
-	return err
+	if err := p.updateNodeStats(pilot); err != nil {
+		return err
+	}
+	if err := p.updateNodeInfo(pilot); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (p *Pilot) updateNodeStats(pilot *v1alpha1.Pilot) error {
+	if pilot.Status.Elasticsearch == nil {
+		pilot.Status.Elasticsearch = &v1alpha1.ElasticsearchPilotStatus{}
+	}
 	// set the ES document count to nil to indicate an unknown number of
 	// documents in case obtaining the document count fails. This prevents the
 	// node being shut down if it is not safe to do so.
@@ -52,6 +60,27 @@ func (p *Pilot) updateNodeStats(pilot *v1alpha1.Pilot) error {
 		glog.V(4).Infof("Applying stats for node %q", name)
 		docCount := stats.Indices.Docs.Count
 		pilot.Status.Elasticsearch.Documents = &docCount
+	}
+	return nil
+}
+func (p *Pilot) updateNodeInfo(pilot *v1alpha1.Pilot) error {
+	if pilot.Status.Elasticsearch == nil {
+		pilot.Status.Elasticsearch = &v1alpha1.ElasticsearchPilotStatus{}
+	}
+	if p.localESClient == nil {
+		return fmt.Errorf("local elasticsearch client not available")
+	}
+	// TODO: use context with a timeout
+	infoList, err := p.localESClient.NodesInfo().NodeId(p.Options.GenericPilotOptions.PilotName).Do(context.Background())
+	if err != nil {
+		return err
+	}
+	glog.V(4).Infof("Got %d nodes in returned data", len(infoList.Nodes))
+	// we can iterate over the results as the elastic client should only return
+	// a single node entry or none as we specify a single nodeID.
+	for name, info := range infoList.Nodes {
+		glog.V(4).Infof("Applying info for node %q", name)
+		pilot.Status.Elasticsearch.Version = info.Version
 	}
 	return nil
 }

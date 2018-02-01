@@ -6,6 +6,8 @@ import (
 	"github.com/golang/glog"
 	apiv1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/kubernetes"
 	appslisters "k8s.io/client-go/listers/apps/v1beta1"
 	corelisters "k8s.io/client-go/listers/core/v1"
@@ -102,6 +104,14 @@ func (e *defaultElasticsearchClusterControl) Sync(c *v1alpha1.ElasticsearchClust
 	c = c.DeepCopy()
 	var err error
 
+	defer func() {
+		var errs = []error{err}
+		if err := e.updateClusterStatus(c); err != nil {
+			errs = append(errs, err)
+		}
+		err = utilerrors.NewAggregate(errs)
+	}()
+
 	if _, err = e.serviceAccountControl.Sync(c); err != nil {
 		e.recorder.Eventf(c, apiv1.EventTypeWarning, errorSync, messageErrorSyncServiceAccount, err.Error())
 		return c.Status, err
@@ -155,18 +165,23 @@ func (e *defaultElasticsearchClusterControl) Sync(c *v1alpha1.ElasticsearchClust
 		return c.Status, err
 	}
 
+	if nextAction == nil {
+		err = e.reconcileNodePools(c)
+		return c.Status, err
+	}
+
 	if nextAction != nil {
 		glog.Infof("Executing action %q", nextAction.Name())
-		err = nextAction.Execute(state)
+		err := nextAction.Execute(state)
 		glog.Infof("Finished executing action %q", nextAction.Name())
 		if err != nil {
 			e.recorder.Eventf(c, apiv1.EventTypeWarning, "Err"+nextAction.Name(), messageErrorSyncNodePools, err.Error())
 			return c.Status, err
 		}
-		e.recorder.Eventf(c, apiv1.EventTypeNormal, nextAction.Name(), messageSuccessExecuteAction)
+		e.recorder.Eventf(c, apiv1.EventTypeNormal, nextAction.Name(), nextAction.Message())
 	}
 
-	return c.Status, nil
+	return c.Status, err
 }
 
 func (e *defaultElasticsearchClusterControl) nextAction(c *v1alpha1.ElasticsearchCluster) (controllers.Action, error) {
@@ -207,7 +222,7 @@ func (e *defaultElasticsearchClusterControl) nextActionForNodePool(c *v1alpha1.E
 		return nil, fmt.Errorf("cannot determine existing Elasticsearch version of statefulset %q", statefulSet.Name)
 	}
 	if c.Spec.Version.String() != currentVersionStr {
-		return &actions.UpdateVersion{c, np}, nil
+		return &actions.UpdateVersion{Cluster: c, NodePool: np}, nil
 	}
 
 	currentDesiredReplicas := statefulSet.Spec.Replicas
@@ -221,6 +236,27 @@ func (e *defaultElasticsearchClusterControl) nextActionForNodePool(c *v1alpha1.E
 	}
 
 	return nil, nil
+}
+
+func (e *defaultElasticsearchClusterControl) updateClusterStatus(c *v1alpha1.ElasticsearchCluster) error {
+	if c.Status.NodePools == nil {
+		c.Status.NodePools = map[string]v1alpha1.ElasticsearchClusterNodePoolStatus{}
+	}
+	for _, pool := range c.Spec.NodePools {
+		statefulSetName := util.NodePoolResourceName(c, &pool)
+		statefulSet, err := e.statefulSetLister.StatefulSets(c.Namespace).Get(statefulSetName)
+		if k8sErrors.IsNotFound(err) {
+			// don't return an error if the statefulset doesn't exist
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		poolStatus := c.Status.NodePools[pool.Name]
+		poolStatus.ReadyReplicas = statefulSet.Status.ReadyReplicas
+		c.Status.NodePools[pool.Name] = poolStatus
+	}
+	return nil
 }
 
 func (e *defaultElasticsearchClusterControl) pilotsNeedUpdateForNodePool(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.ElasticsearchClusterNodePool) (bool, error) {
@@ -254,4 +290,43 @@ func (e *defaultElasticsearchClusterControl) pilotsNeedUpdateForNodePool(c *v1al
 		}
 	}
 	return false, nil
+}
+
+// reconcileNodePools will look up all node pools that are owned by this
+// ElasticsearchCluster resource, and delete any that are no longer referenced.
+// This is used to delete old node pools that no longer exist in the cluster
+// specification.
+func (e *defaultElasticsearchClusterControl) reconcileNodePools(c *v1alpha1.ElasticsearchCluster) error {
+	// list all statefulsets that match the clusters selector
+	// loop through each node pool in c
+	sel, err := util.SelectorForCluster(c.Name)
+	if err != nil {
+		return fmt.Errorf("error creating label selector for cluster '%s': %s", c.Name, err.Error())
+	}
+	sets, err := e.statefulSetLister.StatefulSets(c.Namespace).List(sel)
+	if err != nil {
+		return err
+	}
+	// we delete each statefulset that has the node pool name set to the name
+	// of a valid node pool for sets
+	for _, np := range c.Spec.NodePools {
+		for i, ss := range sets {
+			if ss.Labels != nil && ss.Labels[v1alpha1.ElasticsearchNodePoolNameLabel] == np.Name {
+				sets = append(sets[:i], sets[i+1:]...)
+				break
+			}
+		}
+	}
+
+	// delete remaining statefulsets in sets
+	for _, ss := range sets {
+		if !metav1.IsControlledBy(ss, c) {
+			continue
+		}
+		err := e.kubeClient.AppsV1beta1().StatefulSets(ss.Namespace).Delete(ss.Name, nil)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

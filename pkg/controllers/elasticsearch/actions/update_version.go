@@ -9,7 +9,6 @@ import (
 
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers"
-	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/nodepool"
 	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/util"
 )
 
@@ -18,6 +17,8 @@ type UpdateVersion struct {
 	Cluster *v1alpha1.ElasticsearchCluster
 	// The node pool being scaled
 	NodePool *v1alpha1.ElasticsearchClusterNodePool
+	// this is used internally to generate the Message()
+	podToUpdateName string
 }
 
 var _ controllers.Action = &UpdateVersion{}
@@ -26,20 +27,27 @@ func (c *UpdateVersion) Name() string {
 	return "UpdateVersion"
 }
 
-func (m *UpdateVersion) Execute(state *controllers.State) error {
-	if m.NodePool == nil || m.Cluster == nil {
+func (c *UpdateVersion) Message() string {
+	if c.podToUpdateName == "" {
+		return fmt.Sprintf("Updated node pool %q to version %q", c.NodePool.Name, c.Cluster.Spec.Version.String())
+	}
+	return fmt.Sprintf("Updated pod %q to version %q", c.podToUpdateName, c.Cluster.Spec.Version.String())
+}
+
+func (c *UpdateVersion) Execute(state *controllers.State) error {
+	if c.NodePool == nil || c.Cluster == nil {
 		return fmt.Errorf("internal error: nodepool and cluster must be set")
 	}
 
-	statefulSetName := util.NodePoolResourceName(m.Cluster, m.NodePool)
-	statefulSet, err := state.StatefulSetLister.StatefulSets(m.Cluster.Namespace).Get(statefulSetName)
+	statefulSetName := util.NodePoolResourceName(c.Cluster, c.NodePool)
+	statefulSet, err := state.StatefulSetLister.StatefulSets(c.Cluster.Namespace).Get(statefulSetName)
 	if err != nil {
 		return err
 	}
 
 	// TODO: ensure shard reallocation is disabled
-	if m.Cluster.Status.Health == v1alpha1.ElasticsearchClusterHealthRed {
-		return fmt.Errorf("cluster is in a red state, refusing to upgrade node pool %q", m.NodePool.Name)
+	if c.Cluster.Status.Health == v1alpha1.ElasticsearchClusterHealthRed {
+		return fmt.Errorf("cluster is in a red state, refusing to upgrade node pool %q", c.NodePool.Name)
 	}
 
 	currentVersionStr, ok := statefulSet.Annotations[v1alpha1.ElasticsearchNodePoolVersionAnnotation]
@@ -52,22 +60,45 @@ func (m *UpdateVersion) Execute(state *controllers.State) error {
 		return fmt.Errorf("error parsing existing Elasticsearch version: %v", err)
 	}
 	// this means the statefulset is already up to date. exit early.
-	if m.Cluster.Spec.Version.Equal(*currentVersion) {
+	if c.Cluster.Spec.Version.Equal(*currentVersion) {
 		return nil
 	}
 
-	newImageSpec, err := nodepool.ESImageToUse(&m.Cluster.Spec)
+	newImageSpec, err := esImageToUse(&c.Cluster.Spec)
 	if err != nil {
 		return fmt.Errorf("cannot determine new image details to use: %v", err)
 	}
 
-	ssCopy := statefulSet.DeepCopy()
+	desiredReplicasPtr := statefulSet.Spec.Replicas
+	if desiredReplicasPtr == nil {
+		return fmt.Errorf("desired replicas on statefulset cannot be nil")
+	}
+	currentPartition := int32(0)
+	if statefulSet.Spec.UpdateStrategy.RollingUpdate != nil &&
+		statefulSet.Spec.UpdateStrategy.RollingUpdate.Partition != nil {
+		currentPartition = *statefulSet.Spec.UpdateStrategy.RollingUpdate.Partition
+	}
+	desiredReplicas := *desiredReplicasPtr
+	updatedReplicas := statefulSet.Status.UpdatedReplicas
+	currentReplicas := statefulSet.Status.CurrentReplicas
+	glog.V(4).Infof("ElasticsearchCluster node pool %q/%q - desired replicas: %d, updated replicas: %d, current replicas: %d, current partition: %d", c.Cluster.Name, c.NodePool.Name, desiredReplicas, updatedReplicas, currentReplicas, currentPartition)
+
+	// we subtract 1 here because we count from 0 when counting replicas
+	nextPartitionToUse := int32(desiredReplicas - updatedReplicas - 1)
+
+	// we have already ensured the cluster is not in a red state near the start of the function
+	if desiredReplicas != statefulSet.Status.ReadyReplicas {
+		return fmt.Errorf("all replicas in node pool must be ready before updating")
+	}
+
 	// check if the pod templates image field needs updating
-	newImage := newImageSpec.Repository + ":" + newImageSpec.Tag
-	if len(ssCopy.Spec.Template.Spec.Containers) == 0 {
+	if len(statefulSet.Spec.Template.Spec.Containers) == 0 {
 		return fmt.Errorf("internal error: no containers specified on statefulset pod template")
 	}
-	existingImage := ssCopy.Spec.Template.Spec.Containers[0].Image
+
+	existingImage := statefulSet.Spec.Template.Spec.Containers[0].Image
+	newImage := newImageSpec.Repository + ":" + newImageSpec.Tag
+	ssCopy := statefulSet.DeepCopy()
 	if existingImage != newImage {
 		if ssCopy.Spec.UpdateStrategy.RollingUpdate == nil {
 			ssCopy.Spec.UpdateStrategy.RollingUpdate = &apps.RollingUpdateStatefulSetStrategy{}
@@ -75,30 +106,7 @@ func (m *UpdateVersion) Execute(state *controllers.State) error {
 		// we update the image, but don't allow any pods to be updated yet
 		ssCopy.Spec.UpdateStrategy.RollingUpdate.Partition = ssCopy.Spec.Replicas
 		ssCopy.Spec.Template.Spec.Containers[0].Image = newImage
-		ssCopy, err = state.Clientset.AppsV1beta1().StatefulSets(ssCopy.Namespace).Update(ssCopy)
-		if err != nil {
-			return err
-		}
 	}
-
-	desiredReplicasPtr := ssCopy.Spec.Replicas
-	if desiredReplicasPtr == nil {
-		return fmt.Errorf("desired replicas on statefulset cannot be nil")
-	}
-	currentPartition := int32(0)
-	if ssCopy.Spec.UpdateStrategy.RollingUpdate.Partition != nil {
-		currentPartition = *ssCopy.Spec.UpdateStrategy.RollingUpdate.Partition
-	}
-	desiredReplicas := *desiredReplicasPtr
-	updatedReplicas := ssCopy.Status.UpdatedReplicas
-	currentReplicas := ssCopy.Status.CurrentReplicas
-	glog.V(4).Infof("ElasticsearchCluster node pool %q/%q - desired replicas: %d, updated replicas: %d, current replicas: %d, current partition: %d", m.Cluster.Name, m.NodePool.Name, desiredReplicas, updatedReplicas, currentReplicas, currentPartition)
-
-	// we subtract 1 here because we count from 0 when counting replicas
-	nextPartitionToUse := int32(desiredReplicas - updatedReplicas - 1)
-
-	// we have already ensured the cluster is not in a red state near the start of the function
-	// TODO: check that the pilot previously being updated is now healthy again?
 
 	// we are ready to reduce the partition number and begin updating the next
 	// replica
@@ -107,20 +115,38 @@ func (m *UpdateVersion) Execute(state *controllers.State) error {
 			ssCopy.Spec.UpdateStrategy.RollingUpdate = &apps.RollingUpdateStatefulSetStrategy{}
 		}
 		ssCopy.Spec.UpdateStrategy.RollingUpdate.Partition = &nextPartitionToUse
-		ssCopy, err = state.Clientset.AppsV1beta1().StatefulSets(ssCopy.Namespace).Update(ssCopy)
-		if err != nil {
-			return err
-		}
 	}
 
-	if ssCopy.Status.CurrentRevision == ssCopy.Status.UpdateRevision {
+	if c.pilotsUpToDate(state, statefulSet) == nil {
 		// we only set this once the upgrade is complete for the node pool
-		ssCopy.Annotations[v1alpha1.ElasticsearchNodePoolVersionAnnotation] = m.Cluster.Spec.Version.String()
-		ssCopy, err = state.Clientset.AppsV1beta1().StatefulSets(ssCopy.Namespace).Update(ssCopy)
-		if err != nil {
-			return err
-		}
+		ssCopy.Annotations[v1alpha1.ElasticsearchNodePoolVersionAnnotation] = c.Cluster.Spec.Version.String()
+		// clear this field to change the message to return "finished updating node pool"
+		c.podToUpdateName = ""
+	} else {
+		c.podToUpdateName = pilotNameForStatefulSetReplica(ssCopy.Name, nextPartitionToUse)
 	}
 
+	_, err = state.Clientset.AppsV1beta1().StatefulSets(ssCopy.Namespace).Update(ssCopy)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *UpdateVersion) pilotsUpToDate(state *controllers.State, statefulSet *apps.StatefulSet) error {
+	pilots, err := pilotsForStatefulSet(state, c.Cluster, c.NodePool, statefulSet)
+	if err != nil {
+		return err
+	}
+	for _, p := range pilots {
+		if p.Status.Elasticsearch == nil ||
+			p.Status.Elasticsearch.Version == "" {
+			return fmt.Errorf("pilot %q version unknown", p.Name)
+		}
+		if c.Cluster.Spec.Version.String() != p.Status.Elasticsearch.Version {
+			return fmt.Errorf("pilot %q is version %s")
+		}
+	}
 	return nil
 }

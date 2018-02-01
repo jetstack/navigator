@@ -25,6 +25,7 @@ type State struct {
 
 type Action interface {
 	Name() string
+	Message() string
 	// Execute should attempt to execute the action. If it is not possible to
 	// apply the specified changes (e.g. due to the cluster not being in a
 	// 'ready state', or some transient error) then an error will be returned

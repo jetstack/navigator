@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	core "k8s.io/api/core/v1"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
@@ -20,6 +21,10 @@ var _ controllers.Action = &CreatePilot{}
 
 func (c *CreatePilot) Name() string {
 	return "CreatePilot"
+}
+
+func (c *CreatePilot) Message() string {
+	return fmt.Sprintf("Created Pilot resources for node pool %q", c.NodePool.Name)
 }
 
 func (c *CreatePilot) Execute(state *controllers.State) error {
@@ -46,6 +51,9 @@ func (c *CreatePilot) Execute(state *controllers.State) error {
 
 		pilot := newPilotResource(c.Cluster, pod)
 		_, err = state.NavigatorClientset.NavigatorV1alpha1().Pilots(pilot.Namespace).Create(pilot)
+		if k8sErrors.IsAlreadyExists(err) {
+			continue
+		}
 		if err != nil {
 			return fmt.Errorf("error ensuring pilot resource exists for pod '%s': %s", pod.Name, err.Error())
 		}
@@ -61,6 +69,7 @@ func newPilotResource(c *v1alpha1.ElasticsearchCluster, pod *core.Pod) *v1alpha1
 			Name:            pod.Name,
 			Namespace:       pod.Namespace,
 			OwnerReferences: []metav1.OwnerReference{util.NewControllerRef(c)},
+			Labels:          pod.Labels,
 		},
 		Spec: v1alpha1.PilotSpec{
 			Elasticsearch: &v1alpha1.PilotElasticsearchSpec{},

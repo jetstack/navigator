@@ -4,8 +4,8 @@ import (
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 )
 
-func CountElasticsearchMasters(pools []v1alpha1.ElasticsearchClusterNodePool) int64 {
-	masters := int64(0)
+func CountElasticsearchMasters(pools []v1alpha1.ElasticsearchClusterNodePool) int32 {
+	masters := int32(0)
 	for _, pool := range pools {
 		if ContainsElasticsearchRole(pool.Roles, v1alpha1.ElasticsearchRoleMaster) {
 			masters += pool.Replicas

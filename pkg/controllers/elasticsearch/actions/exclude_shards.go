@@ -20,6 +20,10 @@ func (c *ExcludeShards) Name() string {
 	return "ExcludeShards"
 }
 
+func (c *ExcludeShards) Message() string {
+	return ""
+}
+
 func (e *ExcludeShards) Execute(state *controllers.State) error {
 	return nil
 }

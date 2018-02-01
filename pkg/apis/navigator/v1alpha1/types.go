@@ -10,7 +10,6 @@ import (
 const (
 	ElasticsearchClusterNameLabel          = "navigator.jetstack.io/elasticsearch-cluster-name"
 	ElasticsearchNodePoolNameLabel         = "navigator.jetstack.io/elasticsearch-node-pool-name"
-	ElasticsearchNodePoolHashAnnotation    = "navigator.jetstack.io/elasticsearch-node-pool-hash"
 	ElasticsearchNodePoolVersionAnnotation = "navigator.jetstack.io/elasticsearch-version"
 	ElasticsearchRoleLabelPrefix           = "navigator.jetstack.io/elasticsearch-role-"
 )
@@ -85,7 +84,7 @@ type ElasticsearchClusterStatus struct {
 // pool in an ElasticsearchCluster
 type ElasticsearchClusterNodePoolStatus struct {
 	// ReadyReplicas is the total number of ready pods in this cluster.
-	ReadyReplicas int64 `json:"readyReplicas"`
+	ReadyReplicas int32 `json:"readyReplicas"`
 }
 
 type ElasticsearchClusterHealth string
@@ -129,7 +128,7 @@ type ElasticsearchClusterSpec struct {
 	// If omitted, this will be set to a quorum of the master nodes in the
 	// cluster. If set, the value *must* be greater than or equal to a quorum
 	// of master nodes.
-	MinimumMasters int64 `json:"minimumMasters,omitempty"`
+	MinimumMasters int32 `json:"minimumMasters,omitempty"`
 }
 
 // ElasticsearchClusterNodePool describes a node pool within an ElasticsearchCluster.
@@ -139,7 +138,7 @@ type ElasticsearchClusterNodePool struct {
 	Name string `json:"name"`
 
 	// Number of replicas in the pool.
-	Replicas int64 `json:"replicas"`
+	Replicas int32 `json:"replicas"`
 
 	// Roles that nodes in this pool should perform within the cluster.
 	Roles []ElasticsearchClusterRole `json:"roles"`
@@ -269,6 +268,7 @@ type ElasticsearchPilotStatus struct {
 	// an unknown number of documents, whereas 0 indicates that the node is
 	// empty
 	Documents *int64 `json:"documents,omitempty"`
+	Version   string `json:"version,omitempty"`
 }
 
 // PilotCondition contains condition information for a Pilot.

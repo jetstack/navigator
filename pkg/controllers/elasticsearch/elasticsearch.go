@@ -275,7 +275,6 @@ func (e *ElasticsearchController) sync(key string) (err error) {
 func (e *ElasticsearchController) updateStatus(c *v1alpha1.ElasticsearchCluster, status v1alpha1.ElasticsearchClusterStatus) error {
 	copy := c.DeepCopy()
 	copy.Status = status
-	// todo: replace with UpdateStatus
 	_, err := e.navigatorClient.NavigatorV1alpha1().ElasticsearchClusters(c.Namespace).UpdateStatus(copy)
 	return err
 }
@@ -287,7 +286,7 @@ func (e *ElasticsearchController) enqueueElasticsearchCluster(obj interface{}) {
 		return
 	}
 	glog.V(4).Infof("Adding ES Cluster '%s' to queue", key)
-	e.queue.AddRateLimited(key)
+	e.queue.Add(key)
 }
 
 func (e *ElasticsearchController) handleObject(obj interface{}) {

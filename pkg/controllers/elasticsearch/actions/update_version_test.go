@@ -41,6 +41,7 @@ func TestUpdateVersion(t *testing.T) {
 					image:           esImageRepo + ":6.1.1",
 					currentRevision: "a",
 					currentReplicas: 3,
+					readyReplicas:   3,
 				}),
 			},
 			navObjects: []runtime.Object{
@@ -59,6 +60,7 @@ func TestUpdateVersion(t *testing.T) {
 				currentRevision: "a",
 				currentReplicas: 3,
 				partition:       int32Ptr(2),
+				readyReplicas:   3,
 			}),
 			err: false,
 		},
@@ -73,6 +75,7 @@ func TestUpdateVersion(t *testing.T) {
 					currentReplicas: 2,
 					updatedReplicas: 1,
 					partition:       int32Ptr(2),
+					readyReplicas:   3,
 				}),
 			},
 			navObjects: []runtime.Object{
@@ -98,6 +101,7 @@ func TestUpdateVersion(t *testing.T) {
 				currentReplicas: 2,
 				updatedReplicas: 1,
 				partition:       int32Ptr(1),
+				readyReplicas:   3,
 			}),
 			err: false,
 		},
@@ -109,6 +113,7 @@ func TestUpdateVersion(t *testing.T) {
 					version:         "6.1.1",
 					image:           esImageRepo + ":6.1.1",
 					currentRevision: "a",
+					readyReplicas:   3,
 				}),
 			},
 			navObjects: []runtime.Object{
@@ -126,14 +131,35 @@ func TestUpdateVersion(t *testing.T) {
 			}),
 			nodePool:     nodePoolPtrWithNameReplicasRoles("data", 3, v1alpha1.ElasticsearchRoleData),
 			shouldUpdate: false,
-			expectedStatefulSet: generateStatefulSet(statefulSetGeneratorConfig{
-				name:            "es-test-data",
-				replicas:        int32Ptr(3),
-				version:         "6.1.1",
-				image:           esImageRepo + ":6.1.1",
-				currentRevision: "a",
+			err:          true,
+		},
+		"should not update a node pool with an unready replica": {
+			kubeObjects: []runtime.Object{
+				generateStatefulSet(statefulSetGeneratorConfig{
+					name:            "es-test-data",
+					replicas:        int32Ptr(3),
+					version:         "6.1.1",
+					image:           esImageRepo + ":6.1.1",
+					currentRevision: "a",
+					readyReplicas:   2,
+				}),
+			},
+			navObjects: []runtime.Object{
+				pilotWithNameDocuments("es-test-data-0", "test", "data", 0),
+				pilotWithNameDocuments("es-test-data-1", "test", "data", 1),
+				pilotWithNameDocuments("es-test-data-2", "test", "data", 2),
+			},
+			cluster: generateCluster(clusterGeneratorConfig{
+				name:    "test",
+				version: "6.1.2",
+				nodePools: []v1alpha1.ElasticsearchClusterNodePool{
+					nodePoolWithNameReplicasRoles("data", 3, v1alpha1.ElasticsearchRoleData),
+				},
+				health: v1alpha1.ElasticsearchClusterHealthGreen,
 			}),
-			err: true,
+			nodePool:     nodePoolPtrWithNameReplicasRoles("data", 3, v1alpha1.ElasticsearchRoleData),
+			shouldUpdate: false,
+			err:          true,
 		},
 		"should set the updated version annotation on the statefulset when update is completed": {
 			kubeObjects: []runtime.Object{
@@ -146,6 +172,7 @@ func TestUpdateVersion(t *testing.T) {
 					updateRevision:  "b",
 					currentReplicas: 3,
 					partition:       int32Ptr(2),
+					readyReplicas:   3,
 				}),
 			},
 			navObjects: []runtime.Object{
@@ -171,6 +198,7 @@ func TestUpdateVersion(t *testing.T) {
 				updateRevision:  "b",
 				currentReplicas: 3,
 				partition:       int32Ptr(2),
+				readyReplicas:   3,
 			}),
 			err: false,
 		},
@@ -222,6 +250,30 @@ func TestUpdateVersion(t *testing.T) {
 	}
 }
 
+type pilotGeneratorConfig struct {
+	name                      string
+	clusterName, nodePoolName string
+	documents                 *int64
+}
+
+func generatePilot(c pilotGeneratorConfig) *v1alpha1.Pilot {
+	labels := map[string]string{}
+	labels[v1alpha1.ElasticsearchClusterNameLabel] = c.clusterName
+	labels[v1alpha1.ElasticsearchNodePoolNameLabel] = c.nodePoolName
+	return &v1alpha1.Pilot{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      c.name,
+			Namespace: "default",
+			Labels:    labels,
+		},
+		Status: v1alpha1.PilotStatus{
+			Elasticsearch: &v1alpha1.ElasticsearchPilotStatus{
+				Documents: c.documents,
+			},
+		},
+	}
+}
+
 type clusterGeneratorConfig struct {
 	name          string
 	nodePools     []v1alpha1.ElasticsearchClusterNodePool
@@ -254,6 +306,7 @@ type statefulSetGeneratorConfig struct {
 	partition                        *int32
 	currentRevision, updateRevision  string
 	currentReplicas, updatedReplicas int32
+	readyReplicas                    int32
 }
 
 func generateStatefulSet(c statefulSetGeneratorConfig) *apps.StatefulSet {
@@ -287,6 +340,7 @@ func generateStatefulSet(c statefulSetGeneratorConfig) *apps.StatefulSet {
 			UpdateRevision:  c.updateRevision,
 			CurrentReplicas: c.currentReplicas,
 			UpdatedReplicas: c.updatedReplicas,
+			ReadyReplicas:   c.readyReplicas,
 		},
 	}
 }

@@ -238,14 +238,13 @@ func TestPilotsForStatefulSet(t *testing.T) {
 
 func TestCanScaleNodePool(t *testing.T) {
 	type testT struct {
-		kubeObjects      []runtime.Object
-		navObjects       []runtime.Object
-		cluster          *v1alpha1.ElasticsearchCluster
-		nodePool         *v1alpha1.ElasticsearchClusterNodePool
-		statefulSet      *apps.StatefulSet
-		replicaDiff      int32
-		expectedCanScale bool
-		err              bool
+		kubeObjects []runtime.Object
+		navObjects  []runtime.Object
+		cluster     *v1alpha1.ElasticsearchCluster
+		nodePool    *v1alpha1.ElasticsearchClusterNodePool
+		statefulSet *apps.StatefulSet
+		replicaDiff int32
+		err         bool
 	}
 	tests := map[string]testT{
 		"can scale down statefulset with just 1 empty pilot": {
@@ -254,11 +253,10 @@ func TestCanScaleNodePool(t *testing.T) {
 				pilotWithNameDocuments("es-test-data-1", "test", "data", 10),
 				pilotWithNameDocuments("es-test-data-2", "test", "data", 0),
 			},
-			cluster:          clusterWithNodePools("test", nodePoolWithNameReplicasRoles("data", 2, v1alpha1.ElasticsearchRoleData)),
-			nodePool:         nodePoolPtrWithNameReplicasRoles("data", 2, v1alpha1.ElasticsearchRoleData),
-			statefulSet:      generateStatefulSet(statefulSetGeneratorConfig{name: "es-test-data", replicas: int32Ptr(3)}),
-			replicaDiff:      -1,
-			expectedCanScale: true,
+			cluster:     clusterWithNodePools("test", nodePoolWithNameReplicasRoles("data", 2, v1alpha1.ElasticsearchRoleData)),
+			nodePool:    nodePoolPtrWithNameReplicasRoles("data", 2, v1alpha1.ElasticsearchRoleData),
+			statefulSet: generateStatefulSet(statefulSetGeneratorConfig{name: "es-test-data", replicas: int32Ptr(3)}),
+			replicaDiff: -1,
 		},
 		"cannot scale down statefulset with a non empty pilot": {
 			navObjects: []runtime.Object{
@@ -266,11 +264,23 @@ func TestCanScaleNodePool(t *testing.T) {
 				pilotWithNameDocuments("es-test-data-1", "test", "data", 0),
 				pilotWithNameDocuments("es-test-data-2", "test", "data", 100),
 			},
-			cluster:          clusterWithNodePools("test", nodePoolWithNameReplicasRoles("data", 2, v1alpha1.ElasticsearchRoleData)),
-			nodePool:         nodePoolPtrWithNameReplicasRoles("data", 2, v1alpha1.ElasticsearchRoleData),
-			statefulSet:      generateStatefulSet(statefulSetGeneratorConfig{name: "es-test-data", replicas: int32Ptr(3)}),
-			replicaDiff:      -1,
-			expectedCanScale: false,
+			cluster:     clusterWithNodePools("test", nodePoolWithNameReplicasRoles("data", 2, v1alpha1.ElasticsearchRoleData)),
+			nodePool:    nodePoolPtrWithNameReplicasRoles("data", 2, v1alpha1.ElasticsearchRoleData),
+			statefulSet: generateStatefulSet(statefulSetGeneratorConfig{name: "es-test-data", replicas: int32Ptr(3)}),
+			replicaDiff: -1,
+			err:         true,
+		},
+		"cannot scale down node pool when a pilot has not reported its document count": {
+			navObjects: []runtime.Object{
+				pilotWithNameDocuments("es-test-data-0", "test", "data", 0),
+				pilotWithNameDocuments("es-test-data-1", "test", "data", 0),
+				pilotWithNameOwner("es-test-data-2", "test", "data"),
+			},
+			cluster:     clusterWithNodePools("test", nodePoolWithNameReplicasRoles("data", 2, v1alpha1.ElasticsearchRoleData)),
+			nodePool:    nodePoolPtrWithNameReplicasRoles("data", 2, v1alpha1.ElasticsearchRoleData),
+			statefulSet: generateStatefulSet(statefulSetGeneratorConfig{name: "es-test-data", replicas: int32Ptr(3)}),
+			replicaDiff: -1,
+			err:         true,
 		},
 		"can always scale up": {
 			navObjects: []runtime.Object{
@@ -278,11 +288,10 @@ func TestCanScaleNodePool(t *testing.T) {
 				pilotWithNameDocuments("es-test-data-1", "test", "data", 0),
 				pilotWithNameDocuments("es-test-data-2", "test", "data", 100),
 			},
-			cluster:          clusterWithNodePools("test", nodePoolWithNameReplicasRoles("data", 4, v1alpha1.ElasticsearchRoleData)),
-			nodePool:         nodePoolPtrWithNameReplicasRoles("data", 4, v1alpha1.ElasticsearchRoleData),
-			statefulSet:      generateStatefulSet(statefulSetGeneratorConfig{name: "es-test-data", replicas: int32Ptr(3)}),
-			replicaDiff:      1,
-			expectedCanScale: true,
+			cluster:     clusterWithNodePools("test", nodePoolWithNameReplicasRoles("data", 4, v1alpha1.ElasticsearchRoleData)),
+			nodePool:    nodePoolPtrWithNameReplicasRoles("data", 4, v1alpha1.ElasticsearchRoleData),
+			statefulSet: generateStatefulSet(statefulSetGeneratorConfig{name: "es-test-data", replicas: int32Ptr(3)}),
+			replicaDiff: 1,
 		},
 	}
 	for name, test := range tests {
@@ -307,10 +316,7 @@ func TestCanScaleNodePool(t *testing.T) {
 				NodePool: test.nodePool,
 				Replicas: int32(test.nodePool.Replicas) + test.replicaDiff,
 			}
-			canScale, err := scale.canScaleNodePool(state, test.statefulSet, test.replicaDiff)
-			if canScale != test.expectedCanScale {
-				t.Errorf("Expected canScale to be %t but got %t", test.expectedCanScale, canScale)
-			}
+			err := scale.canScaleNodePool(state, test.statefulSet, test.replicaDiff)
 			if err != nil && !test.err {
 				t.Errorf("Expected no error but got: %v", err)
 			}
@@ -453,7 +459,7 @@ func clusterWithNodePools(name string, pools ...v1alpha1.ElasticsearchClusterNod
 	}
 }
 
-func nodePoolWithNameReplicasRoles(name string, replicas int64, roles ...v1alpha1.ElasticsearchClusterRole) v1alpha1.ElasticsearchClusterNodePool {
+func nodePoolWithNameReplicasRoles(name string, replicas int32, roles ...v1alpha1.ElasticsearchClusterRole) v1alpha1.ElasticsearchClusterNodePool {
 	return v1alpha1.ElasticsearchClusterNodePool{
 		Name:     name,
 		Replicas: replicas,
@@ -461,7 +467,7 @@ func nodePoolWithNameReplicasRoles(name string, replicas int64, roles ...v1alpha
 	}
 }
 
-func nodePoolPtrWithNameReplicasRoles(name string, replicas int64, roles ...v1alpha1.ElasticsearchClusterRole) *v1alpha1.ElasticsearchClusterNodePool {
+func nodePoolPtrWithNameReplicasRoles(name string, replicas int32, roles ...v1alpha1.ElasticsearchClusterRole) *v1alpha1.ElasticsearchClusterNodePool {
 	obj := nodePoolWithNameReplicasRoles(name, replicas, roles...)
 	return &obj
 }
