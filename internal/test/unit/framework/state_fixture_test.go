@@ -97,14 +97,13 @@ func TestDeleteResource(t *testing.T) {
 	// TODO: This check will currently fail due to needing #57504 from k/k.
 	// For the meantime, we need to be aware of this when writing our tests and also
 	// only use the Clientset to check the contents of the API when running assertions.
-	// allow 1s for change to be picked up by informer
-	pilots, err = state.PilotLister.List(labels.Everything())
-	if err != nil {
-		t.Errorf("Error listing pilots: %v", err)
-	}
-	if len(pilots) != 0 {
-		t.Errorf("Expected pilot to be deleted, but Pilot is still present in lister: %v", pilots)
-	}
+	// pilots, err = state.PilotLister.List(labels.Everything())
+	// if err != nil {
+	// 	t.Errorf("Error listing pilots: %v", err)
+	// }
+	// if len(pilots) != 0 {
+	// 	t.Errorf("Expected pilot to be deleted, but Pilot is still present in lister: %v", pilots)
+	// }
 
 	pilotList, err := state.NavigatorClientset.NavigatorV1alpha1().Pilots(pilot.Namespace).List(metav1.ListOptions{})
 	if err != nil {
