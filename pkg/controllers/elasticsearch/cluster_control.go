@@ -27,15 +27,13 @@ import (
 const (
 	errorSync = "ErrSync"
 
-	successSync = "SuccessSync"
-
 	messageErrorSyncServiceAccount = "Error syncing service account: %s"
 	messageErrorSyncConfigMap      = "Error syncing config map: %s"
 	messageErrorSyncService        = "Error syncing service: %s"
 	messageErrorSyncNodePools      = "Error syncing node pools: %s"
 	messageErrorSyncRoles          = "Error syncing RBAC roles: %s"
 	messageErrorSyncRoleBindings   = "Error syncing RBAC role bindings: %s"
-	messageSuccessSync             = "Successfully synced ElasticsearchCluster"
+	messageSuccessExecuteAction    = "Successfully executed action"
 )
 
 type ControlInterface interface {
@@ -165,12 +163,11 @@ func (e *defaultElasticsearchClusterControl) Sync(c *v1alpha1.ElasticsearchClust
 		err = nextAction.Execute(state)
 		glog.Infof("Finished executing action %q", nextAction.Name())
 		if err != nil {
-			e.recorder.Eventf(c, apiv1.EventTypeWarning, errorSync, messageErrorSyncNodePools, err.Error())
+			e.recorder.Eventf(c, apiv1.EventTypeWarning, "Err"+nextAction.Name(), messageErrorSyncNodePools, err.Error())
 			return c.Status, err
 		}
+		e.recorder.Eventf(c, apiv1.EventTypeNormal, nextAction.Name(), messageSuccessExecuteAction)
 	}
-
-	e.recorder.Eventf(c, apiv1.EventTypeNormal, successSync, messageSuccessSync)
 
 	return c.Status, nil
 }

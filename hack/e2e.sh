@@ -133,9 +133,9 @@ function test_elasticsearchcluster() {
         fail_test "Navigator controller failed to create elasticsearchcluster service"
     fi
     if ! retry kube_event_exists "${namespace}" \
-         "navigator-controller:ElasticsearchCluster:Normal:SuccessSync"
+         "navigator-controller:ElasticsearchCluster:Normal:CreateNodePool"
     then
-        fail_test "Navigator controller failed to create SuccessSync event"
+        fail_test "Navigator controller failed to create CreateNodePool event"
     fi
     # Wait for Elasticsearch pod to enter 'Running' phase
     if ! retry TIMEOUT=300 stdout_equals "Running" kubectl \
