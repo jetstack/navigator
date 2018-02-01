@@ -28,7 +28,6 @@ import (
 	listersv1alpha1 "github.com/jetstack/navigator/pkg/client/listers/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers"
 	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/configmap"
-	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/nodepool"
 	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/role"
 	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/rolebinding"
 	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/service"
@@ -153,14 +152,6 @@ func NewElasticsearch(
 		elasticsearchController.configMapLister,
 		elasticsearchController.pilotLister,
 		elasticsearchController.podLister,
-		nodepool.NewController(
-			cl,
-			navigatorCl,
-			elasticsearchController.statefulSetLister,
-			elasticsearchController.podLister,
-			elasticsearchController.pilotLister,
-			recorder,
-		),
 		configmap.NewController(
 			cl,
 			elasticsearchController.configMapLister,

@@ -15,8 +15,8 @@ import (
 	clientset "github.com/jetstack/navigator/pkg/client/clientset/versioned"
 	listers "github.com/jetstack/navigator/pkg/client/listers/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers"
+	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/actions"
 	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/configmap"
-	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/nodepool"
 	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/role"
 	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/rolebinding"
 	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/service"
@@ -53,7 +53,6 @@ type defaultElasticsearchClusterControl struct {
 	pilotLister          listers.PilotLister
 	podLister            corelisters.PodLister
 
-	nodePoolControl       nodepool.Interface
 	configMapControl      configmap.Interface
 	serviceAccountControl serviceaccount.Interface
 	serviceControl        service.Interface
@@ -74,7 +73,6 @@ func NewController(
 	configMapLister corelisters.ConfigMapLister,
 	pilotLister listers.PilotLister,
 	podLister corelisters.PodLister,
-	nodePoolControl nodepool.Interface,
 	configMapControl configmap.Interface,
 	serviceAccountControl serviceaccount.Interface,
 	serviceControl service.Interface,
@@ -91,7 +89,6 @@ func NewController(
 		configMapLister:       configMapLister,
 		pilotLister:           pilotLister,
 		podLister:             podLister,
-		nodePoolControl:       nodePoolControl,
 		configMapControl:      configMapControl,
 		serviceAccountControl: serviceAccountControl,
 		serviceControl:        serviceControl,
@@ -190,7 +187,7 @@ func (e *defaultElasticsearchClusterControl) nextActionForNodePool(c *v1alpha1.E
 	statefulSet, err := e.statefulSetLister.StatefulSets(c.Namespace).Get(statefulSetName)
 	// create the node pool if it does not exist
 	if k8sErrors.IsNotFound(err) {
-		return &CreateNodePool{c, np}, nil
+		return &actions.CreateNodePool{c, np}, nil
 	}
 	if err != nil {
 		return nil, err
@@ -202,7 +199,7 @@ func (e *defaultElasticsearchClusterControl) nextActionForNodePool(c *v1alpha1.E
 		return nil, err
 	}
 	if needsUpdate {
-		return &CreatePilot{c, np}, nil
+		return &actions.CreatePilot{c, np}, nil
 	}
 
 	currentVersionStr, ok := statefulSet.Annotations[v1alpha1.ElasticsearchNodePoolVersionAnnotation]
@@ -210,7 +207,7 @@ func (e *defaultElasticsearchClusterControl) nextActionForNodePool(c *v1alpha1.E
 		return nil, fmt.Errorf("cannot determine existing Elasticsearch version of statefulset %q", statefulSet.Name)
 	}
 	if c.Spec.Version.String() != currentVersionStr {
-		return &UpdateVersion{c, np}, nil
+		return &actions.UpdateVersion{c, np}, nil
 	}
 
 	currentDesiredReplicas := statefulSet.Spec.Replicas
@@ -220,7 +217,7 @@ func (e *defaultElasticsearchClusterControl) nextActionForNodePool(c *v1alpha1.E
 	// if the current number of desired replicas on the statefulset does
 	// not equal the number on the node pool, we need to scale
 	if *currentDesiredReplicas != int32(np.Replicas) {
-		return &Scale{c, np, int32(np.Replicas)}, nil
+		return &actions.Scale{c, np, int32(np.Replicas)}, nil
 	}
 
 	return nil, nil

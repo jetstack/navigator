@@ -1,4 +1,4 @@
-package elasticsearch
+package actions
 
 import (
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
