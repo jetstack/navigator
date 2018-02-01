@@ -219,6 +219,18 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/kr/pretty"
+  packages = ["."]
+  revision = "cfb55aafdaf3ec08f0db22699ab822c50091b1c4"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/kr/text"
+  packages = ["."]
+  revision = "7cafcd837844e784b526369c9bce262804aebc60"
+
+[[projects]]
+  branch = "master"
   name = "github.com/mailru/easyjson"
   packages = ["buffer","jlexer","jwriter"]
   revision = "2a92e673c9a6302dd05c3a691ae1f24aef46457d"
@@ -411,6 +423,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "80792b9701b5f3ca3deb304f6cfb40f4a94a0058206e19a55ced4c5bceb24ad3"
+  inputs-digest = "89bc2ad6b77312c4dbd836d8898924bcae18db44397c91d022655e023d3d8883"
   solver-name = "gps-cdcl"
   solver-version = 1
