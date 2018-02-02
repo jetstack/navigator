@@ -13,10 +13,10 @@ import (
 	"github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtimeutils "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apiserver/pkg/util/logs"
 
 	"github.com/jetstack/navigator/test/e2e/framework"
 	"github.com/jetstack/navigator/test/e2e/framework/ginkgowrapper"
-	"k8s.io/apiserver/pkg/util/logs"
 )
 
 // There are certain operations we only want to run once per overall test invocation
