@@ -45,6 +45,7 @@ test: go_test
 	# Execute e2e tests
 	./e2e-tests \
 		-kubeconfig=$$HOME/.kube/config \
+		-context=$$HOSTNAME \
 		-elasticsearch-pilot-image-repo="${REGISTRY}/navigator-pilot-elasticsearch" \
 		-elasticsearch-pilot-image-tag="${BUILD_TAG}" \
 		-clean-start=true \
