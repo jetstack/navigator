@@ -145,15 +145,18 @@ type ElasticsearchClusterNodePool struct {
 
 	// NodeSelector should be specified to force nodes in this pool to run on
 	// nodes matching the given selector.
+	// +optional
 	NodeSelector map[string]string `json:"nodeSelector"`
 
 	// Resources specifies the resource requirements to be used for nodes that
 	// are part of the pool.
-	Resources *v1.ResourceRequirements `json:"resources,omitempty"`
+	// +optional
+	Resources v1.ResourceRequirements `json:"resources,omitempty"`
 
 	// Persistence specifies the configuration for persistent data for this
 	// node. Disabling persistence can cause issues when nodes restart, so
 	// should only be using for testing purposes.
+	// +optional
 	Persistence ElasticsearchClusterPersistenceConfig `json:"persistence,omitempty"`
 }
 

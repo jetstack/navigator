@@ -243,9 +243,9 @@ func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.Elasticsear
 								Path: "/",
 							},
 						},
-						InitialDelaySeconds: int32(30),
-						PeriodSeconds:       int32(10),
-						TimeoutSeconds:      int32(3),
+						InitialDelaySeconds: 30,
+						PeriodSeconds:       10,
+						TimeoutSeconds:      3,
 					},
 					LivenessProbe: &apiv1.Probe{
 						Handler: apiv1.Handler{
@@ -254,14 +254,12 @@ func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.Elasticsear
 								Path: "/",
 							},
 						},
-						InitialDelaySeconds: int32(60),
-						PeriodSeconds:       int32(10),
-						TimeoutSeconds:      int32(5),
+						InitialDelaySeconds: 240,
+						PeriodSeconds:       10,
+						FailureThreshold:    5,
+						TimeoutSeconds:      5,
 					},
-					Resources: apiv1.ResourceRequirements{
-						Requests: np.Resources.Requests,
-						Limits:   np.Resources.Limits,
-					},
+					Resources: np.Resources,
 					Ports: []apiv1.ContainerPort{
 						{
 							Name:          "transport",

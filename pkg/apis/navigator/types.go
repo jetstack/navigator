@@ -114,7 +114,7 @@ type ElasticsearchClusterNodePool struct {
 	Replicas     int32
 	Roles        []ElasticsearchClusterRole
 	NodeSelector map[string]string
-	Resources    *v1.ResourceRequirements
+	Resources    v1.ResourceRequirements
 	Persistence  ElasticsearchClusterPersistenceConfig
 }
 

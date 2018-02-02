@@ -106,11 +106,15 @@ func DefaultElasticsearchPilotImageSpec() v1alpha1.ImageSpec {
 	}
 }
 
-func DefaultElasticsearchNodeResources() *core.ResourceRequirements {
-	return &core.ResourceRequirements{
+func DefaultElasticsearchNodeResources() core.ResourceRequirements {
+	return core.ResourceRequirements{
 		Requests: core.ResourceList{
-			core.ResourceCPU:    resource.MustParse("500m"),
+			core.ResourceCPU:    resource.MustParse("1"),
 			core.ResourceMemory: resource.MustParse("2Gi"),
+		},
+		Limits: core.ResourceList{
+			core.ResourceCPU:    resource.MustParse("1500m"),
+			core.ResourceMemory: resource.MustParse("3500Mi"),
 		},
 	}
 }

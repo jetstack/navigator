@@ -22,7 +22,7 @@ var (
 		"some": "selector",
 	}
 	// TODO: expand test cases here
-	validNodePoolResources         = &corev1.ResourceRequirements{}
+	validNodePoolResources         = corev1.ResourceRequirements{}
 	validNodePoolPersistenceConfig = navigator.ElasticsearchClusterPersistenceConfig{
 		Enabled: true,
 		Size:    resource.MustParse("10Gi"),

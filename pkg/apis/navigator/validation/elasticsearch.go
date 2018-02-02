@@ -45,8 +45,7 @@ func ValidateElasticsearchClusterNodePool(np *navigator.ElasticsearchClusterNode
 		el = append(el, field.Invalid(fldPath.Child("replicas"), np.Replicas, "must be greater than zero"))
 	}
 	// TODO: call k8s.io/kubernetes/pkg/apis/core/validation.ValidateResourceRequirements on np.Resources
-	// this will require vendoring kubernetes/kubernetes and switching to use the corev1 ResourceRequirements
-	// struct
+	// this will require vendoring kubernetes/kubernetes.
 	return el
 }
 
