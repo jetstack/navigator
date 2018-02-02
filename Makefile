@@ -99,7 +99,13 @@ $(CMDS):
 go_build: $(CMDS)
 
 go_test:
-	go test -v $$(go list ./... | grep -v '/vendor/')
+	go test -v \
+	    -race \
+		$$(go list ./... | \
+			grep -v '/vendor/' | \
+			grep -v '/test/e2e' | \
+			grep -v '/pkg/client' \
+		)
 
 go_fmt:
 	./hack/verify-lint.sh
