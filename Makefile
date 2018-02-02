@@ -44,10 +44,11 @@ test: go_test
 	go test -c -o e2e-tests ./test/e2e
 	# Execute e2e tests
 	./e2e-tests \
-		-kubeconfig=$HOME/.kube/config \
+		-kubeconfig=$$HOME/.kube/config \
 		-elasticsearch-pilot-image-repo="${REGISTRY}/navigator-pilot-elasticsearch" \
 		-elasticsearch-pilot-image-tag="${BUILD_TAG}" \
-		-clean-start=true
+		-clean-start=true \
+		-report-dir=./_artifacts
 
 e2e-test: build docker_build .run_e2e
 
