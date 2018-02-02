@@ -65,7 +65,7 @@ function debug_navigator_start() {
 function helm_install() {
     helm delete --purge "${RELEASE_NAME}" || true
     echo "Installing navigator..."
-    if helm --debug install --wait --name "${RELEASE_NAME}" contrib/charts/navigator \
+    if helm --debug install --wait --name "${RELEASE_NAME}" --namespace "${NAVIGATOR_NAMESPACE}" contrib/charts/navigator \
          --values ${CHART_VALUES}
     then
         return 0
@@ -84,13 +84,13 @@ fi
 # Wait for navigator API to be ready
 function navigator_ready() {
     local replica_count_controller=$(
-        kubectl get deployment ${RELEASE_NAME}-navigator-controller \
+        kubectl get deployment --namespace "${NAVIGATOR_NAMESPACE}" ${RELEASE_NAME}-navigator-controller \
                 --output 'jsonpath={.status.readyReplicas}' || true)
     if [[ "${replica_count_controller}" -eq 0 ]]; then
         return 1
     fi
     local replica_count_apiserver=$(
-        kubectl get deployment ${RELEASE_NAME}-navigator-apiserver \
+        kubectl get deployment --namespace "${NAVIGATOR_NAMESPACE}" ${RELEASE_NAME}-navigator-apiserver \
                 --output 'jsonpath={.status.readyReplicas}' || true)
     if [[ "${replica_count_apiserver}" -eq 0 ]]; then
         return 1
