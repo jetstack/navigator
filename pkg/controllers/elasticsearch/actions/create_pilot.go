@@ -57,6 +57,7 @@ func (c *CreatePilot) Execute(state *controllers.State) error {
 		if err != nil {
 			return fmt.Errorf("error ensuring pilot resource exists for pod '%s': %s", pod.Name, err.Error())
 		}
+		state.Recorder.Eventf(c.Cluster, core.EventTypeNormal, c.Name(), "Created pilot %q", pilot.Name)
 	}
 	return nil
 }

@@ -10,6 +10,7 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	kubeinformers "k8s.io/client-go/informers"
 	kubefake "k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/tools/record"
 
 	navfake "github.com/jetstack/navigator/pkg/client/clientset/versioned/fake"
 	informers "github.com/jetstack/navigator/pkg/client/informers/externalversions"
@@ -54,6 +55,7 @@ func (s *StateFixture) Start() {
 	s.state = &controllers.State{
 		Clientset:          s.kubeClient,
 		NavigatorClientset: s.navigatorClient,
+		Recorder:           record.NewFakeRecorder(5),
 		StatefulSetLister:  s.kubeSharedInformerFactory.Apps().V1beta1().StatefulSets().Lister(),
 		ConfigMapLister:    s.kubeSharedInformerFactory.Core().V1().ConfigMaps().Lister(),
 		PilotLister:        s.navigatorSharedInformerFactory.Navigator().V1alpha1().Pilots().Lister(),

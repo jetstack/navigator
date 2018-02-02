@@ -144,6 +144,7 @@ func (e *defaultElasticsearchClusterControl) Sync(c *v1alpha1.ElasticsearchClust
 	state := &controllers.State{
 		Clientset:          e.kubeClient,
 		NavigatorClientset: e.navigatorClient,
+		Recorder:           e.recorder,
 		StatefulSetLister:  e.statefulSetLister,
 		ConfigMapLister:    e.configMapLister,
 		PilotLister:        e.pilotLister,
@@ -178,7 +179,6 @@ func (e *defaultElasticsearchClusterControl) Sync(c *v1alpha1.ElasticsearchClust
 			e.recorder.Eventf(c, apiv1.EventTypeWarning, "Err"+nextAction.Name(), messageErrorSyncNodePools, err.Error())
 			return c.Status, err
 		}
-		e.recorder.Eventf(c, apiv1.EventTypeNormal, nextAction.Name(), nextAction.Message())
 	}
 
 	return c.Status, err

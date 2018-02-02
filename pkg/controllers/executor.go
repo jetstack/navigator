@@ -4,6 +4,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	appslisters "k8s.io/client-go/listers/apps/v1beta1"
 	corelisters "k8s.io/client-go/listers/core/v1"
+	"k8s.io/client-go/tools/record"
 
 	clientset "github.com/jetstack/navigator/pkg/client/clientset/versioned"
 	listers "github.com/jetstack/navigator/pkg/client/listers/navigator/v1alpha1"
@@ -16,6 +17,7 @@ type State struct {
 	Clientset kubernetes.Interface
 	// The NavigatorClientset to use for updates
 	NavigatorClientset clientset.Interface
+	Recorder           record.EventRecorder
 
 	StatefulSetLister appslisters.StatefulSetLister
 	ConfigMapLister   corelisters.ConfigMapLister

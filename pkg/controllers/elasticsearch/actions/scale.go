@@ -4,6 +4,9 @@ import (
 	"fmt"
 
 	apps "k8s.io/api/apps/v1beta1"
+	core "k8s.io/api/core/v1"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerror "k8s.io/apimachinery/pkg/util/errors"
 
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
@@ -41,6 +44,10 @@ func (s *Scale) Execute(state *controllers.State) error {
 
 	statefulSetName := util.NodePoolResourceName(s.Cluster, s.NodePool)
 	statefulSet, err := state.StatefulSetLister.StatefulSets(s.Cluster.Namespace).Get(statefulSetName)
+	if k8sErrors.IsNotFound(err) {
+		state.Recorder.Eventf(s.Cluster, core.EventTypeWarning, "Err"+s.Name(), "Cannot get statefulset %q for node pool %q: %v", statefulSetName, s.NodePool.Name, err)
+		return nil
+	}
 	if err != nil {
 		return err
 	}
@@ -56,9 +63,12 @@ func (s *Scale) Execute(state *controllers.State) error {
 		return nil
 	}
 
-	err = s.canScaleNodePool(state, statefulSet, replicaDiff)
+	canScale, err := s.canScaleNodePool(state, statefulSet, replicaDiff)
 	if err != nil {
 		return err
+	}
+	if !canScale {
+		return nil
 	}
 
 	ssCopy := statefulSet.DeepCopy()
@@ -67,6 +77,7 @@ func (s *Scale) Execute(state *controllers.State) error {
 	if err != nil {
 		return err
 	}
+	state.Recorder.Eventf(s.Cluster, core.EventTypeNormal, s.Name(), "Scaled node pool %q to %d replicas", s.NodePool.Name, s.NodePool.Replicas)
 
 	return nil
 }
@@ -79,15 +90,15 @@ func (s *Scale) Execute(state *controllers.State) error {
 // - if all pilots effected by the scale (e.g. those that would be removed)
 //   have been drained of all shards, we can scale down.
 // - otherwise reject the scale down.
-func (s *Scale) canScaleNodePool(state *controllers.State, statefulSet *apps.StatefulSet, replicaDiff int32) error {
+func (s *Scale) canScaleNodePool(state *controllers.State, statefulSet *apps.StatefulSet, replicaDiff int32) (bool, error) {
 	// always allow scale up, or staying the same (no-op)
 	if replicaDiff >= 0 {
-		return nil
+		return true, nil
 	}
 	// we can always scale down non-data roles, as validation should
 	// ensure that at least one data, ingest and master node exists already
 	if !utilapi.ContainsElasticsearchRole(s.NodePool.Roles, v1alpha1.ElasticsearchRoleData) {
-		return nil
+		return true, nil
 	}
 
 	// outline of what goes on here:
@@ -97,26 +108,30 @@ func (s *Scale) canScaleNodePool(state *controllers.State, statefulSet *apps.Sta
 	// - if documentCount is >0 on those pilots, return false
 	// - otherwise return true
 	allPilots, err := pilotsForStatefulSet(state, s.Cluster, s.NodePool, statefulSet)
+	if k8sErrors.IsNotFound(err) {
+		state.Recorder.Eventf(s.Cluster, core.EventTypeWarning, "Err"+s.Name(), "Could not get all pilots for statefulset %q: %v", statefulSet.Name, err)
+		return false, nil
+	}
 	if err != nil {
-		return err
+		return false, err
 	}
 	toRemove, err := determinePilotsToBeRemoved(allPilots, statefulSet, replicaDiff)
 	if err != nil {
-		return err
+		return false, err
 	}
 	for _, p := range toRemove {
-		if p.Status.Elasticsearch == nil {
-			return fmt.Errorf("pilot %q document count unknown", p.Name)
+		if p.Status.Elasticsearch == nil ||
+			p.Status.Elasticsearch.Documents == nil {
+			state.Recorder.Eventf(s.Cluster, core.EventTypeWarning, "Err"+s.Name(), "Could not determine document count for pilot %q", p.Name)
+			return false, nil
 		}
-		documentCount := p.Status.Elasticsearch.Documents
-		if documentCount == nil {
-			return fmt.Errorf("pilot %q document count unknown", p.Name)
-		}
-		if *documentCount > 0 {
-			return fmt.Errorf("pilot %q still contains %d documents, will not remove until empty", p.Name, *documentCount)
+		documentCount := *p.Status.Elasticsearch.Documents
+		if documentCount > 0 {
+			state.Recorder.Eventf(s.Cluster, core.EventTypeNormal, "Err"+s.Name(), "Pilot %q still contains %d documents. Will not scale down until empty.", p.Name, documentCount)
+			return false, nil
 		}
 	}
-	return nil
+	return true, nil
 }
 
 // determinePilotsToBeRemoved will return which pilots would be removed after
@@ -186,7 +201,12 @@ Outer:
 		errs = append(errs, fmt.Errorf("pilot %q not found", pilotName))
 	}
 	if len(errs) > 0 {
-		return nil, utilerror.NewAggregate(errs)
+		return nil, &k8sErrors.StatusError{
+			ErrStatus: metav1.Status{
+				Message: utilerror.NewAggregate(errs).Error(),
+				Reason:  metav1.StatusReasonNotFound,
+			},
+		}
 	}
 	return output, nil
 }

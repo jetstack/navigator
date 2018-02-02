@@ -51,7 +51,7 @@ func (c *CreateNodePool) Execute(state *controllers.State) error {
 	if err != nil {
 		return err
 	}
-
+	state.Recorder.Eventf(c.Cluster, apiv1.EventTypeNormal, c.Name(), "Created node pool %q", c.NodePool.Name)
 	return nil
 }
 

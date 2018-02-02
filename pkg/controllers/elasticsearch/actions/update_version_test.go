@@ -4,20 +4,22 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/coreos/go-semver/semver"
 	"github.com/kr/pretty"
 	apps "k8s.io/api/apps/v1beta1"
-	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/jetstack/navigator/internal/test/unit/framework"
+	"github.com/jetstack/navigator/internal/test/util/generate"
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 )
 
 const esImageRepo = "docker.elastic.co/elasticsearch/elasticsearch"
 
 func int32Ptr(i int32) *int32 {
+	return &i
+}
+func int64Ptr(i int64) *int64 {
 	return &i
 }
 
@@ -34,173 +36,203 @@ func TestUpdateVersion(t *testing.T) {
 	tests := map[string]testT{
 		"should update statefulset and set partition to update the highest ordinal pod": {
 			kubeObjects: []runtime.Object{
-				generateStatefulSet(statefulSetGeneratorConfig{
-					name:            "es-test-data",
-					replicas:        int32Ptr(3),
-					version:         "6.1.1",
-					image:           esImageRepo + ":6.1.1",
-					currentRevision: "a",
-					currentReplicas: 3,
-					readyReplicas:   3,
+				generate.StatefulSet(generate.StatefulSetConfig{
+					Name:            "es-test-data",
+					Replicas:        int32Ptr(3),
+					Version:         "6.1.1",
+					Image:           esImageRepo + ":6.1.1",
+					CurrentRevision: "a",
+					CurrentReplicas: 3,
+					ReadyReplicas:   3,
 				}),
 			},
 			navObjects: []runtime.Object{
-				pilotWithNameDocuments("es-test-data-0", "test", "data", 0),
-				pilotWithNameDocuments("es-test-data-1", "test", "data", 1),
-				pilotWithNameDocuments("es-test-data-2", "test", "data", 2),
+				generate.Pilot(generate.PilotConfig{Name: "es-test-data-0", Cluster: "test", NodePool: "data", Version: "6.1.1"}),
+				generate.Pilot(generate.PilotConfig{Name: "es-test-data-1", Cluster: "test", NodePool: "data", Version: "6.1.1"}),
+				generate.Pilot(generate.PilotConfig{Name: "es-test-data-2", Cluster: "test", NodePool: "data", Version: "6.1.1"}),
 			},
 			cluster:      clusterWithVersionNodePools("test", "6.1.2", nodePoolWithNameReplicasRoles("data", 3, v1alpha1.ElasticsearchRoleData)),
 			nodePool:     nodePoolPtrWithNameReplicasRoles("data", 3, v1alpha1.ElasticsearchRoleData),
 			shouldUpdate: true,
-			expectedStatefulSet: generateStatefulSet(statefulSetGeneratorConfig{
-				name:            "es-test-data",
-				replicas:        int32Ptr(3),
-				version:         "6.1.1",
-				image:           esImageRepo + ":6.1.2",
-				currentRevision: "a",
-				currentReplicas: 3,
-				partition:       int32Ptr(2),
-				readyReplicas:   3,
+			expectedStatefulSet: generate.StatefulSet(generate.StatefulSetConfig{
+				Name:            "es-test-data",
+				Replicas:        int32Ptr(3),
+				Version:         "6.1.1",
+				Image:           esImageRepo + ":6.1.2",
+				CurrentRevision: "a",
+				CurrentReplicas: 3,
+				Partition:       int32Ptr(2),
+				ReadyReplicas:   3,
 			}),
 			err: false,
 		},
 		"should update statefulset and set partition to update the second highest ordinal pod": {
 			kubeObjects: []runtime.Object{
-				generateStatefulSet(statefulSetGeneratorConfig{
-					name:            "es-test-data",
-					replicas:        int32Ptr(3),
-					version:         "6.1.1",
-					image:           esImageRepo + ":6.1.1",
-					currentRevision: "a",
-					currentReplicas: 2,
-					updatedReplicas: 1,
-					partition:       int32Ptr(2),
-					readyReplicas:   3,
+				generate.StatefulSet(generate.StatefulSetConfig{
+					Name:            "es-test-data",
+					Replicas:        int32Ptr(3),
+					Version:         "6.1.1",
+					Image:           esImageRepo + ":6.1.2",
+					CurrentRevision: "a",
+					CurrentReplicas: 2,
+					UpdatedReplicas: 1,
+					Partition:       int32Ptr(2),
+					ReadyReplicas:   3,
 				}),
 			},
 			navObjects: []runtime.Object{
-				pilotWithNameDocuments("es-test-data-0", "test", "data", 0),
-				pilotWithNameDocuments("es-test-data-1", "test", "data", 1),
-				pilotWithNameDocuments("es-test-data-2", "test", "data", 2),
+				generate.Pilot(generate.PilotConfig{Name: "es-test-data-0", Cluster: "test", NodePool: "data", Version: "6.1.1"}),
+				generate.Pilot(generate.PilotConfig{Name: "es-test-data-1", Cluster: "test", NodePool: "data", Version: "6.1.1"}),
+				generate.Pilot(generate.PilotConfig{Name: "es-test-data-2", Cluster: "test", NodePool: "data", Version: "6.1.2"}),
 			},
-			cluster: generateCluster(clusterGeneratorConfig{
-				name:    "test",
-				version: "6.1.2",
-				nodePools: []v1alpha1.ElasticsearchClusterNodePool{
+			cluster: generate.Cluster(generate.ClusterConfig{
+				Name:    "test",
+				Version: "6.1.2",
+				NodePools: []v1alpha1.ElasticsearchClusterNodePool{
 					nodePoolWithNameReplicasRoles("data", 3, v1alpha1.ElasticsearchRoleData),
 				},
 			}),
 			nodePool:     nodePoolPtrWithNameReplicasRoles("data", 3, v1alpha1.ElasticsearchRoleData),
 			shouldUpdate: true,
-			expectedStatefulSet: generateStatefulSet(statefulSetGeneratorConfig{
-				name:            "es-test-data",
-				replicas:        int32Ptr(3),
-				version:         "6.1.1",
-				image:           esImageRepo + ":6.1.2",
-				currentRevision: "a",
-				currentReplicas: 2,
-				updatedReplicas: 1,
-				partition:       int32Ptr(1),
-				readyReplicas:   3,
+			expectedStatefulSet: generate.StatefulSet(generate.StatefulSetConfig{
+				Name:            "es-test-data",
+				Replicas:        int32Ptr(3),
+				Version:         "6.1.1",
+				Image:           esImageRepo + ":6.1.2",
+				CurrentRevision: "a",
+				CurrentReplicas: 2,
+				UpdatedReplicas: 1,
+				Partition:       int32Ptr(1),
+				ReadyReplicas:   3,
 			}),
 			err: false,
 		},
 		"should not update a red cluster": {
 			kubeObjects: []runtime.Object{
-				generateStatefulSet(statefulSetGeneratorConfig{
-					name:            "es-test-data",
-					replicas:        int32Ptr(3),
-					version:         "6.1.1",
-					image:           esImageRepo + ":6.1.1",
-					currentRevision: "a",
-					readyReplicas:   3,
+				generate.StatefulSet(generate.StatefulSetConfig{
+					Name:            "es-test-data",
+					Replicas:        int32Ptr(3),
+					Version:         "6.1.1",
+					Image:           esImageRepo + ":6.1.1",
+					CurrentRevision: "a",
+					ReadyReplicas:   3,
 				}),
 			},
 			navObjects: []runtime.Object{
-				pilotWithNameDocuments("es-test-data-0", "test", "data", 0),
-				pilotWithNameDocuments("es-test-data-1", "test", "data", 1),
-				pilotWithNameDocuments("es-test-data-2", "test", "data", 2),
+				generate.Pilot(generate.PilotConfig{Name: "es-test-data-0", Cluster: "test", NodePool: "data", Version: "6.1.1"}),
+				generate.Pilot(generate.PilotConfig{Name: "es-test-data-1", Cluster: "test", NodePool: "data", Version: "6.1.1"}),
+				generate.Pilot(generate.PilotConfig{Name: "es-test-data-2", Cluster: "test", NodePool: "data", Version: "6.1.1"}),
 			},
-			cluster: generateCluster(clusterGeneratorConfig{
-				name:    "test",
-				version: "6.1.2",
-				nodePools: []v1alpha1.ElasticsearchClusterNodePool{
+			cluster: generate.Cluster(generate.ClusterConfig{
+				Name:    "test",
+				Version: "6.1.2",
+				NodePools: []v1alpha1.ElasticsearchClusterNodePool{
 					nodePoolWithNameReplicasRoles("data", 3, v1alpha1.ElasticsearchRoleData),
 				},
-				health: v1alpha1.ElasticsearchClusterHealthRed,
+				Health: v1alpha1.ElasticsearchClusterHealthRed,
 			}),
 			nodePool:     nodePoolPtrWithNameReplicasRoles("data", 3, v1alpha1.ElasticsearchRoleData),
 			shouldUpdate: false,
-			err:          true,
+			err:          false,
 		},
 		"should not update a node pool with an unready replica": {
 			kubeObjects: []runtime.Object{
-				generateStatefulSet(statefulSetGeneratorConfig{
-					name:            "es-test-data",
-					replicas:        int32Ptr(3),
-					version:         "6.1.1",
-					image:           esImageRepo + ":6.1.1",
-					currentRevision: "a",
-					readyReplicas:   2,
+				generate.StatefulSet(generate.StatefulSetConfig{
+					Name:            "es-test-data",
+					Replicas:        int32Ptr(3),
+					Version:         "6.1.1",
+					Image:           esImageRepo + ":6.1.1",
+					CurrentRevision: "a",
+					ReadyReplicas:   2,
 				}),
 			},
 			navObjects: []runtime.Object{
-				pilotWithNameDocuments("es-test-data-0", "test", "data", 0),
-				pilotWithNameDocuments("es-test-data-1", "test", "data", 1),
-				pilotWithNameDocuments("es-test-data-2", "test", "data", 2),
+				generate.Pilot(generate.PilotConfig{Name: "es-test-data-0", Cluster: "test", NodePool: "data", Version: "6.1.1"}),
+				generate.Pilot(generate.PilotConfig{Name: "es-test-data-1", Cluster: "test", NodePool: "data", Version: "6.1.1"}),
+				generate.Pilot(generate.PilotConfig{Name: "es-test-data-2", Cluster: "test", NodePool: "data", Version: "6.1.1"}),
 			},
-			cluster: generateCluster(clusterGeneratorConfig{
-				name:    "test",
-				version: "6.1.2",
-				nodePools: []v1alpha1.ElasticsearchClusterNodePool{
+			cluster: generate.Cluster(generate.ClusterConfig{
+				Name:    "test",
+				Version: "6.1.2",
+				NodePools: []v1alpha1.ElasticsearchClusterNodePool{
 					nodePoolWithNameReplicasRoles("data", 3, v1alpha1.ElasticsearchRoleData),
 				},
-				health: v1alpha1.ElasticsearchClusterHealthGreen,
+				Health: v1alpha1.ElasticsearchClusterHealthGreen,
 			}),
 			nodePool:     nodePoolPtrWithNameReplicasRoles("data", 3, v1alpha1.ElasticsearchRoleData),
 			shouldUpdate: false,
-			err:          true,
+			err:          false,
 		},
 		"should set the updated version annotation on the statefulset when update is completed": {
 			kubeObjects: []runtime.Object{
-				generateStatefulSet(statefulSetGeneratorConfig{
-					name:            "es-test-data",
-					replicas:        int32Ptr(3),
-					version:         "6.1.1",
-					image:           esImageRepo + ":6.1.2",
-					currentRevision: "b",
-					updateRevision:  "b",
-					currentReplicas: 3,
-					partition:       int32Ptr(2),
-					readyReplicas:   3,
+				generate.StatefulSet(generate.StatefulSetConfig{
+					Name:            "es-test-data",
+					Replicas:        int32Ptr(3),
+					Version:         "6.1.1",
+					Image:           esImageRepo + ":6.1.2",
+					CurrentRevision: "b",
+					UpdateRevision:  "b",
+					CurrentReplicas: 3,
+					Partition:       int32Ptr(2),
+					ReadyReplicas:   3,
 				}),
 			},
 			navObjects: []runtime.Object{
-				pilotWithNameDocuments("es-test-data-0", "test", "data", 0),
-				pilotWithNameDocuments("es-test-data-1", "test", "data", 1),
-				pilotWithNameDocuments("es-test-data-2", "test", "data", 2),
+				generate.Pilot(generate.PilotConfig{Name: "es-test-data-0", Cluster: "test", NodePool: "data", Version: "6.1.2"}),
+				generate.Pilot(generate.PilotConfig{Name: "es-test-data-1", Cluster: "test", NodePool: "data", Version: "6.1.2"}),
+				generate.Pilot(generate.PilotConfig{Name: "es-test-data-2", Cluster: "test", NodePool: "data", Version: "6.1.2"}),
 			},
-			cluster: generateCluster(clusterGeneratorConfig{
-				name:    "test",
-				version: "6.1.2",
-				nodePools: []v1alpha1.ElasticsearchClusterNodePool{
+			cluster: generate.Cluster(generate.ClusterConfig{
+				Name:    "test",
+				Version: "6.1.2",
+				NodePools: []v1alpha1.ElasticsearchClusterNodePool{
 					nodePoolWithNameReplicasRoles("data", 3, v1alpha1.ElasticsearchRoleData),
 				},
 			}),
 			nodePool:     nodePoolPtrWithNameReplicasRoles("data", 3, v1alpha1.ElasticsearchRoleData),
 			shouldUpdate: true,
-			expectedStatefulSet: generateStatefulSet(statefulSetGeneratorConfig{
-				name:            "es-test-data",
-				replicas:        int32Ptr(3),
-				version:         "6.1.2",
-				image:           esImageRepo + ":6.1.2",
-				currentRevision: "b",
-				updateRevision:  "b",
-				currentReplicas: 3,
-				partition:       int32Ptr(2),
-				readyReplicas:   3,
+			expectedStatefulSet: generate.StatefulSet(generate.StatefulSetConfig{
+				Name:            "es-test-data",
+				Replicas:        int32Ptr(3),
+				Version:         "6.1.2",
+				Image:           esImageRepo + ":6.1.2",
+				CurrentRevision: "b",
+				UpdateRevision:  "b",
+				CurrentReplicas: 3,
+				Partition:       int32Ptr(2),
+				ReadyReplicas:   3,
 			}),
 			err: false,
+		},
+		"should not update the next pod if the one before it hasn't finished updating": {
+			kubeObjects: []runtime.Object{
+				generate.StatefulSet(generate.StatefulSetConfig{
+					Name:            "es-test-data",
+					Replicas:        int32Ptr(3),
+					Version:         "6.1.1",
+					Image:           esImageRepo + ":6.1.2",
+					CurrentRevision: "a",
+					ReadyReplicas:   3,
+					CurrentReplicas: 1,
+					UpdatedReplicas: 2,
+				}),
+			},
+			navObjects: []runtime.Object{
+				generate.Pilot(generate.PilotConfig{Name: "es-test-data-0", Cluster: "test", NodePool: "data", Version: "6.1.1"}),
+				generate.Pilot(generate.PilotConfig{Name: "es-test-data-1", Cluster: "test", NodePool: "data", Version: "6.1.1"}),
+				generate.Pilot(generate.PilotConfig{Name: "es-test-data-2", Cluster: "test", NodePool: "data", Version: "6.1.2"}),
+			},
+			cluster: generate.Cluster(generate.ClusterConfig{
+				Name:    "test",
+				Version: "6.1.2",
+				NodePools: []v1alpha1.ElasticsearchClusterNodePool{
+					nodePoolWithNameReplicasRoles("data", 3, v1alpha1.ElasticsearchRoleData),
+				},
+				Health: v1alpha1.ElasticsearchClusterHealthGreen,
+			}),
+			nodePool:     nodePoolPtrWithNameReplicasRoles("data", 3, v1alpha1.ElasticsearchRoleData),
+			shouldUpdate: false,
+			err:          false,
 		},
 	}
 	for name, test := range tests {
@@ -247,100 +279,5 @@ func TestUpdateVersion(t *testing.T) {
 				}
 			}
 		})
-	}
-}
-
-type pilotGeneratorConfig struct {
-	name                      string
-	clusterName, nodePoolName string
-	documents                 *int64
-}
-
-func generatePilot(c pilotGeneratorConfig) *v1alpha1.Pilot {
-	labels := map[string]string{}
-	labels[v1alpha1.ElasticsearchClusterNameLabel] = c.clusterName
-	labels[v1alpha1.ElasticsearchNodePoolNameLabel] = c.nodePoolName
-	return &v1alpha1.Pilot{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      c.name,
-			Namespace: "default",
-			Labels:    labels,
-		},
-		Status: v1alpha1.PilotStatus{
-			Elasticsearch: &v1alpha1.ElasticsearchPilotStatus{
-				Documents: c.documents,
-			},
-		},
-	}
-}
-
-type clusterGeneratorConfig struct {
-	name          string
-	nodePools     []v1alpha1.ElasticsearchClusterNodePool
-	version       string
-	clusterConfig v1alpha1.NavigatorClusterConfig
-	health        v1alpha1.ElasticsearchClusterHealth
-}
-
-func generateCluster(c clusterGeneratorConfig) *v1alpha1.ElasticsearchCluster {
-	return &v1alpha1.ElasticsearchCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      c.name,
-			Namespace: "default",
-		},
-		Spec: v1alpha1.ElasticsearchClusterSpec{
-			NavigatorClusterConfig: c.clusterConfig,
-			Version:                *semver.New(c.version),
-			NodePools:              c.nodePools,
-		},
-		Status: v1alpha1.ElasticsearchClusterStatus{
-			Health: c.health,
-		},
-	}
-}
-
-type statefulSetGeneratorConfig struct {
-	name                             string
-	replicas                         *int32
-	version, image                   string
-	partition                        *int32
-	currentRevision, updateRevision  string
-	currentReplicas, updatedReplicas int32
-	readyReplicas                    int32
-}
-
-func generateStatefulSet(c statefulSetGeneratorConfig) *apps.StatefulSet {
-	return &apps.StatefulSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      c.name,
-			Namespace: "default",
-			Annotations: map[string]string{
-				v1alpha1.ElasticsearchNodePoolVersionAnnotation: c.version,
-			},
-		},
-		Spec: apps.StatefulSetSpec{
-			Replicas: c.replicas,
-			UpdateStrategy: apps.StatefulSetUpdateStrategy{
-				RollingUpdate: &apps.RollingUpdateStatefulSetStrategy{
-					Partition: c.partition,
-				},
-			},
-			Template: core.PodTemplateSpec{
-				Spec: core.PodSpec{
-					Containers: []core.Container{
-						{
-							Image: c.image,
-						},
-					},
-				},
-			},
-		},
-		Status: apps.StatefulSetStatus{
-			CurrentRevision: c.currentRevision,
-			UpdateRevision:  c.updateRevision,
-			CurrentReplicas: c.currentReplicas,
-			UpdatedReplicas: c.updatedReplicas,
-			ReadyReplicas:   c.readyReplicas,
-		},
 	}
 }
