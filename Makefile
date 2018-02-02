@@ -34,8 +34,20 @@ all: verify build docker_build
 test: go_test
 
 .run_e2e:
+	# Prepare e2e test environment (deploy Helm, Navigator).
+	# Then run older bash style cassandra e2e test suite
+	NAVIGATOR_IMAGE_REPOSITORY="${REGISTRY}" \
+	NAVIGATOR_IMAGE_TAG="${BUILD_TAG}" \
 	${HACK_DIR}/prepare-e2e.sh; \
-	${HACK_DIR}/e2e.sh
+	${HACK_DIR}/e2e.sh;
+	# Build e2e test suite
+	go test -c -o e2e-tests ./test/e2e
+	# Execute e2e tests
+	./e2e-tests \
+		-kubeconfig=$HOME/.kube/config \
+		-elasticsearch-pilot-image-repo="${REGISTRY}/navigator-pilot-elasticsearch" \
+		-elasticsearch-pilot-image-tag="${BUILD_TAG}" \
+		-clean-start=true
 
 e2e-test: build docker_build .run_e2e
 
