@@ -16,7 +16,7 @@ import (
 
 var (
 	validNodePoolName         = "valid-name"
-	validNodePoolReplicas     = int64(5)
+	validNodePoolReplicas     = int32(5)
 	validNodePoolRoles        = []navigator.ElasticsearchClusterRole{navigator.ElasticsearchRoleData}
 	validNodePoolNodeSelector = map[string]string{
 		"some": "selector",
@@ -40,7 +40,7 @@ var (
 	validSpecPluginsList = []string{"anything"}
 )
 
-func newValidNodePool(name string, replicas int64, roles ...navigator.ElasticsearchClusterRole) navigator.ElasticsearchClusterNodePool {
+func newValidNodePool(name string, replicas int32, roles ...navigator.ElasticsearchClusterRole) navigator.ElasticsearchClusterNodePool {
 	return navigator.ElasticsearchClusterNodePool{
 		Name:         name,
 		Replicas:     replicas,
@@ -187,7 +187,7 @@ func TestValidateElasticsearchClusterNodePool(t *testing.T) {
 		},
 		"negative replicas": {
 			Name:         validNodePoolName,
-			Replicas:     int64(-1),
+			Replicas:     int32(-1),
 			Roles:        validNodePoolRoles,
 			NodeSelector: validNodePoolNodeSelector,
 			Resources:    validNodePoolResources,
