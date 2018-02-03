@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	core "k8s.io/api/core/v1"
@@ -60,6 +61,44 @@ type ElasticsearchTester struct {
 
 func NewElasticsearchTester(kubeClient kubernetes.Interface, navClient clientset.Interface) *ElasticsearchTester {
 	return &ElasticsearchTester{kubeClient, navClient}
+}
+
+func (e *ElasticsearchTester) CreateClusterAndWaitForReady(es *v1alpha1.ElasticsearchCluster) *v1alpha1.ElasticsearchCluster {
+	var err error
+	By("Creating elasticsearchCluster " + es.Name + " in namespace " + es.Namespace)
+	es, err = e.navClient.NavigatorV1alpha1().ElasticsearchClusters(es.Namespace).Create(es)
+	Expect(err).NotTo(HaveOccurred())
+	By("Waiting for CreateNodePool event")
+	WaitForElasticsearchClusterEvent(e.kubeClient, es.Name, es.Namespace, "CreateNodePool")
+	By("Waiting for cluster pods to be ready")
+	e.WaitForAllReady(es)
+	return es
+}
+
+func (e *ElasticsearchTester) ScaleNodePool(es *v1alpha1.ElasticsearchCluster, pool string, replicas int32) {
+	var err error
+	By("Retrieving an up to date copy of the cluster resource")
+	es, err = e.navClient.NavigatorV1alpha1().ElasticsearchClusters(es.Namespace).Get(es.Name, metav1.GetOptions{})
+	Expect(err).NotTo(HaveOccurred())
+	found := false
+	for i, np := range es.Spec.NodePools {
+		if np.Name == pool {
+			np.Replicas = replicas
+			es.Spec.NodePools[i] = np
+			found = true
+			break
+		}
+	}
+	if !found {
+		Failf("Node pool %q not found in ElasticsearchCluster %q", pool, es.Name)
+	}
+	By("Scaling node pool " + es.Name + "/" + pool + " in namespace " + es.Namespace)
+	es, err = e.navClient.NavigatorV1alpha1().ElasticsearchClusters(es.Namespace).Update(es)
+	Expect(err).NotTo(HaveOccurred())
+	By("Waiting for Scale event")
+	WaitForElasticsearchClusterEvent(e.kubeClient, es.Name, es.Namespace, "Scale")
+	By("Waiting for cluster pods to be ready")
+	e.WaitForAllReady(es)
 }
 
 func (e *ElasticsearchTester) WaitForHealth(es *v1alpha1.ElasticsearchCluster, expectedHealth v1alpha1.ElasticsearchClusterHealth) {

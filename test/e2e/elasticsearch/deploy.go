@@ -58,18 +58,10 @@ var _ = Describe("Deployment tests", func() {
 					},
 				},
 			})
-
-			By("Creating elasticsearchCluster " + clusterName + " in namespace " + ns)
 			tester := framework.NewElasticsearchTester(kubeClient, navClient)
-			es, err := navClient.NavigatorV1alpha1().ElasticsearchClusters(cluster.Namespace).Create(cluster)
-			Expect(err).NotTo(HaveOccurred())
-
-			By("Waiting for CreateNodePool event")
-			framework.WaitForElasticsearchClusterEvent(kubeClient, clusterName, ns, "CreateNodePool")
-			By("Waiting for cluster pods to be ready")
-			tester.WaitForAllReady(es)
+			cluster = tester.CreateClusterAndWaitForReady(cluster)
 			By("Waiting for the cluster to be in a Yellow state")
-			tester.WaitForHealth(es, v1alpha1.ElasticsearchClusterHealthYellow)
+			tester.WaitForHealth(cluster, v1alpha1.ElasticsearchClusterHealthYellow)
 		})
 
 		It("should deploy a 3 node, 2 node pool elasticsearch cluster", func() {
@@ -101,19 +93,10 @@ var _ = Describe("Deployment tests", func() {
 					},
 				},
 			})
-
-			By("Creating elasticsearchCluster " + clusterName + " in namespace " + ns)
 			tester := framework.NewElasticsearchTester(kubeClient, navClient)
-			es, err := navClient.NavigatorV1alpha1().ElasticsearchClusters(cluster.Namespace).Create(cluster)
-			Expect(err).NotTo(HaveOccurred())
-
-			By("Waiting for CreateNodePool event")
-			framework.WaitForElasticsearchClusterEvent(kubeClient, clusterName, ns, "CreateNodePool")
-			By("Waiting for cluster pods to be ready")
-			tester.WaitForAllReady(es)
+			cluster = tester.CreateClusterAndWaitForReady(cluster)
 			By("Waiting for the cluster to be in a Green state")
-			tester.WaitForHealth(es, v1alpha1.ElasticsearchClusterHealthGreen)
-
+			tester.WaitForHealth(cluster, v1alpha1.ElasticsearchClusterHealthGreen)
 			// TODO: ensure documents are being written
 		})
 	})
