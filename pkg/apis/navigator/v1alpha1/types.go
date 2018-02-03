@@ -7,9 +7,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// In this file we define the outer containing types for the ElasticsearchCluster
-// type. We could import these directly into message types defined in the types.proto
-// file, but this is still TODO
+const (
+	ElasticsearchClusterNameLabel          = "navigator.jetstack.io/elasticsearch-cluster-name"
+	ElasticsearchNodePoolNameLabel         = "navigator.jetstack.io/elasticsearch-node-pool-name"
+	ElasticsearchNodePoolVersionAnnotation = "navigator.jetstack.io/elasticsearch-version"
+	ElasticsearchRoleLabelPrefix           = "navigator.jetstack.io/elasticsearch-role-"
+)
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -81,7 +84,7 @@ type ElasticsearchClusterStatus struct {
 // pool in an ElasticsearchCluster
 type ElasticsearchClusterNodePoolStatus struct {
 	// ReadyReplicas is the total number of ready pods in this cluster.
-	ReadyReplicas int64 `json:"readyReplicas"`
+	ReadyReplicas int32 `json:"readyReplicas"`
 }
 
 type ElasticsearchClusterHealth string
@@ -125,7 +128,7 @@ type ElasticsearchClusterSpec struct {
 	// If omitted, this will be set to a quorum of the master nodes in the
 	// cluster. If set, the value *must* be greater than or equal to a quorum
 	// of master nodes.
-	MinimumMasters int64 `json:"minimumMasters,omitempty"`
+	MinimumMasters int32 `json:"minimumMasters,omitempty"`
 }
 
 // ElasticsearchClusterNodePool describes a node pool within an ElasticsearchCluster.
@@ -135,22 +138,25 @@ type ElasticsearchClusterNodePool struct {
 	Name string `json:"name"`
 
 	// Number of replicas in the pool.
-	Replicas int64 `json:"replicas"`
+	Replicas int32 `json:"replicas"`
 
 	// Roles that nodes in this pool should perform within the cluster.
 	Roles []ElasticsearchClusterRole `json:"roles"`
 
 	// NodeSelector should be specified to force nodes in this pool to run on
 	// nodes matching the given selector.
+	// +optional
 	NodeSelector map[string]string `json:"nodeSelector"`
 
 	// Resources specifies the resource requirements to be used for nodes that
 	// are part of the pool.
-	Resources *v1.ResourceRequirements `json:"resources,omitempty"`
+	// +optional
+	Resources v1.ResourceRequirements `json:"resources,omitempty"`
 
 	// Persistence specifies the configuration for persistent data for this
 	// node. Disabling persistence can cause issues when nodes restart, so
 	// should only be using for testing purposes.
+	// +optional
 	Persistence ElasticsearchClusterPersistenceConfig `json:"persistence,omitempty"`
 }
 
@@ -265,6 +271,7 @@ type ElasticsearchPilotStatus struct {
 	// an unknown number of documents, whereas 0 indicates that the node is
 	// empty
 	Documents *int64 `json:"documents,omitempty"`
+	Version   string `json:"version,omitempty"`
 }
 
 // PilotCondition contains condition information for a Pilot.

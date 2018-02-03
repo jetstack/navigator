@@ -21,7 +21,6 @@ limitations under the License.
 package navigator
 
 import (
-	v1 "k8s.io/api/core/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -244,15 +243,7 @@ func (in *ElasticsearchClusterNodePool) DeepCopyInto(out *ElasticsearchClusterNo
 			(*out)[key] = val
 		}
 	}
-	if in.Resources != nil {
-		in, out := &in.Resources, &out.Resources
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(v1.ResourceRequirements)
-			(*in).DeepCopyInto(*out)
-		}
-	}
+	in.Resources.DeepCopyInto(&out.Resources)
 	in.Persistence.DeepCopyInto(&out.Persistence)
 	return
 }

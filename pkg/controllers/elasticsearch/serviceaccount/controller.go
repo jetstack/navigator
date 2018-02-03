@@ -41,7 +41,7 @@ func (e *defaultElasticsearchClusterServiceAccountControl) Sync(c *v1alpha1.Elas
 	// if multiple exist, exit with an error
 	// if one exists, return
 	// if none exist, create one
-	sel, err := util.SelectorForCluster(c)
+	sel, err := util.SelectorForCluster(c.Name)
 	if err != nil {
 		return c.Status, fmt.Errorf("error creating label selector for cluster '%s': %s", c.Name, err.Error())
 	}

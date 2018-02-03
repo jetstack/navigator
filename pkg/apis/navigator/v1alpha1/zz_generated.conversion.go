@@ -314,7 +314,7 @@ func autoConvert_v1alpha1_ElasticsearchClusterNodePool_To_navigator_Elasticsearc
 	out.Replicas = in.Replicas
 	out.Roles = *(*[]navigator.ElasticsearchClusterRole)(unsafe.Pointer(&in.Roles))
 	out.NodeSelector = *(*map[string]string)(unsafe.Pointer(&in.NodeSelector))
-	out.Resources = (*v1.ResourceRequirements)(unsafe.Pointer(in.Resources))
+	out.Resources = in.Resources
 	if err := Convert_v1alpha1_ElasticsearchClusterPersistenceConfig_To_navigator_ElasticsearchClusterPersistenceConfig(&in.Persistence, &out.Persistence, s); err != nil {
 		return err
 	}
@@ -331,7 +331,7 @@ func autoConvert_navigator_ElasticsearchClusterNodePool_To_v1alpha1_Elasticsearc
 	out.Replicas = in.Replicas
 	out.Roles = *(*[]ElasticsearchClusterRole)(unsafe.Pointer(&in.Roles))
 	out.NodeSelector = *(*map[string]string)(unsafe.Pointer(&in.NodeSelector))
-	out.Resources = (*v1.ResourceRequirements)(unsafe.Pointer(in.Resources))
+	out.Resources = in.Resources
 	if err := Convert_navigator_ElasticsearchClusterPersistenceConfig_To_v1alpha1_ElasticsearchClusterPersistenceConfig(&in.Persistence, &out.Persistence, s); err != nil {
 		return err
 	}
@@ -445,6 +445,7 @@ func Convert_navigator_ElasticsearchClusterStatus_To_v1alpha1_ElasticsearchClust
 
 func autoConvert_v1alpha1_ElasticsearchPilotStatus_To_navigator_ElasticsearchPilotStatus(in *ElasticsearchPilotStatus, out *navigator.ElasticsearchPilotStatus, s conversion.Scope) error {
 	out.Documents = (*int64)(unsafe.Pointer(in.Documents))
+	out.Version = in.Version
 	return nil
 }
 
@@ -455,6 +456,7 @@ func Convert_v1alpha1_ElasticsearchPilotStatus_To_navigator_ElasticsearchPilotSt
 
 func autoConvert_navigator_ElasticsearchPilotStatus_To_v1alpha1_ElasticsearchPilotStatus(in *navigator.ElasticsearchPilotStatus, out *ElasticsearchPilotStatus, s conversion.Scope) error {
 	out.Documents = (*int64)(unsafe.Pointer(in.Documents))
+	out.Version = in.Version
 	return nil
 }
 

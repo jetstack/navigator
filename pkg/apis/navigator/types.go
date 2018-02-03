@@ -76,7 +76,7 @@ type ElasticsearchClusterStatus struct {
 }
 
 type ElasticsearchClusterNodePoolStatus struct {
-	ReadyReplicas int64
+	ReadyReplicas int32
 }
 
 type ElasticsearchClusterHealth string
@@ -106,15 +106,15 @@ type ElasticsearchClusterSpec struct {
 	Image          *ImageSpec
 	Plugins        []string
 	NodePools      []ElasticsearchClusterNodePool
-	MinimumMasters int64
+	MinimumMasters int32
 }
 
 type ElasticsearchClusterNodePool struct {
 	Name         string
-	Replicas     int64
+	Replicas     int32
 	Roles        []ElasticsearchClusterRole
 	NodeSelector map[string]string
-	Resources    *v1.ResourceRequirements
+	Resources    v1.ResourceRequirements
 	Persistence  ElasticsearchClusterPersistenceConfig
 }
 
@@ -198,6 +198,7 @@ type ElasticsearchPilotStatus struct {
 	// an unknown number of documents, whereas 0 indicates that the node is
 	// empty
 	Documents *int64
+	Version   string
 }
 
 // PilotCondition contains condition information for a Pilot.

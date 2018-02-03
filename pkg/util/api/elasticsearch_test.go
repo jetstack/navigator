@@ -10,7 +10,7 @@ import (
 func TestCountElasticsearchMasters(t *testing.T) {
 	type testT struct {
 		in    []v1alpha1.ElasticsearchClusterNodePool
-		count int64
+		count int32
 	}
 	tests := []testT{
 		{
