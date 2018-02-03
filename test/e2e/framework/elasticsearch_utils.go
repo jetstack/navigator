@@ -106,6 +106,10 @@ func DefaultElasticsearchPilotImageSpec() v1alpha1.ImageSpec {
 	}
 }
 
+func DefaultElasticsearchSysctls() []string {
+	return []string{"vm.max_map_count=262144"}
+}
+
 func DefaultElasticsearchNodeResources() core.ResourceRequirements {
 	return core.ResourceRequirements{
 		Requests: core.ResourceList{
