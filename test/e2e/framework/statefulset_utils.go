@@ -5,11 +5,13 @@ import (
 	"regexp"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	apps "k8s.io/api/apps/v1beta1"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 )
@@ -73,6 +75,27 @@ func (s *StatefulSetTester) WaitForRunning(numPodsRunning, numPodsReady int32, s
 		})
 	if pollErr != nil {
 		Failf("Failed waiting for pods to enter running: %v", pollErr)
+	}
+}
+
+// DeleteAllStatefulSets deletes all StatefulSet API Objects in Namespace ns.
+func DeleteAllStatefulSets(c kubernetes.Interface, ns string) {
+	esList, err := c.AppsV1beta1().StatefulSets(ns).List(metav1.ListOptions{LabelSelector: labels.Everything().String()})
+	ExpectNoError(err)
+
+	errList := []string{}
+	for i := range esList.Items {
+		es := &esList.Items[i]
+		Logf("Deleting statefulset %v", es.Name)
+		// Use OrphanDependents=false so it's deleted synchronously.
+		// We already made sure the Pods are gone inside Scale().
+		if err := c.AppsV1beta1().StatefulSets(ns).Delete(es.Name, &metav1.DeleteOptions{OrphanDependents: new(bool)}); err != nil {
+			errList = append(errList, fmt.Sprintf("%v", err))
+		}
+	}
+
+	if len(errList) != 0 {
+		ExpectNoError(fmt.Errorf("%v", strings.Join(errList, "\n")))
 	}
 }
 

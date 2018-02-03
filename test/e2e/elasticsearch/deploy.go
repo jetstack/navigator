@@ -2,7 +2,6 @@ package elasticsearch
 
 import (
 	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 
 	"k8s.io/client-go/kubernetes"
 
@@ -33,6 +32,7 @@ var _ = Describe("Deployment tests", func() {
 			}
 			framework.Logf("Deleting all elasticsearchClusters in ns %v", ns)
 			framework.DeleteAllElasticsearchClusters(navClient, ns)
+			framework.DeleteAllStatefulSets(kubeClient, ns)
 			framework.WaitForNoPodsInNamespace(kubeClient, ns, framework.NamespaceCleanupTimeout)
 		})
 

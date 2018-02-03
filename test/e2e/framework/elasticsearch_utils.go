@@ -28,13 +28,11 @@ const (
 	ElasticsearchClusterTimeout = 10 * time.Minute
 )
 
-// DeleteAllElasticsearchClusters deletes all StatefulSet API Objects in Namespace ns.
+// DeleteAllElasticsearchClusters deletes all ElasticsearchCluster API Objects in Namespace ns.
 func DeleteAllElasticsearchClusters(c clientset.Interface, ns string) {
 	esList, err := c.NavigatorV1alpha1().ElasticsearchClusters(ns).List(metav1.ListOptions{LabelSelector: labels.Everything().String()})
 	ExpectNoError(err)
 
-	// Scale down each statefulset, then delete it completely.
-	// Deleting a pvc without doing this will leak volumes, #25101.
 	errList := []string{}
 	for i := range esList.Items {
 		es := &esList.Items[i]
