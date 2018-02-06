@@ -445,6 +445,7 @@ func Convert_navigator_ElasticsearchClusterStatus_To_v1alpha1_ElasticsearchClust
 
 func autoConvert_v1alpha1_ElasticsearchPilotStatus_To_navigator_ElasticsearchPilotStatus(in *ElasticsearchPilotStatus, out *navigator.ElasticsearchPilotStatus, s conversion.Scope) error {
 	out.Documents = (*int64)(unsafe.Pointer(in.Documents))
+	out.Version = in.Version
 	return nil
 }
 
@@ -455,6 +456,7 @@ func Convert_v1alpha1_ElasticsearchPilotStatus_To_navigator_ElasticsearchPilotSt
 
 func autoConvert_navigator_ElasticsearchPilotStatus_To_v1alpha1_ElasticsearchPilotStatus(in *navigator.ElasticsearchPilotStatus, out *ElasticsearchPilotStatus, s conversion.Scope) error {
 	out.Documents = (*int64)(unsafe.Pointer(in.Documents))
+	out.Version = in.Version
 	return nil
 }
 
