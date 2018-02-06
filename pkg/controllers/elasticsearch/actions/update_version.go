@@ -98,6 +98,9 @@ func (c *UpdateVersion) Execute(state *controllers.State) error {
 
 	// we subtract 1 here because we count from 0 when counting replicas
 	nextPartitionToUse := int32(desiredReplicas - updatedReplicas - 1)
+	if nextPartitionToUse == -1 {
+		nextPartitionToUse = 0
+	}
 
 	// we have already ensured the cluster is not in a red state near the start of the function
 	if desiredReplicas != statefulSet.Status.ReadyReplicas {
