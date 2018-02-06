@@ -198,6 +198,7 @@ type ElasticsearchPilotStatus struct {
 	// an unknown number of documents, whereas 0 indicates that the node is
 	// empty
 	Documents *int64
+	Version   semver.Version
 }
 
 // PilotCondition contains condition information for a Pilot.

@@ -365,6 +365,7 @@ func (in *ElasticsearchPilotStatus) DeepCopyInto(out *ElasticsearchPilotStatus) 
 			**out = **in
 		}
 	}
+	out.Version = in.Version
 	return
 }
 
