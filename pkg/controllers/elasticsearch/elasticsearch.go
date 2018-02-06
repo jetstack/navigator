@@ -28,7 +28,6 @@ import (
 	listersv1alpha1 "github.com/jetstack/navigator/pkg/client/listers/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers"
 	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/configmap"
-	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/nodepool"
 	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/role"
 	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/rolebinding"
 	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/service"
@@ -150,14 +149,9 @@ func NewElasticsearch(
 		elasticsearchController.statefulSetLister,
 		elasticsearchController.serviceAccountLister,
 		elasticsearchController.serviceLister,
-		nodepool.NewController(
-			cl,
-			navigatorCl,
-			elasticsearchController.statefulSetLister,
-			elasticsearchController.podLister,
-			elasticsearchController.pilotLister,
-			recorder,
-		),
+		elasticsearchController.configMapLister,
+		elasticsearchController.pilotLister,
+		elasticsearchController.podLister,
 		configmap.NewController(
 			cl,
 			elasticsearchController.configMapLister,
@@ -281,7 +275,6 @@ func (e *ElasticsearchController) sync(key string) (err error) {
 func (e *ElasticsearchController) updateStatus(c *v1alpha1.ElasticsearchCluster, status v1alpha1.ElasticsearchClusterStatus) error {
 	copy := c.DeepCopy()
 	copy.Status = status
-	// todo: replace with UpdateStatus
 	_, err := e.navigatorClient.NavigatorV1alpha1().ElasticsearchClusters(c.Namespace).UpdateStatus(copy)
 	return err
 }
@@ -293,7 +286,7 @@ func (e *ElasticsearchController) enqueueElasticsearchCluster(obj interface{}) {
 		return
 	}
 	glog.V(4).Infof("Adding ES Cluster '%s' to queue", key)
-	e.queue.AddRateLimited(key)
+	e.queue.Add(key)
 }
 
 func (e *ElasticsearchController) handleObject(obj interface{}) {

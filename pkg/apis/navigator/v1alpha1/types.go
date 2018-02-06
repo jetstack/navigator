@@ -7,9 +7,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// In this file we define the outer containing types for the ElasticsearchCluster
-// type. We could import these directly into message types defined in the types.proto
-// file, but this is still TODO
+const (
+	ElasticsearchClusterNameLabel          = "navigator.jetstack.io/elasticsearch-cluster-name"
+	ElasticsearchNodePoolNameLabel         = "navigator.jetstack.io/elasticsearch-node-pool-name"
+	ElasticsearchNodePoolVersionAnnotation = "navigator.jetstack.io/elasticsearch-version"
+	ElasticsearchRoleLabelPrefix           = "navigator.jetstack.io/elasticsearch-role-"
+)
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

@@ -15,10 +15,6 @@ const (
 	kindName = "ElasticsearchCluster"
 )
 
-const (
-	ClusterNameLabelKey = "navigator.jetstack.io/elasticsearch-cluster-name"
-)
-
 func Int32Ptr(i int32) *int32 {
 	return &i
 }
@@ -43,8 +39,8 @@ func ResourceBaseName(c *v1alpha1.ElasticsearchCluster) string {
 	return typeName + "-" + c.Name
 }
 
-func SelectorForCluster(c *v1alpha1.ElasticsearchCluster) (labels.Selector, error) {
-	clusterNameReq, err := labels.NewRequirement(ClusterNameLabelKey, selection.Equals, []string{c.Name})
+func SelectorForCluster(clusterName string) (labels.Selector, error) {
+	clusterNameReq, err := labels.NewRequirement(v1alpha1.ElasticsearchClusterNameLabel, selection.Equals, []string{clusterName})
 	if err != nil {
 		return nil, err
 	}

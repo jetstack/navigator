@@ -1,4 +1,4 @@
-package nodepool
+package actions
 
 import (
 	"fmt"
@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
+	"github.com/jetstack/navigator/pkg/controllers"
 	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/util"
 )
 
@@ -24,6 +25,35 @@ const (
 	esConfigVolumeName      = "config"
 	esConfigVolumeMountPath = "/etc/pilot/elasticsearch/config"
 )
+
+type CreateNodePool struct {
+	Cluster  *v1alpha1.ElasticsearchCluster
+	NodePool *v1alpha1.ElasticsearchClusterNodePool
+}
+
+var _ controllers.Action = &CreateNodePool{}
+
+func (c *CreateNodePool) Name() string {
+	return "CreateNodePool"
+}
+
+func (c *CreateNodePool) Message() string {
+	return fmt.Sprintf("Created node pool %q", c.NodePool.Name)
+}
+
+func (c *CreateNodePool) Execute(state *controllers.State) error {
+	toCreate, err := nodePoolStatefulSet(c.Cluster, c.NodePool)
+	if err != nil {
+		return err
+	}
+
+	_, err = state.Clientset.AppsV1beta1().StatefulSets(toCreate.Namespace).Create(toCreate)
+	if err != nil {
+		return err
+	}
+	state.Recorder.Eventf(c.Cluster, apiv1.EventTypeNormal, c.Name(), "Created node pool %q", c.NodePool.Name)
+	return nil
+}
 
 func nodePoolStatefulSet(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.ElasticsearchClusterNodePool) (*apps.StatefulSet, error) {
 	statefulSetName := util.NodePoolResourceName(c, np)
@@ -40,7 +70,7 @@ func nodePoolStatefulSet(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.Elastics
 			OwnerReferences: []metav1.OwnerReference{util.NewControllerRef(c)},
 			Labels:          elasticsearchPodTemplate.Labels,
 			Annotations: map[string]string{
-				util.NodePoolHashAnnotationKey: util.ComputeNodePoolHash(c, np, util.Int32Ptr(0)),
+				v1alpha1.ElasticsearchNodePoolVersionAnnotation: c.Spec.Version.String(),
 			},
 		},
 		Spec: apps.StatefulSetSpec{
@@ -131,10 +161,8 @@ func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.Elasticsear
 
 	return &apiv1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
-			Labels: nodePoolLabels,
-			Annotations: map[string]string{
-				util.NodePoolHashAnnotationKey: util.ComputeNodePoolHash(c, np, util.Int32Ptr(0)),
-			},
+			Labels:      nodePoolLabels,
+			Annotations: map[string]string{},
 		},
 		Spec: apiv1.PodSpec{
 			TerminationGracePeriodSeconds: util.Int64Ptr(1800),
@@ -215,9 +243,9 @@ func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.Elasticsear
 								Path: "/",
 							},
 						},
-						InitialDelaySeconds: int32(30),
-						PeriodSeconds:       int32(10),
-						TimeoutSeconds:      int32(3),
+						InitialDelaySeconds: 30,
+						PeriodSeconds:       10,
+						TimeoutSeconds:      3,
 					},
 					LivenessProbe: &apiv1.Probe{
 						Handler: apiv1.Handler{
@@ -226,14 +254,12 @@ func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.Elasticsear
 								Path: "/",
 							},
 						},
-						InitialDelaySeconds: int32(60),
-						PeriodSeconds:       int32(10),
-						TimeoutSeconds:      int32(5),
+						InitialDelaySeconds: 240,
+						PeriodSeconds:       10,
+						FailureThreshold:    5,
+						TimeoutSeconds:      5,
 					},
-					Resources: apiv1.ResourceRequirements{
-						Requests: np.Resources.Requests,
-						Limits:   np.Resources.Limits,
-					},
+					Resources: np.Resources,
 					Ports: []apiv1.ContainerPort{
 						{
 							Name:          "transport",

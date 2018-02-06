@@ -1,4 +1,4 @@
-package nodepool
+package actions
 
 import (
 	"reflect"
