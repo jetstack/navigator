@@ -1,5 +1,7 @@
 FROM alpine:3.6
 
+ADD http://search.maven.org/remotecontent?filepath=org/jolokia/jolokia-jvm/1.4.0/jolokia-jvm-1.4.0-agent.jar /jolokia.jar
+RUN chmod a+r /jolokia.jar && touch /jolokia.jar
 ADD navigator-pilot-cassandra_linux_amd64 /pilot
 
 ENTRYPOINT ["/pilot"]

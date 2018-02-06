@@ -2,6 +2,7 @@ package v3
 
 import (
 	"io"
+	"net/url"
 	"time"
 
 	"github.com/spf13/pflag"
@@ -10,6 +11,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
+	"github.com/jetstack/navigator/pkg/cassandra/nodetool"
 	clientset "github.com/jetstack/navigator/pkg/client/clientset/versioned"
 	informers "github.com/jetstack/navigator/pkg/client/informers/externalversions"
 	"github.com/jetstack/navigator/pkg/pilot/genericpilot"
@@ -18,6 +20,7 @@ import (
 const (
 	defaultResyncPeriod = time.Second * 30
 	defaultConfigDir    = "/etc/pilot"
+	defaultJolokiaURL   = "http://127.0.0.1:8778/jolokia/"
 )
 
 // PilotOptions are the options required to run this Pilot. This can be used to
@@ -38,6 +41,9 @@ type PilotOptions struct {
 	// ConfigDir is the base directory for additional Pilot configuration
 	ConfigDir string
 
+	// JolokiaURL is the base URL of the Jolokia REST API server.
+	JolokiaURL string
+
 	// GenericPilotOptions contains options for the genericpilot
 	GenericPilotOptions *genericpilot.Options
 
@@ -48,6 +54,7 @@ type PilotOptions struct {
 	kubeClientset         kubernetes.Interface
 	navigatorClientset    clientset.Interface
 	sharedInformerFactory informers.SharedInformerFactory
+	nodeTool              nodetool.Interface
 }
 
 func NewOptions(out, errOut io.Writer) *PilotOptions {
@@ -66,6 +73,7 @@ func (o *PilotOptions) AddFlags(flags *pflag.FlagSet) {
 	flags.StringVar(&o.Master, "master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
 	flags.DurationVar(&o.ResyncPeriod, "resync-period", defaultResyncPeriod, "Re-sync period for control loops operated by the pilot")
 	flags.StringVar(&o.ConfigDir, "config-dir", defaultConfigDir, "Base directory for additional Pilot configuration")
+	flags.StringVar(&o.JolokiaURL, "jolokia-url", defaultJolokiaURL, "The base URL of the Jolokia REST API server")
 }
 
 func (o *PilotOptions) Complete() error {
@@ -85,6 +93,11 @@ func (o *PilotOptions) Complete() error {
 	}
 	o.sharedInformerFactory = informers.NewFilteredSharedInformerFactory(o.navigatorClientset, o.ResyncPeriod, o.GenericPilotOptions.PilotNamespace, nil)
 
+	u, err := url.Parse(o.JolokiaURL)
+	if err != nil {
+		return err
+	}
+	o.nodeTool = nodetool.NewFromURL(u)
 	// NewPilot sets some fields on the GenericControllerOptions
 	if o.pilot, err = NewPilot(o); err != nil {
 		return err

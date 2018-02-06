@@ -19,6 +19,11 @@ const (
 
 	cassDataVolumeName      = "cassandra-data"
 	cassDataVolumeMountPath = "/var/lib/cassandra"
+
+	// See https://jolokia.org/reference/html/agents.html#jvm-agent
+	jolokiaHost    = "127.0.0.1"
+	jolokiaPort    = 8778
+	jolokiaContext = "/jolokia"
 )
 
 func StatefulSetForCluster(
@@ -79,19 +84,26 @@ func StatefulSetForCluster(
 								"--pilot-name=$(POD_NAME)",
 								"--pilot-namespace=$(POD_NAMESPACE)",
 								"--leader-election-config-map=$(LEADER_ELECTION_CONFIG_MAP)",
+								// Trailing slash is important.
+								// Allows url.ResolveReference to link to a
+								// descendant rather than a sibling.
+								fmt.Sprintf(
+									"--jolokia-url=http://%s:%d%s/",
+									jolokiaHost,
+									jolokiaPort,
+									jolokiaContext,
+								),
 							},
 							Image: fmt.Sprintf(
 								"%s:%s",
 								cluster.Spec.Image.Repository,
 								cluster.Spec.Image.Tag,
 							),
-							ImagePullPolicy: apiv1.PullPolicy(
-								cluster.Spec.Image.PullPolicy,
-							),
+							ImagePullPolicy: cluster.Spec.Image.PullPolicy,
 							ReadinessProbe: &apiv1.Probe{
 								Handler: apiv1.Handler{
-									TCPSocket: &apiv1.TCPSocketAction{
-										Port: intstr.FromInt(9042),
+									HTTPGet: &apiv1.HTTPGetAction{
+										Port: intstr.FromInt(12000),
 									},
 								},
 								// Test logs show that Cassandra begins
@@ -111,8 +123,8 @@ func StatefulSetForCluster(
 							// See: https://github.com/kubernetes/kubernetes/issues/27114
 							LivenessProbe: &apiv1.Probe{
 								Handler: apiv1.Handler{
-									TCPSocket: &apiv1.TCPSocketAction{
-										Port: intstr.FromInt(9042),
+									HTTPGet: &apiv1.HTTPGetAction{
+										Port: intstr.FromInt(12001),
 									},
 								},
 								// Don't start performing liveness probes until
@@ -186,6 +198,16 @@ func StatefulSetForCluster(
 								{
 									Name:  "CASSANDRA_RACK",
 									Value: "Rack1-K8Demo",
+								},
+								{
+									Name: "JVM_OPTS",
+									Value: fmt.Sprintf(
+										"-javaagent:%s/jolokia.jar=host=%s,port=%d,agentContext=%s",
+										sharedVolumeMountPath,
+										jolokiaHost,
+										jolokiaPort,
+										jolokiaContext,
+									),
 								},
 								{
 									Name: "POD_IP",
@@ -268,7 +290,10 @@ func pilotInstallationContainer(
 			image.Repository, image.Tag),
 		ImagePullPolicy: apiv1.PullPolicy(image.PullPolicy),
 		Command: []string{
-			"cp", "/pilot", fmt.Sprintf("%s/pilot", sharedVolumeMountPath),
+			"cp",
+			"/pilot",
+			"/jolokia.jar",
+			fmt.Sprintf("%s/", sharedVolumeMountPath),
 		},
 		VolumeMounts: []apiv1.VolumeMount{
 			{
