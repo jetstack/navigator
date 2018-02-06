@@ -13,6 +13,8 @@ import (
 	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/util"
 )
 
+var emptyVersion = semver.Version{}
+
 type UpdateVersion struct {
 	// The Elasticsearch cluster resource being operated on
 	Cluster *v1alpha1.ElasticsearchCluster
@@ -134,7 +136,7 @@ func (c *UpdateVersion) Execute(state *controllers.State) error {
 				return err
 			}
 			if lastPilotUpdated.Status.Elasticsearch == nil ||
-				lastPilotUpdated.Status.Elasticsearch.Version == "" {
+				lastPilotUpdated.Status.Elasticsearch.Version == emptyVersion {
 				err := fmt.Errorf("Pilot %q has not finished updating to version %q", lastPilotUpdated.Name, c.Cluster.Spec.Version.String())
 				state.Recorder.Event(c.Cluster, core.EventTypeWarning, "Err"+c.Name(), err.Error())
 				return nil
@@ -166,11 +168,11 @@ func (c *UpdateVersion) pilotsUpToDate(state *controllers.State, statefulSet *ap
 	}
 	for _, p := range pilots {
 		if p.Status.Elasticsearch == nil ||
-			p.Status.Elasticsearch.Version == "" {
+			p.Status.Elasticsearch.Version == emptyVersion {
 			return fmt.Errorf("pilot %q version unknown", p.Name)
 		}
-		if c.Cluster.Spec.Version.String() != p.Status.Elasticsearch.Version {
-			return fmt.Errorf("pilot %q is version %q", p.Name, p.Status.Elasticsearch.Version)
+		if !c.Cluster.Spec.Version.Equal(p.Status.Elasticsearch.Version) {
+			return fmt.Errorf("pilot %q is version %q", p.Name, p.Status.Elasticsearch.Version.String())
 		}
 	}
 	return nil
