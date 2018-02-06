@@ -136,7 +136,8 @@ func (c *UpdateVersion) Execute(state *controllers.State) error {
 				return err
 			}
 			if lastPilotUpdated.Status.Elasticsearch == nil ||
-				lastPilotUpdated.Status.Elasticsearch.Version == emptyVersion {
+				lastPilotUpdated.Status.Elasticsearch.Version == emptyVersion ||
+				!lastPilotUpdated.Status.Elasticsearch.Version.Equal(c.Cluster.Spec.Version) {
 				err := fmt.Errorf("Pilot %q has not finished updating to version %q", lastPilotUpdated.Name, c.Cluster.Spec.Version.String())
 				state.Recorder.Event(c.Cluster, core.EventTypeWarning, "Err"+c.Name(), err.Error())
 				return nil
