@@ -135,7 +135,7 @@ func (e *statefulControl) syncNodePool(c *v1alpha1.ElasticsearchCluster, np *v1a
 		}
 	}
 
-	statusCopy.ReadyReplicas = int64(existingStatefulSet.Status.ReadyReplicas)
+	statusCopy.ReadyReplicas = existingStatefulSet.Status.ReadyReplicas
 
 	// the hashes match, which means the properties of the node pool have not changed
 	return statusCopy, nil

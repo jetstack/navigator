@@ -2,7 +2,7 @@ package util
 
 // CalculateQuorum will return a quorum of the given number. This is useful
 // when calculating configuration parameters for distributed systems.
-func CalculateQuorum(num int64) int64 {
+func CalculateQuorum(num int32) int32 {
 	if num == 0 {
 		return 0
 	}
