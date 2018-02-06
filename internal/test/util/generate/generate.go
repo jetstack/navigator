@@ -23,6 +23,10 @@ func Pilot(c PilotConfig) *v1alpha1.Pilot {
 	labels := map[string]string{}
 	labels[v1alpha1.ElasticsearchClusterNameLabel] = c.Cluster
 	labels[v1alpha1.ElasticsearchNodePoolNameLabel] = c.NodePool
+	var version semver.Version
+	if c.Version != "" {
+		version = *semver.New(c.Version)
+	}
 	return &v1alpha1.Pilot{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      c.Name,
@@ -32,7 +36,7 @@ func Pilot(c PilotConfig) *v1alpha1.Pilot {
 		Status: v1alpha1.PilotStatus{
 			Elasticsearch: &v1alpha1.ElasticsearchPilotStatus{
 				Documents: c.Documents,
-				Version:   *semver.New(c.Version),
+				Version:   version,
 			},
 		},
 	}
