@@ -7,8 +7,8 @@ import (
 
 func TestCalculateQuorum(t *testing.T) {
 	type testT struct {
-		in  int64
-		out int64
+		in  int32
+		out int32
 	}
 	tests := []testT{
 		{0, 0},

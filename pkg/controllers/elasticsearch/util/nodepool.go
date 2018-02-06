@@ -21,13 +21,13 @@ const (
 // ComputeHash returns a hash value calculated from pod template and a collisionCount to avoid hash collision
 func ComputeNodePoolHash(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.ElasticsearchClusterNodePool, collisionCount *int32) string {
 	hashVar := struct {
-		MinimumMasters int64
+		MinimumMasters int32
 		ESImage        *v1alpha1.ImageSpec
 		PilotImage     v1alpha1.ImageSpec
 		Sysctl         []string
 		Plugins        []string
-		Replicas       int64
-		Resources      *corev1.ResourceRequirements
+		Replicas       int32
+		Resources      corev1.ResourceRequirements
 		NodeSelector   map[string]string
 		Roles          []v1alpha1.ElasticsearchClusterRole
 		Version        string
