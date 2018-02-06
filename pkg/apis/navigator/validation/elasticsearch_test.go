@@ -23,7 +23,7 @@ var (
 	}
 	// TODO: expand test cases here
 	validNodePoolResources         = corev1.ResourceRequirements{}
-	validNodePoolPersistenceConfig = navigator.ElasticsearchClusterPersistenceConfig{
+	validNodePoolPersistenceConfig = navigator.PersistenceConfig{
 		Enabled: true,
 		Size:    resource.MustParse("10Gi"),
 	}
@@ -155,7 +155,7 @@ func TestValidateElasticsearchClusterRole(t *testing.T) {
 
 func TestValidateElasticsearchClusterNodePool(t *testing.T) {
 	// Invalid as it is missing size parameter
-	invalidPersistenceConfig := navigator.ElasticsearchClusterPersistenceConfig{
+	invalidPersistenceConfig := navigator.PersistenceConfig{
 		Enabled: true,
 	}
 
@@ -265,24 +265,24 @@ func TestValidateElasticsearchClusterNodePool(t *testing.T) {
 
 func TestValidateElasticsearchPersistence(t *testing.T) {
 	validSize := resource.MustParse("10Gi")
-	errorCases := map[string]navigator.ElasticsearchClusterPersistenceConfig{
-		"enabled but no size specified": navigator.ElasticsearchClusterPersistenceConfig{
+	errorCases := map[string]navigator.PersistenceConfig{
+		"enabled but no size specified": navigator.PersistenceConfig{
 			Enabled: true,
 		},
-		"enabled but invalid size specified": navigator.ElasticsearchClusterPersistenceConfig{
+		"enabled but invalid size specified": navigator.PersistenceConfig{
 			Enabled: true,
 			Size:    *resource.NewQuantity(-1, resource.BinarySI),
 		},
-		"disabled but invalid size specified": navigator.ElasticsearchClusterPersistenceConfig{
+		"disabled but invalid size specified": navigator.PersistenceConfig{
 			Enabled: false,
 			Size:    *resource.NewQuantity(-1, resource.BinarySI),
 		},
-		"enabled but zero value for size specified": navigator.ElasticsearchClusterPersistenceConfig{
+		"enabled but zero value for size specified": navigator.PersistenceConfig{
 			Enabled: true,
 			Size:    *resource.NewQuantity(0, resource.BinarySI),
 		},
 	}
-	successCases := []navigator.ElasticsearchClusterPersistenceConfig{
+	successCases := []navigator.PersistenceConfig{
 		{},
 		// disabled, but valid size entered
 		{

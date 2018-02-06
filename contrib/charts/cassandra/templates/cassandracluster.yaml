@@ -1,5 +1,5 @@
 apiVersion: navigator.jetstack.io/v1alpha1
-kind: CassandraCluster
+kind: "CassandraCluster"
 metadata:
   name: {{ template "fullname" . }}
   labels:
@@ -10,10 +10,14 @@ metadata:
 spec:
   cqlPort: {{ .Values.cqlPort }}
   sysctls:
-  - vm.max_map_count=0
+  - "vm.max_map_count=0"
   nodePools:
-  - name: ringnodes
+  - name: "ringnodes"
     replicas: {{ .Values.replicaCount }}
+    persistence:
+      enabled: {{ .Values.persistence.enabled }}
+      size: {{ .Values.persistence.size | quote }}
+      storageClass: {{ .Values.persistence.storageClass | quote }}
   image:
     repository: {{ .Values.image.repository | quote }}
     tag: {{ .Values.image.tag | quote }}

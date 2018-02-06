@@ -33,8 +33,9 @@ type CassandraClusterSpec struct {
 }
 
 type CassandraClusterNodePool struct {
-	Name     string
-	Replicas int64
+	Name        string
+	Replicas    int64
+	Persistence PersistenceConfig
 }
 
 type CassandraClusterStatus struct {
@@ -115,7 +116,7 @@ type ElasticsearchClusterNodePool struct {
 	Roles        []ElasticsearchClusterRole
 	NodeSelector map[string]string
 	Resources    v1.ResourceRequirements
-	Persistence  ElasticsearchClusterPersistenceConfig
+	Persistence  PersistenceConfig
 }
 
 type ElasticsearchClusterRole string
@@ -126,7 +127,7 @@ const (
 	ElasticsearchRoleIngest ElasticsearchClusterRole = "ingest"
 )
 
-type ElasticsearchClusterPersistenceConfig struct {
+type PersistenceConfig struct {
 	Enabled      bool
 	Size         resource.Quantity
 	StorageClass string

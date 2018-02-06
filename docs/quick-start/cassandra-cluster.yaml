@@ -1,14 +1,18 @@
-apiVersion: navigator.jetstack.io/v1alpha1
-kind: CassandraCluster
+apiVersion: "navigator.jetstack.io/v1alpha1"
+kind: "CassandraCluster"
 metadata:
   name: "demo"
 spec:
   cqlPort: 9042
   sysctls:
-  - vm.max_map_count=0
+  - "vm.max_map_count=0"
   nodePools:
   - name: "RingNodes"
     replicas: 3
+    persistence:
+      enabled: true
+      size: "5Gi"
+      storageClass: "default"
   image:
     repository: "cassandra"
     tag: "3"
