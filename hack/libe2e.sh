@@ -47,13 +47,10 @@ function retry() {
 
 function kube_delete_namespace_and_wait() {
     local namespace=$1
-    # Delete all the resources in the namespace
-    # This is a work around for Kubernetes 1.7 which doesn't support garbage
-    # collection of resources owned by third party resources.
-    # See https://github.com/kubernetes/kubernetes/issues/44507
+    # Delete ESCs and C* clusters in the namespace
     if ! retry kubectl --namespace "${namespace}" \
          delete \
-         services,serviceaccounts,roles,rolebindings,statefulsets,pods \
+         elasticsearchclusters,cassandraclusters \
          --now \
          --all
     then
@@ -61,14 +58,44 @@ function kube_delete_namespace_and_wait() {
         # resources.
         return 1
     fi
-    # Delete any previous namespace and wait for Kubernetes to finish deleting.
-    kubectl delete --now namespace "${namespace}" || true
-    if ! retry TIMEOUT=300 not kubectl get namespace ${namespace}; then
-        # If the namespace doesn't delete in time, display the remaining
+    # This is a work around for Kubernetes 1.7 which doesn't support garbage
+    # collection of resources owned by third party resources.
+    # See https://github.com/kubernetes/kubernetes/issues/44507
+    if ! retry kubectl --namespace "${namespace}" \
+         delete \
+         deployments,replicasets,statefulsets,pods \
+         --now \
+         --all
+    then
+        # If multiple attempts to delete resources fails, display the remaining
         # resources.
         return 1
     fi
+    if ! wait_for_namespace_empty "${namespace}"; \
+    then
+        return 1
+    fi
     return 0
+}
+
+# waits for a namespace to contain 0 pods
+function wait_for_namespace_empty() {
+    local namespace=$1
+    if retry TIMEOUT=300 namespace_empty "${namespace}"; then
+        return 0
+    fi
+    return 1
+}
+
+function namespace_empty() {
+    local namespace=$1
+    if stdout_equals "0" kubectl \
+        --namespace "${namespace}" \
+        get pods \
+        --output='go-template={{len .items}}'; then
+        return 0
+    fi
+    return 1
 }
 
 function kube_event_exists() {
