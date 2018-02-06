@@ -36,6 +36,10 @@ type CassandraClusterSpec struct {
 type CassandraClusterNodePool struct {
 	Name     string `json:"name"`
 	Replicas int64  `json:"replicas"`
+
+	// Persistence specifies the configuration for persistent data for this
+	// node.
+	Persistence PersistenceConfig `json:"persistence,omitempty"`
 }
 
 type CassandraClusterStatus struct {
@@ -154,7 +158,7 @@ type ElasticsearchClusterNodePool struct {
 	// node. Disabling persistence can cause issues when nodes restart, so
 	// should only be using for testing purposes.
 	// +optional
-	Persistence ElasticsearchClusterPersistenceConfig `json:"persistence,omitempty"`
+	Persistence PersistenceConfig `json:"persistence,omitempty"`
 }
 
 // ElasticsearchClusterRole is a node role in an ElasticsearchCluster.
@@ -166,11 +170,10 @@ const (
 	ElasticsearchRoleIngest ElasticsearchClusterRole = "ingest"
 )
 
-// ElasticsearchClusterPersistenceConfig contains persistent volume
-// configuration.
-type ElasticsearchClusterPersistenceConfig struct {
+// PersistenceConfig contains persistent volume configuration.
+type PersistenceConfig struct {
 	// Toggle whether persistence should be enabled on this cluster. If false,
-	// an emptyDir will be provisioned to store Elasticsearch data.
+	// an emptyDir will be provisioned to store data.
 	Enabled bool `json:"enabled"`
 
 	// Size of the persistent volume to provision (required if persistence is

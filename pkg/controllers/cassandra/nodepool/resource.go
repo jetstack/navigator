@@ -16,6 +16,9 @@ import (
 const (
 	sharedVolumeName      = "shared"
 	sharedVolumeMountPath = "/shared"
+
+	cassDataVolumeName      = "cassandra-data"
+	cassDataVolumeMountPath = "/var/lib/cassandra"
 )
 
 func StatefulSetForCluster(
@@ -148,6 +151,11 @@ func StatefulSetForCluster(
 									MountPath: sharedVolumeMountPath,
 									ReadOnly:  true,
 								},
+								{
+									Name:      cassDataVolumeName,
+									MountPath: cassDataVolumeMountPath,
+									ReadOnly:  false,
+								},
 							},
 							Env: []apiv1.EnvVar{
 								{
@@ -214,6 +222,38 @@ func StatefulSetForCluster(
 				},
 			},
 		},
+	}
+	if np.Persistence.Enabled {
+		set.Spec.VolumeClaimTemplates = []apiv1.PersistentVolumeClaim{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: cassDataVolumeName,
+					Annotations: map[string]string{
+						"volume.beta.kubernetes.io/storage-class": np.Persistence.StorageClass,
+					},
+				},
+				Spec: apiv1.PersistentVolumeClaimSpec{
+					AccessModes: []apiv1.PersistentVolumeAccessMode{
+						apiv1.ReadWriteOnce,
+					},
+					Resources: apiv1.ResourceRequirements{
+						Requests: apiv1.ResourceList{
+							apiv1.ResourceStorage: np.Persistence.Size,
+						},
+					},
+				},
+			},
+		}
+	} else {
+		set.Spec.Template.Spec.Volumes = append(
+			set.Spec.Template.Spec.Volumes,
+			apiv1.Volume{
+				Name: cassDataVolumeName,
+				VolumeSource: apiv1.VolumeSource{
+					EmptyDir: &apiv1.EmptyDirVolumeSource{},
+				},
+			},
+		)
 	}
 	return set
 }
