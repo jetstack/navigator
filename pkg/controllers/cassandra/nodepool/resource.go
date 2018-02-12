@@ -229,6 +229,14 @@ func StatefulSetForCluster(
 										},
 									},
 								},
+								{
+									Name: "NODE_NAME",
+									ValueFrom: &apiv1.EnvVarSource{
+										FieldRef: &apiv1.ObjectFieldSelector{
+											FieldPath: "spec.nodeName",
+										},
+									},
+								},
 								apiv1.EnvVar{
 									Name: "POD_NAME",
 									ValueFrom: &apiv1.EnvVarSource{

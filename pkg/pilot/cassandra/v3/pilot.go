@@ -7,6 +7,10 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/golang/glog"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
@@ -53,12 +57,51 @@ func NewPilot(opts *PilotOptions) (*Pilot, error) {
 		"org.apache.cassandra.locator.SimpleSeedProvider",
 		"io.k8s.cassandra.KubernetesSeedProvider", -1)
 
+	newContents = strings.Replace(newContents,
+		"SimpleSnitch",
+		"GossipingPropertyFileSnitch", -1)
+
 	err = ioutil.WriteFile(cfgPath, []byte(newContents), 0)
 	if err != nil {
 		return nil, err
 	}
 
+	snitchSettings, err := getSnitchSettings(opts.kubeClientset)
+	if err != nil {
+		return nil, err
+	}
+
+	glog.V(4).Info("generated snitch: %v", snitchSettings)
+
+	err = ioutil.WriteFile("/cassandra-rackdc.properties", []byte(snitchSettings), 0)
+	if err != nil {
+		return nil, err
+	}
+
 	return p, nil
+}
+
+func getSnitchSettings(clientset kubernetes.Interface) (string, error) {
+	nodeClientset := clientset.CoreV1().Nodes()
+
+	nodeName := os.Getenv("NODE_NAME")
+	node, err := nodeClientset.Get(nodeName, metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+
+	datacenter := "navigator-datacenter-1"
+	rack := "navigator-rack-1"
+
+	if val, ok := node.Labels["failure-domain.beta.kubernetes.io/region"]; ok {
+		datacenter = val
+	}
+
+	if val, ok := node.Labels["failure-domain.beta.kubernetes.io/zone"]; ok {
+		rack = val
+	}
+
+	return fmt.Sprintf("dc=%s\nrack=%s", datacenter, rack), nil
 }
 
 func (p *Pilot) WaitForCacheSync(stopCh <-chan struct{}) error {
