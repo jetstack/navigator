@@ -344,49 +344,42 @@ func TestDeterminePilotsToBeRemoved(t *testing.T) {
 		expectedOutput []*v1alpha1.Pilot
 		err            bool
 	}
-	tests := []testT{
-		{
+	tests := map[string]testT{
+		"should only remove highest ordinal pilot in 'test' set": {
 			inputList:      []*v1alpha1.Pilot{pilotWithName("es-test-0"), pilotWithName("es-test-1"), pilotWithName("es-test-2")},
 			statefulSet:    generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test", Replicas: int32Ptr(3)}),
 			replicaDiff:    -1,
 			expectedOutput: []*v1alpha1.Pilot{pilotWithName("es-test-2")},
 			err:            false,
 		},
-		{
+		"should not remove pilot that is not a member of the specified statefulset": {
 			inputList:      []*v1alpha1.Pilot{pilotWithName("es-test-0"), pilotWithName("es-mixed-1"), pilotWithName("es-test-1")},
 			statefulSet:    generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test", Replicas: int32Ptr(2)}),
 			replicaDiff:    -1,
 			expectedOutput: []*v1alpha1.Pilot{pilotWithName("es-test-1")},
 			err:            false,
 		},
-		{
+		"should not remove any pilots if replicaDiff is 0 and highest ordinal pilot is missing": {
 			inputList:   []*v1alpha1.Pilot{pilotWithName("es-test-0")},
 			statefulSet: generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test", Replicas: int32Ptr(2)}),
 			replicaDiff: 0,
 			err:         false,
 		},
-		{
+		"should not remove any pilots if replica diff is 0": {
 			inputList:   []*v1alpha1.Pilot{pilotWithName("es-test-0")},
 			statefulSet: generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test", Replicas: int32Ptr(1)}),
 			replicaDiff: 0,
 			err:         false,
 		},
-		{
-			inputList:      []*v1alpha1.Pilot{pilotWithName("es-test-0"), pilotWithName("es-test-1")},
-			statefulSet:    generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test", Replicas: int32Ptr(2)}),
-			replicaDiff:    -1,
-			expectedOutput: []*v1alpha1.Pilot{pilotWithName("es-test-1")},
-			err:            false,
-		},
-		{
+		"should not remove any pilots of replicaDiff is positive": {
 			inputList:   []*v1alpha1.Pilot{pilotWithName("es-test-0"), pilotWithName("es-test-1")},
 			statefulSet: generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test", Replicas: int32Ptr(2)}),
 			replicaDiff: 1,
 			err:         false,
 		},
 	}
-	for i, test := range tests {
-		t.Run(fmt.Sprintf("test-%d", i), func(t *testing.T) {
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
 			output, err := determinePilotsToBeRemoved(test.inputList, test.statefulSet, test.replicaDiff)
 			if err != nil && !test.err {
 				t.Errorf("Expected no error but got: %v", err)
