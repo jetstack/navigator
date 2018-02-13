@@ -65,13 +65,16 @@ func (s *StateFixture) Start() {
 	s.kubeSharedInformerFactory.Start(s.stopCh)
 	s.navigatorSharedInformerFactory.Start(s.stopCh)
 	if err := mustAllSync(s.kubeSharedInformerFactory.WaitForCacheSync(s.stopCh)); err != nil {
-		s.T.Errorf("Error waiting for kubeSharedInformerFactory to sync: %v", err)
-		s.T.Fail()
+		s.T.Fatalf("Error waiting for kubeSharedInformerFactory to sync: %v", err)
 	}
 	if err := mustAllSync(s.navigatorSharedInformerFactory.WaitForCacheSync(s.stopCh)); err != nil {
-		s.T.Errorf("Error waiting for navigatorSharedInformerFactory to sync: %v", err)
-		s.T.Fail()
+		s.T.Fatalf("Error waiting for navigatorSharedInformerFactory to sync: %v", err)
 	}
+}
+
+// Stop will signal the informers to stop watching changes
+func (s *StateFixture) Stop() {
+	close(s.stopCh)
 }
 
 // WaitForResync will wait for the informer factory informer duration by

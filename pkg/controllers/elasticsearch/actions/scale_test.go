@@ -115,6 +115,8 @@ func TestScale(t *testing.T) {
 				NavigatorObjects: test.navObjects,
 			}
 			fixture.Start()
+			defer fixture.Stop()
+
 			state := fixture.State()
 			scale := &Scale{
 				Cluster:  test.cluster,
@@ -216,6 +218,8 @@ func TestPilotsForStatefulSet(t *testing.T) {
 				NavigatorObjects: test.navObjects,
 			}
 			fixture.Start()
+			defer fixture.Stop()
+
 			state := fixture.State()
 			pilots, err := pilotsForStatefulSet(state, test.cluster, test.nodePool, test.statefulSet)
 			if err != nil && !test.err {
@@ -312,6 +316,8 @@ func TestCanScaleNodePool(t *testing.T) {
 				NavigatorObjects: navObjects,
 			}
 			fixture.Start()
+			defer fixture.Stop()
+
 			state := fixture.State()
 			scale := &Scale{
 				Cluster:  test.cluster,

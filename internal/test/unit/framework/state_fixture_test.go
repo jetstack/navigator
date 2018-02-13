@@ -25,6 +25,7 @@ func TestFixturePopulatesConfigMapLister(t *testing.T) {
 		},
 	}
 	fixture.Start()
+	defer fixture.Stop()
 
 	state := fixture.State()
 	cms, err := state.ConfigMapLister.List(labels.Everything())
@@ -50,6 +51,7 @@ func TestFixturePopulatesPilotLister(t *testing.T) {
 		},
 	}
 	fixture.Start()
+	defer fixture.Stop()
 
 	state := fixture.State()
 	pilots, err := state.PilotLister.List(labels.Everything())
@@ -74,6 +76,7 @@ func TestDeleteResource(t *testing.T) {
 		},
 	}
 	fixture.Start()
+	defer fixture.Stop()
 
 	state := fixture.State()
 	pilots, err := state.PilotLister.List(labels.Everything())

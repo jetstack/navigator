@@ -243,6 +243,8 @@ func TestUpdateVersion(t *testing.T) {
 				NavigatorObjects: test.navObjects,
 			}
 			fixture.Start()
+			defer fixture.Stop()
+
 			state := fixture.State()
 			scale := &UpdateVersion{
 				Cluster:  test.cluster,
