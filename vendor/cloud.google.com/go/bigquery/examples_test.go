@@ -17,6 +17,7 @@ package bigquery_test
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"cloud.google.com/go/bigquery"
 	"golang.org/x/net/context"
@@ -85,7 +86,18 @@ func ExampleClient_JobFromID() {
 	if err != nil {
 		// TODO: Handle error.
 	}
-	fmt.Println(job)
+	fmt.Println(job.LastStatus()) // Display the job's status.
+}
+
+func ExampleClient_Jobs() {
+	ctx := context.Background()
+	client, err := bigquery.NewClient(ctx, "project-id")
+	if err != nil {
+		// TODO: Handle error.
+	}
+	it := client.Jobs(ctx)
+	it.State = bigquery.Running // list only running jobs.
+	_ = it                      // TODO: iterate using Next or iterator.Pager.
 }
 
 func ExampleNewGCSReference() {
@@ -227,13 +239,33 @@ func ExampleJob_Wait() {
 	}
 }
 
+func ExampleJob_Config() {
+	ctx := context.Background()
+	client, err := bigquery.NewClient(ctx, "project-id")
+	if err != nil {
+		// TODO: Handle error.
+	}
+	ds := client.Dataset("my_dataset")
+	job, err := ds.Table("t1").CopierFrom(ds.Table("t2")).Run(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	jc, err := job.Config()
+	if err != nil {
+		// TODO: Handle error.
+	}
+	copyConfig := jc.(*bigquery.CopyConfig)
+	fmt.Println(copyConfig.Dst, copyConfig.CreateDisposition)
+}
+
 func ExampleDataset_Create() {
 	ctx := context.Background()
 	client, err := bigquery.NewClient(ctx, "project-id")
 	if err != nil {
 		// TODO: Handle error.
 	}
-	if err := client.Dataset("my_dataset").Create(ctx); err != nil {
+	ds := client.Dataset("my_dataset")
+	if err := ds.Create(ctx, &bigquery.DatasetMetadata{Location: "EU"}); err != nil {
 		// TODO: Handle error.
 	}
 }
@@ -363,10 +395,12 @@ func ExampleInferSchema() {
 
 func ExampleInferSchema_tags() {
 	type Item struct {
-		Name   string
-		Size   float64
-		Count  int    `bigquery:"number"`
-		Secret []byte `bigquery:"-"`
+		Name     string
+		Size     float64
+		Count    int    `bigquery:"number"`
+		Secret   []byte `bigquery:"-"`
+		Optional bigquery.NullBool
+		OptBytes []byte `bigquery:",nullable"`
 	}
 	schema, err := bigquery.InferSchema(Item{})
 	if err != nil {
@@ -374,12 +408,14 @@ func ExampleInferSchema_tags() {
 		// TODO: Handle error.
 	}
 	for _, fs := range schema {
-		fmt.Println(fs.Name, fs.Type)
+		fmt.Println(fs.Name, fs.Type, fs.Required)
 	}
 	// Output:
-	// Name STRING
-	// Size FLOAT
-	// number INTEGER
+	// Name STRING true
+	// Size FLOAT true
+	// number INTEGER true
+	// Optional BOOLEAN false
+	// OptBytes BYTES false
 }
 
 func ExampleTable_Create() {
@@ -389,13 +425,13 @@ func ExampleTable_Create() {
 		// TODO: Handle error.
 	}
 	t := client.Dataset("my_dataset").Table("new-table")
-	if err := t.Create(ctx); err != nil {
+	if err := t.Create(ctx, nil); err != nil {
 		// TODO: Handle error.
 	}
 }
 
-// If you know your table's schema initially, pass a Schema to Create.
-func ExampleTable_Create_schema() {
+// Initialize a new table by passing TableMetadata to Table.Create.
+func ExampleTable_Create_initialize() {
 	ctx := context.Background()
 	// Infer table schema from a Go type.
 	schema, err := bigquery.InferSchema(Item{})
@@ -407,7 +443,12 @@ func ExampleTable_Create_schema() {
 		// TODO: Handle error.
 	}
 	t := client.Dataset("my_dataset").Table("new-table")
-	if err := t.Create(ctx, schema); err != nil {
+	if err := t.Create(ctx,
+		&bigquery.TableMetadata{
+			Name:           "My New Table",
+			Schema:         schema,
+			ExpirationTime: time.Now().Add(24 * time.Hour),
+		}); err != nil {
 		// TODO: Handle error.
 	}
 }
@@ -715,6 +756,30 @@ func ExampleUploader_Put_struct() {
 	}
 	// Schema is inferred from the score type.
 	if err := u.Put(ctx, scores); err != nil {
+		// TODO: Handle error.
+	}
+}
+
+func ExampleUploader_Put_valuesSaver() {
+	ctx := context.Background()
+	client, err := bigquery.NewClient(ctx, "project-id")
+	if err != nil {
+		// TODO: Handle error.
+	}
+
+	u := client.Dataset("my_dataset").Table("my_table").Uploader()
+
+	var vss []*bigquery.ValuesSaver
+	for i, name := range []string{"n1", "n2", "n3"} {
+		// Assume schema holds the table's schema.
+		vss = append(vss, &bigquery.ValuesSaver{
+			Schema:   schema,
+			InsertID: name,
+			Row:      []bigquery.Value{name, int64(i)},
+		})
+	}
+
+	if err := u.Put(ctx, vss); err != nil {
 		// TODO: Handle error.
 	}
 }

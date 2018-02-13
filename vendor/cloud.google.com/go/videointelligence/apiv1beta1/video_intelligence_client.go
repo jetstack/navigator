@@ -1,10 +1,10 @@
-// Copyright 2017, Google Inc. All rights reserved.
+// Copyright 2018 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -30,6 +30,7 @@ import (
 	longrunningpb "google.golang.org/genproto/googleapis/longrunning"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 )
 
 // CallOptions contains the retry settings for each method of Client.
@@ -80,8 +81,8 @@ type Client struct {
 	// The call options for this service.
 	CallOptions *CallOptions
 
-	// The metadata to be sent with each request.
-	xGoogHeader []string
+	// The x-goog-* metadata to be sent with each request.
+	xGoogMetadata metadata.MD
 }
 
 // NewClient creates a new video intelligence service client.
@@ -98,7 +99,7 @@ func NewClient(ctx context.Context, opts ...option.ClientOption) (*Client, error
 
 		client: videointelligencepb.NewVideoIntelligenceServiceClient(conn),
 	}
-	c.SetGoogleClientInfo()
+	c.setGoogleClientInfo()
 
 	c.LROClient, err = lroauto.NewOperationsClient(ctx, option.WithGRPCConn(conn))
 	if err != nil {
@@ -124,21 +125,21 @@ func (c *Client) Close() error {
 	return c.conn.Close()
 }
 
-// SetGoogleClientInfo sets the name and version of the application in
+// setGoogleClientInfo sets the name and version of the application in
 // the `x-goog-api-client` header passed on each request. Intended for
 // use by Google-written clients.
-func (c *Client) SetGoogleClientInfo(keyval ...string) {
+func (c *Client) setGoogleClientInfo(keyval ...string) {
 	kv := append([]string{"gl-go", version.Go()}, keyval...)
 	kv = append(kv, "gapic", version.Repo, "gax", gax.Version, "grpc", grpc.Version)
-	c.xGoogHeader = []string{gax.XGoogHeader(kv...)}
+	c.xGoogMetadata = metadata.Pairs("x-goog-api-client", gax.XGoogHeader(kv...))
 }
 
 // AnnotateVideo performs asynchronous video annotation. Progress and results can be
-// retrieved through the `google.longrunning.Operations` interface.
-// `Operation.metadata` contains `AnnotateVideoProgress` (progress).
-// `Operation.response` contains `AnnotateVideoResponse` (results).
+// retrieved through the google.longrunning.Operations interface.
+// Operation.metadata contains AnnotateVideoProgress (progress).
+// Operation.response contains AnnotateVideoResponse (results).
 func (c *Client) AnnotateVideo(ctx context.Context, req *videointelligencepb.AnnotateVideoRequest, opts ...gax.CallOption) (*AnnotateVideoOperation, error) {
-	ctx = insertXGoog(ctx, c.xGoogHeader)
+	ctx = insertMetadata(ctx, c.xGoogMetadata)
 	opts = append(c.CallOptions.AnnotateVideo[0:len(c.CallOptions.AnnotateVideo):len(c.CallOptions.AnnotateVideo)], opts...)
 	var resp *longrunningpb.Operation
 	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
@@ -172,7 +173,7 @@ func (c *Client) AnnotateVideoOperation(name string) *AnnotateVideoOperation {
 // See documentation of Poll for error-handling information.
 func (op *AnnotateVideoOperation) Wait(ctx context.Context, opts ...gax.CallOption) (*videointelligencepb.AnnotateVideoResponse, error) {
 	var resp videointelligencepb.AnnotateVideoResponse
-	if err := op.lro.Wait(ctx, &resp, opts...); err != nil {
+	if err := op.lro.WaitWithInterval(ctx, &resp, 45000*time.Millisecond, opts...); err != nil {
 		return nil, err
 	}
 	return &resp, nil

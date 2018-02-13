@@ -1,5 +1,19 @@
 package validation
 
+// Copyright 2017 Microsoft Corporation
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+
 import (
 	"fmt"
 	"reflect"
@@ -2403,6 +2417,21 @@ func TestValidate_StructInStruct(t *testing.T) {
 	require.Nil(t, Validate(v))
 }
 
+func TestNewError(t *testing.T) {
+	p := &Product{}
+	v := []Validation{
+		{p, []Constraint{{"p", Null, true,
+			[]Constraint{{"p.C", Null, true,
+				[]Constraint{{"p.C.I", Empty, true, nil}}},
+			},
+		}}},
+	}
+	err := createError(reflect.ValueOf(p.C), v[0].Constraints[0].Chain[0], "value can not be null; required parameter")
+	z := fmt.Sprintf("batch.AccountClient#Create: Invalid input: %s",
+		err.Error())
+	require.Equal(t, NewError("batch.AccountClient", "Create", err.Error()).Error(), z)
+}
+
 func TestNewErrorWithValidationError(t *testing.T) {
 	p := &Product{}
 	v := []Validation{
@@ -2415,5 +2444,7 @@ func TestNewErrorWithValidationError(t *testing.T) {
 	err := createError(reflect.ValueOf(p.C), v[0].Constraints[0].Chain[0], "value can not be null; required parameter")
 	z := fmt.Sprintf("batch.AccountClient#Create: Invalid input: %s",
 		err.Error())
-	require.Equal(t, NewErrorWithValidationError(err, "batch.AccountClient", "Create").Error(), z)
+	valError := NewErrorWithValidationError(err, "batch.AccountClient", "Create")
+	require.IsType(t, valError, Error{})
+	require.Equal(t, valError.Error(), z)
 }

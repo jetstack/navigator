@@ -20,7 +20,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"reflect"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -588,10 +587,10 @@ nextTest:
 			}
 			rows = append(rows, rs...)
 		}
-		if !reflect.DeepEqual(p.ts, test.wantTs) {
+		if !testEqual(p.ts, test.wantTs) {
 			t.Errorf("got transaction(%v), want %v", p.ts, test.wantTs)
 		}
-		if !reflect.DeepEqual(rows, test.wantF) {
+		if !testEqual(rows, test.wantF) {
 			t.Errorf("test %d: rows=\n%v\n; want\n%v\n; p.row:\n%v\n", i, describeRows(rows), describeRows(test.wantF), p.row)
 		}
 		if got := p.done(); got != test.wantD {
@@ -793,14 +792,7 @@ nextTest:
 	for _, test := range tests {
 		ms := testutil.NewMockCloudSpanner(t, trxTs)
 		ms.Serve()
-		opts := []grpc.DialOption{
-			grpc.WithInsecure(),
-		}
-		cc, err := grpc.Dial(ms.Addr(), opts...)
-		if err != nil {
-			t.Fatalf("%v: Dial(%q) = %v", test.name, ms.Addr(), err)
-		}
-		mc := sppb.NewSpannerClient(cc)
+		mc := sppb.NewSpannerClient(dialMock(t, ms))
 		if test.rpc == nil {
 			test.rpc = func(ct context.Context, resumeToken []byte) (streamingReceiver, error) {
 				return mc.ExecuteStreamingSql(ct, &sppb.ExecuteSqlRequest{
@@ -847,13 +839,13 @@ nextTest:
 			if stateDone {
 				// Check if resumableStreamDecoder carried out expected
 				// state transitions.
-				if !reflect.DeepEqual(st, test.stateHistory) {
+				if !testEqual(st, test.stateHistory) {
 					t.Errorf("%v: observed state transitions: \n%v\n, want \n%v\n",
 						test.name, st, test.stateHistory)
 				}
 				// Check if resumableStreamDecoder returns expected array of
 				// PartialResultSets.
-				if !reflect.DeepEqual(rs, test.want) {
+				if !testEqual(rs, test.want) {
 					t.Errorf("%v: received PartialResultSets: \n%v\n, want \n%v\n", test.name, rs, test.want)
 				}
 				// Verify that resumableStreamDecoder's internal buffering is also correct.
@@ -865,15 +857,15 @@ nextTest:
 					}
 					q = append(q, item)
 				}
-				if !reflect.DeepEqual(q, test.queue) {
+				if !testEqual(q, test.queue) {
 					t.Errorf("%v: PartialResultSets still queued: \n%v\n, want \n%v\n", test.name, q, test.queue)
 				}
 				// Verify resume token.
-				if test.resumeToken != nil && !reflect.DeepEqual(r.resumeToken, test.resumeToken) {
+				if test.resumeToken != nil && !testEqual(r.resumeToken, test.resumeToken) {
 					t.Errorf("%v: Resume token is %v, want %v\n", test.name, r.resumeToken, test.resumeToken)
 				}
 				// Verify error message.
-				if !reflect.DeepEqual(lastErr, test.wantErr) {
+				if !testEqual(lastErr, test.wantErr) {
 					t.Errorf("%v: got error %v, want %v", test.name, lastErr, test.wantErr)
 				}
 				// Proceed to next test
@@ -1064,13 +1056,7 @@ func TestRsdBlockingStates(t *testing.T) {
 	for _, test := range tests {
 		ms := testutil.NewMockCloudSpanner(t, trxTs)
 		ms.Serve()
-		opts := []grpc.DialOption{
-			grpc.WithInsecure(),
-		}
-		cc, err := grpc.Dial(ms.Addr(), opts...)
-		if err != nil {
-			t.Fatalf("%v: Dial(%q) = %v", test.name, ms.Addr(), err)
-		}
+		cc := dialMock(t, ms)
 		mc := sppb.NewSpannerClient(cc)
 		if test.rpc == nil {
 			// Avoid using test.sql directly in closure because for loop changes test.
@@ -1133,25 +1119,25 @@ func TestRsdBlockingStates(t *testing.T) {
 		case <-stateDone: // Note that at this point, receiver is still blocking on r.next().
 			// Check if resumableStreamDecoder carried out expected
 			// state transitions.
-			if !reflect.DeepEqual(st, test.stateHistory) {
+			if !testEqual(st, test.stateHistory) {
 				t.Errorf("%v: observed state transitions: \n%v\n, want \n%v\n",
 					test.name, st, test.stateHistory)
 			}
 			// Check if resumableStreamDecoder returns expected array of
 			// PartialResultSets.
-			if !reflect.DeepEqual(rs, test.want) {
+			if !testEqual(rs, test.want) {
 				t.Errorf("%v: received PartialResultSets: \n%v\n, want \n%v\n", test.name, rs, test.want)
 			}
 			// Verify that resumableStreamDecoder's internal buffering is also correct.
-			if !reflect.DeepEqual(q, test.queue) {
+			if !testEqual(q, test.queue) {
 				t.Errorf("%v: PartialResultSets still queued: \n%v\n, want \n%v\n", test.name, q, test.queue)
 			}
 			// Verify resume token.
-			if test.resumeToken != nil && !reflect.DeepEqual(r.resumeToken, test.resumeToken) {
+			if test.resumeToken != nil && !testEqual(r.resumeToken, test.resumeToken) {
 				t.Errorf("%v: Resume token is %v, want %v\n", test.name, r.resumeToken, test.resumeToken)
 			}
 			// Verify error message.
-			if !reflect.DeepEqual(lastErr, test.wantErr) {
+			if !testEqual(lastErr, test.wantErr) {
 				t.Errorf("%v: got error %v, want %v", test.name, lastErr, test.wantErr)
 			}
 		case <-time.After(1 * time.Second):
@@ -1199,13 +1185,7 @@ func TestQueueBytes(t *testing.T) {
 	ms := testutil.NewMockCloudSpanner(t, trxTs)
 	ms.Serve()
 	defer ms.Stop()
-	opts := []grpc.DialOption{
-		grpc.WithInsecure(),
-	}
-	cc, err := grpc.Dial(ms.Addr(), opts...)
-	if err != nil {
-		t.Fatalf("Dial(%q) = %v", ms.Addr(), err)
-	}
+	cc := dialMock(t, ms)
 	defer cc.Close()
 	mc := sppb.NewSpannerClient(cc)
 	sr := &sReceiver{
@@ -1289,23 +1269,15 @@ func TestResumeToken(t *testing.T) {
 	defer restore()
 	ms := testutil.NewMockCloudSpanner(t, trxTs)
 	ms.Serve()
-	opts := []grpc.DialOption{
-		grpc.WithInsecure(),
-	}
-	cc, err := grpc.Dial(ms.Addr(), opts...)
-	if err != nil {
-		t.Fatalf("Dial(%q) = %v", ms.Addr(), err)
-	}
-	defer func() {
-		ms.Stop()
-		cc.Close()
-	}()
+	defer ms.Stop()
+	cc := dialMock(t, ms)
+	defer cc.Close()
 	mc := sppb.NewSpannerClient(cc)
 	sr := &sReceiver{
 		c: make(chan int, 1000), // will never block in this test
 	}
 	rows := []*Row{}
-	done := make(chan int)
+	done := make(chan error)
 	streaming := func() {
 		// Establish a stream to mock cloud spanner server.
 		iter := stream(context.Background(),
@@ -1320,6 +1292,7 @@ func TestResumeToken(t *testing.T) {
 			nil,
 			func(error) {})
 		defer iter.Stop()
+		var err error
 		for {
 			var row *Row
 			row, err = iter.Next()
@@ -1332,7 +1305,7 @@ func TestResumeToken(t *testing.T) {
 			}
 			rows = append(rows, row)
 		}
-		done <- 1
+		done <- err
 	}
 	go streaming()
 	// Server streaming row 0 - 2, only row 1 has resume token.
@@ -1347,7 +1320,7 @@ func TestResumeToken(t *testing.T) {
 		}
 	}
 	// Wait for 4 receive attempts, as explained above.
-	if err = sr.waitn(4); err != nil {
+	if err := sr.waitn(4); err != nil {
 		t.Fatalf("failed to wait for row 0 - 2: %v", err)
 	}
 	want := []*Row{
@@ -1366,7 +1339,7 @@ func TestResumeToken(t *testing.T) {
 			},
 		},
 	}
-	if !reflect.DeepEqual(rows, want) {
+	if !testEqual(rows, want) {
 		t.Errorf("received rows: \n%v\n; but want\n%v\n", rows, want)
 	}
 	// Inject resumable failure.
@@ -1375,12 +1348,12 @@ func TestResumeToken(t *testing.T) {
 		false,
 	)
 	// Test if client detects the resumable failure and retries.
-	if err = sr.waitn(1); err != nil {
+	if err := sr.waitn(1); err != nil {
 		t.Fatalf("failed to wait for client to retry: %v", err)
 	}
 	// Client has resumed the query, now server resend row 2.
 	ms.AddMsg(nil, true)
-	if err = sr.waitn(1); err != nil {
+	if err := sr.waitn(1); err != nil {
 		t.Fatalf("failed to wait for resending row 2: %v", err)
 	}
 	// Now client should have received row 0 - 2.
@@ -1391,24 +1364,24 @@ func TestResumeToken(t *testing.T) {
 			{Kind: &proto3.Value_StringValue{StringValue: valStr(2)}},
 		},
 	})
-	if !reflect.DeepEqual(rows, want) {
+	if !testEqual(rows, want) {
 		t.Errorf("received rows: \n%v\n, want\n%v\n", rows, want)
 	}
 	// Sending 3rd - (maxBuffers+1)th rows without resume tokens, client should buffer them.
 	for i := 3; i < maxBuffers+2; i++ {
 		ms.AddMsg(nil, false)
 	}
-	if err = sr.waitn(maxBuffers - 1); err != nil {
+	if err := sr.waitn(maxBuffers - 1); err != nil {
 		t.Fatalf("failed to wait for row 3-%v: %v", maxBuffers+1, err)
 	}
 	// Received rows should be unchanged.
-	if !reflect.DeepEqual(rows, want) {
+	if !testEqual(rows, want) {
 		t.Errorf("receive rows: \n%v\n, want\n%v\n", rows, want)
 	}
 	// Send (maxBuffers+2)th row to trigger state change of resumableStreamDecoder:
 	// queueingRetryable -> queueingUnretryable
 	ms.AddMsg(nil, false)
-	if err = sr.waitn(1); err != nil {
+	if err := sr.waitn(1); err != nil {
 		t.Fatalf("failed to wait for row %v: %v", maxBuffers+2, err)
 	}
 	// Client should yield row 3rd - (maxBuffers+2)th to application. Therefore, application should
@@ -1422,7 +1395,7 @@ func TestResumeToken(t *testing.T) {
 			},
 		})
 	}
-	if !reflect.DeepEqual(rows, want) {
+	if !testEqual(rows, want) {
 		t.Errorf("received rows: \n%v\n; want\n%v\n", rows, want)
 	}
 	// Inject resumable error, but since resumableStreamDecoder is already at queueingUnretryable
@@ -1431,13 +1404,14 @@ func TestResumeToken(t *testing.T) {
 		grpc.Errorf(codes.Unavailable, "mock server wants some sleep"),
 		false,
 	)
+	var gotErr error
 	select {
-	case <-done:
+	case gotErr = <-done:
 	case <-time.After(10 * time.Second):
 		t.Fatalf("timeout in waiting for failed query to return.")
 	}
-	if wantErr := toSpannerError(grpc.Errorf(codes.Unavailable, "mock server wants some sleep")); !reflect.DeepEqual(err, wantErr) {
-		t.Fatalf("stream() returns error: %v, but want error: %v", err, wantErr)
+	if wantErr := toSpannerError(grpc.Errorf(codes.Unavailable, "mock server wants some sleep")); !testEqual(gotErr, wantErr) {
+		t.Fatalf("stream() returns error: %v, but want error: %v", gotErr, wantErr)
 	}
 
 	// Reconnect to mock Cloud Spanner.
@@ -1447,7 +1421,7 @@ func TestResumeToken(t *testing.T) {
 	for i := maxBuffers + 3; i < maxBuffers+5; i++ {
 		ms.AddMsg(nil, false)
 	}
-	if err = sr.waitn(3); err != nil {
+	if err := sr.waitn(3); err != nil {
 		t.Fatalf("failed to wait for row %v - %v: %v", maxBuffers+3, maxBuffers+5, err)
 	}
 	if len(rows) > 0 {
@@ -1456,12 +1430,12 @@ func TestResumeToken(t *testing.T) {
 	// Let server end the query.
 	ms.AddMsg(io.EOF, false)
 	select {
-	case <-done:
+	case gotErr = <-done:
 	case <-time.After(10 * time.Second):
 		t.Fatalf("timeout in waiting for failed query to return")
 	}
-	if err != nil {
-		t.Fatalf("stream() returns unexpected error: %v, but want no error", err)
+	if gotErr != nil {
+		t.Fatalf("stream() returns unexpected error: %v, but want no error", gotErr)
 	}
 	// Verify if a normal server side EOF flushes all queued rows.
 	want = []*Row{
@@ -1480,7 +1454,7 @@ func TestResumeToken(t *testing.T) {
 			},
 		},
 	}
-	if !reflect.DeepEqual(rows, want) {
+	if !testEqual(rows, want) {
 		t.Errorf("received rows: \n%v\n; but want\n%v\n", rows, want)
 	}
 }
@@ -1492,14 +1466,12 @@ func TestGrpcReconnect(t *testing.T) {
 	ms := testutil.NewMockCloudSpanner(t, trxTs)
 	ms.Serve()
 	defer ms.Stop()
-	cc, err := grpc.Dial(ms.Addr(), grpc.WithInsecure())
-	if err != nil {
-		t.Fatalf("Dial(%q) = %v", ms.Addr(), err)
-	}
+	cc := dialMock(t, ms)
 	defer cc.Close()
 	mc := sppb.NewSpannerClient(cc)
 	retry := make(chan int)
 	row := make(chan int)
+	var err error
 	go func() {
 		r := 0
 		// Establish a stream to mock cloud spanner server.
@@ -1561,14 +1533,8 @@ func TestCancelTimeout(t *testing.T) {
 	ms := testutil.NewMockCloudSpanner(t, trxTs)
 	ms.Serve()
 	defer ms.Stop()
-	opts := []grpc.DialOption{
-		grpc.WithInsecure(),
-	}
-	cc, err := grpc.Dial(ms.Addr(), opts...)
+	cc := dialMock(t, ms)
 	defer cc.Close()
-	if err != nil {
-		t.Fatalf("Dial(%q) = %v", ms.Addr(), err)
-	}
 	mc := sppb.NewSpannerClient(cc)
 	done := make(chan int)
 	go func() {
@@ -1578,6 +1544,7 @@ func TestCancelTimeout(t *testing.T) {
 	}()
 	// Test cancelling query.
 	ctx, cancel := context.WithCancel(context.Background())
+	var err error
 	go func() {
 		// Establish a stream to mock cloud spanner server.
 		iter := stream(ctx,
@@ -1652,10 +1619,7 @@ func TestRowIteratorDo(t *testing.T) {
 	ms := testutil.NewMockCloudSpanner(t, trxTs)
 	ms.Serve()
 	defer ms.Stop()
-	cc, err := grpc.Dial(ms.Addr(), grpc.WithInsecure())
-	if err != nil {
-		t.Fatalf("Dial(%q) = %v", ms.Addr(), err)
-	}
+	cc := dialMock(t, ms)
 	defer cc.Close()
 	mc := sppb.NewSpannerClient(cc)
 
@@ -1673,12 +1637,42 @@ func TestRowIteratorDo(t *testing.T) {
 		},
 		nil,
 		func(error) {})
-	err = iter.Do(func(r *Row) error { nRows++; return nil })
+	err := iter.Do(func(r *Row) error { nRows++; return nil })
 	if err != nil {
 		t.Errorf("Using Do: %v", err)
 	}
 	if nRows != 3 {
 		t.Errorf("got %d rows, want 3", nRows)
+	}
+}
+
+func TestRowIteratorDoWithError(t *testing.T) {
+	restore := setMaxBytesBetweenResumeTokens()
+	defer restore()
+	ms := testutil.NewMockCloudSpanner(t, trxTs)
+	ms.Serve()
+	defer ms.Stop()
+	cc := dialMock(t, ms)
+	defer cc.Close()
+	mc := sppb.NewSpannerClient(cc)
+
+	for i := 0; i < 3; i++ {
+		ms.AddMsg(nil, false)
+	}
+	ms.AddMsg(io.EOF, true)
+	iter := stream(context.Background(),
+		func(ct context.Context, resumeToken []byte) (streamingReceiver, error) {
+			return mc.ExecuteStreamingSql(ct, &sppb.ExecuteSqlRequest{
+				Sql:         "SELECT t.key key, t.value value FROM t_mock t",
+				ResumeToken: resumeToken,
+			})
+		},
+		nil,
+		func(error) {})
+	injected := errors.New("Failed iterator")
+	err := iter.Do(func(r *Row) error { return injected })
+	if err != injected {
+		t.Errorf("got <%v>, want <%v>", err, injected)
 	}
 }
 
@@ -1689,10 +1683,7 @@ func TestIteratorStopEarly(t *testing.T) {
 	ms := testutil.NewMockCloudSpanner(t, trxTs)
 	ms.Serve()
 	defer ms.Stop()
-	cc, err := grpc.Dial(ms.Addr(), grpc.WithInsecure())
-	if err != nil {
-		t.Fatalf("Dial(%q) = %v", ms.Addr(), err)
-	}
+	cc := dialMock(t, ms)
 	defer cc.Close()
 	mc := sppb.NewSpannerClient(cc)
 
@@ -1709,7 +1700,7 @@ func TestIteratorStopEarly(t *testing.T) {
 		},
 		nil,
 		func(error) {})
-	_, err = iter.Next()
+	_, err := iter.Next()
 	if err != nil {
 		t.Fatalf("before Stop: %v", err)
 	}
@@ -1730,4 +1721,12 @@ func TestIteratorWithError(t *testing.T) {
 	if _, err := iter.Next(); err != injected {
 		t.Fatalf("Expected error: %v, got %v", injected, err)
 	}
+}
+
+func dialMock(t *testing.T, ms *testutil.MockCloudSpanner) *grpc.ClientConn {
+	cc, err := grpc.Dial(ms.Addr(), grpc.WithInsecure(), grpc.WithBlock())
+	if err != nil {
+		t.Fatalf("Dial(%q) = %v", ms.Addr(), err)
+	}
+	return cc
 }

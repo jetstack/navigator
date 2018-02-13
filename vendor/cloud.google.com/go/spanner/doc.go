@@ -278,7 +278,7 @@ You pass in a function to ReadWriteTransaction, and the client will handle the
 retries automatically. Use the transaction's BufferWrite method to buffer
 mutations, which will all be executed at the end of the transaction:
 
-    _, err := client.ReadWriteTransaction(ctx, func(txn *spanner.ReadWriteTransaction) error {
+    _, err := client.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
         var balance int64
         row, err := txn.ReadRow(ctx, "Accounts", spanner.Key{"alice"}, []string{"balance"})
         if err != nil {
@@ -301,6 +301,12 @@ mutations, which will all be executed at the end of the transaction:
         // again.
         return nil
     })
+
+Tracing
+
+This client has been instrumented to use OpenCensus tracing (http://opencensus.io).
+To enable tracing, see "Enabling Tracing for a Program" at
+https://godoc.org/go.opencensus.io/trace. OpenCensus tracing requires Go 1.8 or higher.
 
 Authentication
 

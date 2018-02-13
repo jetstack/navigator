@@ -16,10 +16,9 @@ package etcdserver
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"time"
-
-	"github.com/gogo/protobuf/proto"
 
 	"github.com/coreos/etcd/auth"
 	pb "github.com/coreos/etcd/etcdserver/etcdserverpb"
@@ -29,16 +28,10 @@ import (
 	"github.com/coreos/etcd/mvcc"
 	"github.com/coreos/etcd/raft"
 
-	"golang.org/x/net/context"
+	"github.com/gogo/protobuf/proto"
 )
 
 const (
-	// the max request size that raft accepts.
-	// TODO: make this a flag? But we probably do not want to
-	// accept large request which might block raft stream. User
-	// specify a large value might end up with shooting in the foot.
-	maxRequestBytes = 1.5 * 1024 * 1024
-
 	// In the health case, there might be a small gap (10s of entries) between
 	// the applied index and committed index.
 	// However, if the committed entries are very heavy to apply, the gap might grow.
@@ -66,6 +59,9 @@ type Lessor interface {
 
 	// LeaseTimeToLive retrieves lease information.
 	LeaseTimeToLive(ctx context.Context, r *pb.LeaseTimeToLiveRequest) (*pb.LeaseTimeToLiveResponse, error)
+
+	// LeaseLeases lists all leases.
+	LeaseLeases(ctx context.Context, r *pb.LeaseLeasesRequest) (*pb.LeaseLeasesResponse, error)
 }
 
 type Authenticator interface {
@@ -88,6 +84,8 @@ type Authenticator interface {
 }
 
 func (s *EtcdServer) Range(ctx context.Context, r *pb.RangeRequest) (*pb.RangeResponse, error) {
+	defer warnOfExpensiveReadOnlyRangeRequest(time.Now(), r)
+
 	if !r.Serializable {
 		err := s.linearizableReadNotify(ctx)
 		if err != nil {
@@ -99,6 +97,7 @@ func (s *EtcdServer) Range(ctx context.Context, r *pb.RangeRequest) (*pb.RangeRe
 	chk := func(ai *auth.AuthInfo) error {
 		return s.authStore.IsRangePermitted(ai, r.Key, r.RangeEnd)
 	}
+
 	get := func() { resp, err = s.applyV3Base.Range(nil, r) }
 	if serr := s.doSerialize(ctx, chk, get); serr != nil {
 		return nil, serr
@@ -135,12 +134,16 @@ func (s *EtcdServer) Txn(ctx context.Context, r *pb.TxnRequest) (*pb.TxnResponse
 		chk := func(ai *auth.AuthInfo) error {
 			return checkTxnAuth(s.authStore, ai, r)
 		}
+
+		defer warnOfExpensiveReadOnlyRangeRequest(time.Now(), r)
+
 		get := func() { resp, err = s.applyV3Base.Txn(r) }
 		if serr := s.doSerialize(ctx, chk, get); serr != nil {
 			return nil, serr
 		}
 		return resp, err
 	}
+
 	resp, err := s.raftRequest(ctx, pb.InternalRaftRequest{Txn: r})
 	if err != nil {
 		return nil, err
@@ -295,6 +298,15 @@ func (s *EtcdServer) LeaseTimeToLive(ctx context.Context, r *pb.LeaseTimeToLiveR
 		}
 	}
 	return nil, ErrTimeout
+}
+
+func (s *EtcdServer) LeaseLeases(ctx context.Context, r *pb.LeaseLeasesRequest) (*pb.LeaseLeasesResponse, error) {
+	ls := s.lessor.Leases()
+	lss := make([]*pb.LeaseStatus, len(ls))
+	for i := range ls {
+		lss[i] = &pb.LeaseStatus{ID: int64(ls[i].ID)}
+	}
+	return &pb.LeaseLeasesResponse{Header: newHeader(s), Leases: lss}, nil
 }
 
 func (s *EtcdServer) waitLeader(ctx context.Context) (*membership.Member, error) {
@@ -556,7 +568,7 @@ func (s *EtcdServer) processInternalRaftRequestOnce(ctx context.Context, r pb.In
 		return nil, err
 	}
 
-	if len(data) > maxRequestBytes {
+	if len(data) > int(s.Cfg.MaxRequestBytes) {
 		return nil, ErrRequestTooLarge
 	}
 
@@ -681,12 +693,14 @@ func (s *EtcdServer) linearizableReadNotify(ctx context.Context) error {
 }
 
 func (s *EtcdServer) AuthInfoFromCtx(ctx context.Context) (*auth.AuthInfo, error) {
-	if s.Cfg.ClientCertAuthEnabled {
-		authInfo := s.AuthStore().AuthInfoFromTLS(ctx)
-		if authInfo != nil {
-			return authInfo, nil
-		}
+	authInfo, err := s.AuthStore().AuthInfoFromCtx(ctx)
+	if authInfo != nil || err != nil {
+		return authInfo, err
 	}
+	if !s.Cfg.ClientCertAuthEnabled {
+		return nil, nil
+	}
+	authInfo = s.AuthStore().AuthInfoFromTLS(ctx)
+	return authInfo, nil
 
-	return s.AuthStore().AuthInfoFromCtx(ctx)
 }
