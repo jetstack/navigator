@@ -228,9 +228,7 @@ func TestPilotsForStatefulSet(t *testing.T) {
 			if err == nil && test.err {
 				t.Errorf("Expected error but got none")
 			}
-			if len(pilots) != len(test.expectedPilots) ||
-				!testutil.ContainsAll(pilots, test.expectedPilots) ||
-				!testutil.ContainsAll(test.expectedPilots, pilots) {
+			if !testutil.FuzzyEqualLists(pilots, test.expectedPilots) {
 				t.Errorf("Expected did not equal actual: %s", pretty.Diff(pilots, test.expectedPilots))
 			}
 		})
