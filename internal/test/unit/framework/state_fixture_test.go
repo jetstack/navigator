@@ -12,6 +12,8 @@ import (
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 )
 
+// This test just ensures that items added to the Clientset are made available
+// via the types lister.
 func TestFixturePopulatesConfigMapLister(t *testing.T) {
 	fixture := &framework.StateFixture{
 		T: t,
@@ -94,12 +96,11 @@ func TestDeleteResource(t *testing.T) {
 		t.Errorf("Failed to delete test Pilot %q", pilot.Name)
 	}
 
-	// force pilot controller to resync
-	fixture.WaitForResync()
-
 	// TODO: This check will currently fail due to needing #57504 from k/k.
 	// For the meantime, we need to be aware of this when writing our tests and also
 	// only use the Clientset to check the contents of the API when running assertions.
+	// force pilot controller to resync
+	// fixture.WaitForResync()
 	// pilots, err = state.PilotLister.List(labels.Everything())
 	// if err != nil {
 	// 	t.Errorf("Error listing pilots: %v", err)
