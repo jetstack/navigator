@@ -32,3 +32,7 @@ Outer:
 	}
 	return true
 }
+
+func FuzzyEqualLists(left, right interface{}) bool {
+	return ContainsAll(left, right) && ContainsAll(right, left)
+}

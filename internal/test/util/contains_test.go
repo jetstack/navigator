@@ -96,6 +96,59 @@ func TestContainsAll(t *testing.T) {
 	}
 }
 
+func TestFuzzyEqualLists(t *testing.T) {
+	type testT struct {
+		left  interface{}
+		right interface{}
+		equal bool
+	}
+	tests := []testT{
+		{
+			left:  []int{1, 2, 3},
+			right: []int{1},
+			equal: false,
+		},
+		{
+			left:  []int{1, 2, 3},
+			right: []int{1, 2, 3},
+			equal: true,
+		},
+		{
+			left:  []int{1, 2},
+			right: []int{1, 2, 3},
+			equal: false,
+		},
+		{
+			left:  []int{},
+			right: []int{1},
+			equal: false,
+		},
+		{
+			left:  []int{2},
+			right: []int{1},
+			equal: false,
+		},
+		{
+			left:  []int{3, 2},
+			right: []int{2, 3},
+			equal: true,
+		},
+		{
+			left:  []*struct{ int }{ptr(struct{ int }{2}), ptr(struct{ int }{3})},
+			right: []*struct{ int }{ptr(struct{ int }{3}), ptr(struct{ int }{2})},
+			equal: true,
+		},
+	}
+	for i, test := range tests {
+		t.Run(fmt.Sprintf("test-%d", i), func(t *testing.T) {
+			actual := FuzzyEqualLists(test.left, test.right)
+			if test.equal != actual {
+				t.Errorf("expected %t but got %t", test.equal, actual)
+			}
+		})
+	}
+}
+
 func ptr(o struct{ int }) *struct{ int } {
 	return &o
 }
