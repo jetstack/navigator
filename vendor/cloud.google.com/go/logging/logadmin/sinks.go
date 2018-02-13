@@ -55,7 +55,7 @@ type Sink struct {
 // Requires AdminScope.
 func (c *Client) CreateSink(ctx context.Context, sink *Sink) (*Sink, error) {
 	ls, err := c.sClient.CreateSink(ctx, &logpb.CreateSinkRequest{
-		Parent: c.parent(),
+		Parent: c.parent,
 		Sink:   toLogSink(sink),
 	})
 	if err != nil {
@@ -87,8 +87,7 @@ func (c *Client) Sink(ctx context.Context, sinkID string) (*Sink, error) {
 	return fromLogSink(ls), nil
 }
 
-// UpdateSink updates an existing Sink, or creates a new one if the Sink doesn't exist.
-// Requires AdminScope.
+// UpdateSink updates an existing Sink. Requires AdminScope.
 func (c *Client) UpdateSink(ctx context.Context, sink *Sink) (*Sink, error) {
 	ls, err := c.sClient.UpdateSink(ctx, &logpb.UpdateSinkRequest{
 		SinkName: c.sinkPath(sink.ID),
@@ -101,14 +100,14 @@ func (c *Client) UpdateSink(ctx context.Context, sink *Sink) (*Sink, error) {
 }
 
 func (c *Client) sinkPath(sinkID string) string {
-	return fmt.Sprintf("%s/sinks/%s", c.parent(), sinkID)
+	return fmt.Sprintf("%s/sinks/%s", c.parent, sinkID)
 }
 
 // Sinks returns a SinkIterator for iterating over all Sinks in the Client's project.
 // Requires ReadScope or AdminScope.
 func (c *Client) Sinks(ctx context.Context) *SinkIterator {
 	it := &SinkIterator{
-		it: c.sClient.ListSinks(ctx, &logpb.ListSinksRequest{Parent: c.parent()}),
+		it: c.sClient.ListSinks(ctx, &logpb.ListSinksRequest{Parent: c.parent}),
 	}
 	it.pageInfo, it.nextFunc = iterator.NewPageInfo(
 		it.fetch,
