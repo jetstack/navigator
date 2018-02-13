@@ -23,10 +23,6 @@ func (c *CreatePilot) Name() string {
 	return "CreatePilot"
 }
 
-func (c *CreatePilot) Message() string {
-	return fmt.Sprintf("Created Pilot resources for node pool %q", c.NodePool.Name)
-}
-
 func (c *CreatePilot) Execute(state *controllers.State) error {
 	selector, err := util.SelectorForNodePool(c.Cluster.Name, c.NodePool.Name)
 	if err != nil {

@@ -30,13 +30,6 @@ func (c *UpdateVersion) Name() string {
 	return "UpdateVersion"
 }
 
-func (c *UpdateVersion) Message() string {
-	if c.podToUpdateName == "" {
-		return fmt.Sprintf("Updated node pool %q to version %q", c.NodePool.Name, c.Cluster.Spec.Version.String())
-	}
-	return fmt.Sprintf("Updated pod %q to version %q", c.podToUpdateName, c.Cluster.Spec.Version.String())
-}
-
 func (c *UpdateVersion) Execute(state *controllers.State) error {
 	if c.NodePool == nil || c.Cluster == nil {
 		return fmt.Errorf("internal error: nodepool and cluster must be set")

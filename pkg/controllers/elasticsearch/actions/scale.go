@@ -30,10 +30,6 @@ func (c *Scale) Name() string {
 	return "Scale"
 }
 
-func (c *Scale) Message() string {
-	return fmt.Sprintf("Scaled node pool %q to %d replicas", c.NodePool.Name, c.NodePool.Replicas)
-}
-
 // Execute will scale the s.NodePool statefulset to the desired number of
 // replicas. It will refuse to scale if the cluster is not in a 'state to scale'
 // as defined by s.canScaleNodePool.

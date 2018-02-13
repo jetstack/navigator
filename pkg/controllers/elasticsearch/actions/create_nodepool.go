@@ -37,10 +37,6 @@ func (c *CreateNodePool) Name() string {
 	return "CreateNodePool"
 }
 
-func (c *CreateNodePool) Message() string {
-	return fmt.Sprintf("Created node pool %q", c.NodePool.Name)
-}
-
 func (c *CreateNodePool) Execute(state *controllers.State) error {
 	toCreate, err := nodePoolStatefulSet(c.Cluster, c.NodePool)
 	if err != nil {
