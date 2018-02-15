@@ -63,6 +63,7 @@ func NewCassandra(
 	statefulSets appsinformers.StatefulSetInformer,
 	pilots navigatorinformers.PilotInformer,
 	pods coreinformers.PodInformer,
+	nodes coreinformers.NodeInformer,
 	serviceAccounts coreinformers.ServiceAccountInformer,
 	roles rbacinformers.RoleInformer,
 	roleBindings rbacinformers.RoleBindingInformer,
@@ -110,6 +111,8 @@ func NewCassandra(
 		nodepool.NewControl(
 			kubeClient,
 			statefulSets.Lister(),
+			pods.Lister(),
+			nodes.Lister(),
 			recorder,
 		),
 		pilot.NewControl(
@@ -303,6 +306,7 @@ func CassandraControllerFromContext(ctx *controllers.Context) *CassandraControll
 		ctx.KubeSharedInformerFactory.Apps().V1beta1().StatefulSets(),
 		ctx.SharedInformerFactory.Navigator().V1alpha1().Pilots(),
 		ctx.KubeSharedInformerFactory.Core().V1().Pods(),
+		ctx.KubeSharedInformerFactory.Core().V1().Nodes(),
 		ctx.KubeSharedInformerFactory.Core().V1().ServiceAccounts(),
 		ctx.KubeSharedInformerFactory.Rbac().V1beta1().Roles(),
 		ctx.KubeSharedInformerFactory.Rbac().V1beta1().RoleBindings(),

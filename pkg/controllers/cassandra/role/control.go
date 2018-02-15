@@ -73,6 +73,11 @@ func RoleForCluster(cluster *v1alpha1.CassandraCluster) *rbacv1.Role {
 			},
 			{
 				APIGroups: []string{""},
+				Verbs:     []string{"get", "list"},
+				Resources: []string{"nodes"},
+			},
+			{
+				APIGroups: []string{""},
 				Verbs:     []string{"get", "list", "watch"},
 				Resources: []string{"endpoints"},
 			},
