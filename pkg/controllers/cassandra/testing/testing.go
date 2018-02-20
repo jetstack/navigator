@@ -103,17 +103,20 @@ func (f *Fixture) setupAndSync() error {
 	}
 
 	statefulSets := k8sFactory.Apps().V1beta1().StatefulSets().Lister()
+	pods := k8sFactory.Core().V1().Pods().Lister()
+	nodes := k8sFactory.Core().V1().Nodes().Lister()
 	if f.NodepoolControl == nil {
 		f.NodepoolControl = nodepool.NewControl(
 			f.k8sClient,
 			statefulSets,
+			pods,
+			nodes,
 			recorder,
 		)
 	}
 	f.naviClient = navigatorfake.NewSimpleClientset(f.naviObjects...)
 	naviFactory := navinformers.NewSharedInformerFactory(f.naviClient, 0)
 	pilots := naviFactory.Navigator().V1alpha1().Pilots().Lister()
-	pods := k8sFactory.Core().V1().Pods().Lister()
 	if f.PilotControl == nil {
 		f.PilotControl = pilot.NewControl(
 			f.naviClient,
