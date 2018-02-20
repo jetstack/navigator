@@ -10,7 +10,6 @@ import (
 	"github.com/golang/glog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
@@ -66,7 +65,7 @@ func NewPilot(opts *PilotOptions) (*Pilot, error) {
 		return nil, err
 	}
 
-	snitchSettings, err := getSnitchSettings(opts.kubeClientset)
+	snitchSettings, err := p.getSnitchSettings()
 	if err != nil {
 		return nil, err
 	}
@@ -81,8 +80,8 @@ func NewPilot(opts *PilotOptions) (*Pilot, error) {
 	return p, nil
 }
 
-func getSnitchSettings(clientset kubernetes.Interface) (string, error) {
-	nodeClientset := clientset.CoreV1().Nodes()
+func (p *Pilot) getSnitchSettings() (string, error) {
+	nodeClientset := p.Options.kubeClientset.CoreV1().Nodes()
 
 	nodeName := os.Getenv("NODE_NAME")
 	node, err := nodeClientset.Get(nodeName, metav1.GetOptions{})
@@ -93,12 +92,16 @@ func getSnitchSettings(clientset kubernetes.Interface) (string, error) {
 	datacenter := "navigator-datacenter-1"
 	rack := "navigator-rack-1"
 
-	if val, ok := node.Labels["failure-domain.beta.kubernetes.io/region"]; ok {
-		datacenter = val
+	if p.Options.FailureZoneDatacenterNodeLabel != "" {
+		if val, ok := node.Labels[p.Options.FailureZoneDatacenterNodeLabel]; ok {
+			datacenter = val
+		}
 	}
 
-	if val, ok := node.Labels["failure-domain.beta.kubernetes.io/zone"]; ok {
-		rack = val
+	if p.Options.FailureZoneRackNodeLabel != "" {
+		if val, ok := node.Labels[p.Options.FailureZoneRackNodeLabel]; ok {
+			rack = val
+		}
 	}
 
 	return fmt.Sprintf("dc=%s\nrack=%s", datacenter, rack), nil

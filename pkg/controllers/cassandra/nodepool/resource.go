@@ -94,6 +94,14 @@ func StatefulSetForCluster(
 									jolokiaPort,
 									jolokiaContext,
 								),
+								fmt.Sprintf(
+									"--datacenter-node-label=%s",
+									np.FailureZones.Datacenter.ValueFrom.NodeLabel,
+								),
+								fmt.Sprintf(
+									"--rack-node-label=%s",
+									np.FailureZones.Rack.ValueFrom.NodeLabel,
+								),
 							},
 							Image: fmt.Sprintf(
 								"%s:%s",

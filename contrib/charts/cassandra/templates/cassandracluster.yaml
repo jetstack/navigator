@@ -18,6 +18,13 @@ spec:
       enabled: {{ .Values.persistence.enabled }}
       size: {{ .Values.persistence.size | quote }}
       storageClass: {{ .Values.persistence.storageClass | quote }}
+    failureZones:
+      datacenter:
+        valueFrom:
+          nodeLabel: "failure-domain.beta.kubernetes.io/region"
+      rack:
+        valueFrom:
+          nodeLabel: "failure-domain.beta.kubernetes.io/zone"
   image:
     repository: {{ .Values.image.repository | quote }}
     tag: {{ .Values.image.tag | quote }}

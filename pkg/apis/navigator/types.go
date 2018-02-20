@@ -33,9 +33,24 @@ type CassandraClusterSpec struct {
 }
 
 type CassandraClusterNodePool struct {
-	Name        string
-	Replicas    int64
-	Persistence PersistenceConfig
+	Name         string
+	Replicas     int64
+	Persistence  PersistenceConfig
+	FailureZones *FailureZoneConfig
+}
+
+type FailureZoneConfig struct {
+	Datacenter *FailureZone
+	Rack       *FailureZone
+}
+
+type FailureZone struct {
+	Value     string
+	ValueFrom *FailureZoneSource
+}
+
+type FailureZoneSource struct {
+	NodeLabel string
 }
 
 type CassandraClusterStatus struct {
