@@ -2,8 +2,10 @@ package v3
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
+	"strings"
 
 	"k8s.io/client-go/tools/cache"
 
@@ -37,6 +39,23 @@ func NewPilot(opts *PilotOptions) (*Pilot, error) {
 		pilotLister:         pilotInformer.Lister(),
 		pilotInformerSynced: pilotInformer.Informer().HasSynced,
 		nodeTool:            opts.nodeTool,
+	}
+
+	// hack to test the seedprovider, this should use whatever pattern is decided upon here:
+	//   https://github.com/jetstack/navigator/issues/251
+	cfgPath := "/etc/cassandra/cassandra.yaml"
+	read, err := ioutil.ReadFile(cfgPath)
+	if err != nil {
+		return nil, err
+	}
+
+	newContents := strings.Replace(string(read),
+		"org.apache.cassandra.locator.SimpleSeedProvider",
+		"io.k8s.cassandra.KubernetesSeedProvider", -1)
+
+	err = ioutil.WriteFile(cfgPath, []byte(newContents), 0)
+	if err != nil {
+		return nil, err
 	}
 
 	return p, nil

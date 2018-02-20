@@ -2,6 +2,11 @@ FROM alpine:3.6
 
 ADD http://search.maven.org/remotecontent?filepath=org/jolokia/jolokia-jvm/1.4.0/jolokia-jvm-1.4.0-agent.jar /jolokia.jar
 RUN chmod a+r /jolokia.jar && touch /jolokia.jar
+
+# note: temporarily pulled directly from kubernetes/examples until we find a better place to put it
+ADD https://github.com/kubernetes/examples/raw/master/cassandra/image/files/kubernetes-cassandra.jar /kubernetes-cassandra.jar
+RUN chmod a+r /kubernetes-cassandra.jar && touch /kubernetes-cassandra.jar
+
 ADD navigator-pilot-cassandra_linux_amd64 /pilot
 
 ENTRYPOINT ["/pilot"]

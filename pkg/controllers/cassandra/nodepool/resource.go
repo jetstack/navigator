@@ -2,6 +2,7 @@ package nodepool
 
 import (
 	"fmt"
+	"path"
 
 	apps "k8s.io/api/apps/v1beta1"
 	apiv1 "k8s.io/api/core/v1"
@@ -188,6 +189,10 @@ func StatefulSetForCluster(
 									),
 								},
 								{
+									Name:  "CASSANDRA_SERVICE",
+									Value: seedProviderServiceName,
+								},
+								{
 									Name:  "CASSANDRA_CLUSTER_NAME",
 									Value: cluster.Name,
 								},
@@ -207,6 +212,13 @@ func StatefulSetForCluster(
 										jolokiaHost,
 										jolokiaPort,
 										jolokiaContext,
+									),
+								},
+								{
+									Name: "CLASSPATH",
+									Value: path.Join(
+										sharedVolumeMountPath,
+										"kubernetes-cassandra.jar",
 									),
 								},
 								{
@@ -293,6 +305,7 @@ func pilotInstallationContainer(
 			"cp",
 			"/pilot",
 			"/jolokia.jar",
+			"/kubernetes-cassandra.jar",
 			fmt.Sprintf("%s/", sharedVolumeMountPath),
 		},
 		VolumeMounts: []apiv1.VolumeMount{
