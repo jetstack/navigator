@@ -110,6 +110,7 @@ func NewCassandra(
 		nodepool.NewControl(
 			kubeClient,
 			statefulSets.Lister(),
+			pods.Lister(),
 			recorder,
 		),
 		pilot.NewControl(

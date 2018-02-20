@@ -27,6 +27,10 @@ func updateServiceForCluster(
 	service.SetName(util.SeedProviderServiceName(cluster))
 	service.Spec.Type = apiv1.ServiceTypeClusterIP
 	service.Spec.ClusterIP = "None"
+
+	// Only mark nodes explicitly labeled as seeds as seed nodes
+	service.Spec.Selector["seed"] = "true"
+
 	// Headless service should not require a port.
 	// But without it, DNS records are not registered.
 	// See https://github.com/kubernetes/kubernetes/issues/55158
