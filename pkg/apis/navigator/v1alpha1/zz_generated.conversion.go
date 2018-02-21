@@ -145,6 +145,7 @@ func autoConvert_v1alpha1_CassandraClusterNodePool_To_navigator_CassandraCluster
 	if err := Convert_v1alpha1_PersistenceConfig_To_navigator_PersistenceConfig(&in.Persistence, &out.Persistence, s); err != nil {
 		return err
 	}
+	out.NodeSelector = *(*map[string]string)(unsafe.Pointer(&in.NodeSelector))
 	return nil
 }
 
@@ -159,6 +160,7 @@ func autoConvert_navigator_CassandraClusterNodePool_To_v1alpha1_CassandraCluster
 	if err := Convert_navigator_PersistenceConfig_To_v1alpha1_PersistenceConfig(&in.Persistence, &out.Persistence, s); err != nil {
 		return err
 	}
+	out.NodeSelector = *(*map[string]string)(unsafe.Pointer(&in.NodeSelector))
 	return nil
 }
 

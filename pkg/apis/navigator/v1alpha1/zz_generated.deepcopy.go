@@ -91,6 +91,13 @@ func (in *CassandraClusterList) DeepCopyObject() runtime.Object {
 func (in *CassandraClusterNodePool) DeepCopyInto(out *CassandraClusterNodePool) {
 	*out = *in
 	in.Persistence.DeepCopyInto(&out.Persistence)
+	if in.NodeSelector != nil {
+		in, out := &in.NodeSelector, &out.NodeSelector
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	return
 }
 

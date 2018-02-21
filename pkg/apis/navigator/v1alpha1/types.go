@@ -43,6 +43,11 @@ type CassandraClusterNodePool struct {
 	// Persistence specifies the configuration for persistent data for this
 	// node.
 	Persistence PersistenceConfig `json:"persistence,omitempty"`
+
+	// NodeSelector should be specified to force nodes in this pool to run on
+	// nodes matching the given selector.
+	// +optional
+	NodeSelector map[string]string `json:"nodeSelector"`
 }
 
 type CassandraClusterStatus struct {
