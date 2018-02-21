@@ -18,9 +18,11 @@ import (
 )
 
 const (
-	defaultResyncPeriod = time.Second * 30
-	defaultConfigDir    = "/etc/pilot"
-	defaultJolokiaURL   = "http://127.0.0.1:8778/jolokia/"
+	defaultResyncPeriod        = time.Second * 30
+	defaultConfigDir           = "/etc/pilot"
+	defaultJolokiaURL          = "http://127.0.0.1:8778/jolokia/"
+	defaultDatacenterNodeLabel = "failure-domain.beta.kubernetes.io/region"
+	defaultRackNodeLabel       = "failure-domain.beta.kubernetes.io/zone"
 )
 
 // PilotOptions are the options required to run this Pilot. This can be used to
@@ -43,6 +45,12 @@ type PilotOptions struct {
 
 	// JolokiaURL is the base URL of the Jolokia REST API server.
 	JolokiaURL string
+
+	// FailureZoneDatacenterNodeLabel is the node label to use as cassandra datacenter
+	FailureZoneDatacenterNodeLabel string
+
+	// FailureZoneRackNodeLabel is the node label to use as cassandra rack
+	FailureZoneRackNodeLabel string
 
 	// GenericPilotOptions contains options for the genericpilot
 	GenericPilotOptions *genericpilot.Options
@@ -74,6 +82,8 @@ func (o *PilotOptions) AddFlags(flags *pflag.FlagSet) {
 	flags.DurationVar(&o.ResyncPeriod, "resync-period", defaultResyncPeriod, "Re-sync period for control loops operated by the pilot")
 	flags.StringVar(&o.ConfigDir, "config-dir", defaultConfigDir, "Base directory for additional Pilot configuration")
 	flags.StringVar(&o.JolokiaURL, "jolokia-url", defaultJolokiaURL, "The base URL of the Jolokia REST API server")
+	flags.StringVar(&o.FailureZoneDatacenterNodeLabel, "datacenter-node-label", defaultDatacenterNodeLabel, "The node label to use as cassandra datacenter")
+	flags.StringVar(&o.FailureZoneRackNodeLabel, "rack-node-label", defaultRackNodeLabel, "The node label to use as cassandra rack")
 }
 
 func (o *PilotOptions) Complete() error {

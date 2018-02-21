@@ -94,6 +94,14 @@ func StatefulSetForCluster(
 									jolokiaPort,
 									jolokiaContext,
 								),
+								fmt.Sprintf(
+									"--datacenter-node-label=%s",
+									np.FailureZones.Datacenter.ValueFrom.NodeLabel,
+								),
+								fmt.Sprintf(
+									"--rack-node-label=%s",
+									np.FailureZones.Rack.ValueFrom.NodeLabel,
+								),
 							},
 							Image: fmt.Sprintf(
 								"%s:%s",
@@ -226,6 +234,14 @@ func StatefulSetForCluster(
 									ValueFrom: &apiv1.EnvVarSource{
 										FieldRef: &apiv1.ObjectFieldSelector{
 											FieldPath: "status.podIP",
+										},
+									},
+								},
+								{
+									Name: "NODE_NAME",
+									ValueFrom: &apiv1.EnvVarSource{
+										FieldRef: &apiv1.ObjectFieldSelector{
+											FieldPath: "spec.nodeName",
 										},
 									},
 								},

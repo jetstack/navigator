@@ -43,6 +43,22 @@ type CassandraClusterNodePool struct {
 	// Persistence specifies the configuration for persistent data for this
 	// node.
 	Persistence PersistenceConfig `json:"persistence,omitempty"`
+
+	FailureZones *FailureZoneConfig `json:"failureZones"`
+}
+
+type FailureZoneConfig struct {
+	Datacenter *FailureZone `json:"datacenter"`
+	Rack       *FailureZone `json:"rack"`
+}
+
+type FailureZone struct {
+	Value     string             `json:"value"`
+	ValueFrom *FailureZoneSource `json:"valueFrom"`
+}
+
+type FailureZoneSource struct {
+	NodeLabel string `json:"nodeLabel"`
 }
 
 type CassandraClusterStatus struct {
