@@ -37,6 +37,8 @@ type CassandraClusterNodePool struct {
 	Replicas     int64
 	Persistence  PersistenceConfig
 	NodeSelector map[string]string
+	Rack         string
+	Datacenter   string
 }
 
 type CassandraClusterStatus struct {

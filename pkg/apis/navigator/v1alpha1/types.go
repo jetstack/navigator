@@ -48,6 +48,9 @@ type CassandraClusterNodePool struct {
 	// nodes matching the given selector.
 	// +optional
 	NodeSelector map[string]string `json:"nodeSelector"`
+
+	Rack       string `json:"rack"`
+	Datacenter string `json:"datacenter"`
 }
 
 type CassandraClusterStatus struct {

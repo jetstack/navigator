@@ -146,6 +146,8 @@ func autoConvert_v1alpha1_CassandraClusterNodePool_To_navigator_CassandraCluster
 		return err
 	}
 	out.NodeSelector = *(*map[string]string)(unsafe.Pointer(&in.NodeSelector))
+	out.Rack = in.Rack
+	out.Datacenter = in.Datacenter
 	return nil
 }
 
@@ -161,6 +163,8 @@ func autoConvert_navigator_CassandraClusterNodePool_To_v1alpha1_CassandraCluster
 		return err
 	}
 	out.NodeSelector = *(*map[string]string)(unsafe.Pointer(&in.NodeSelector))
+	out.Rack = in.Rack
+	out.Datacenter = in.Datacenter
 	return nil
 }
 

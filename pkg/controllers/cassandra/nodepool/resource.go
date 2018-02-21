@@ -35,6 +35,17 @@ func StatefulSetForCluster(
 	statefulSetName := util.NodePoolResourceName(cluster, np)
 	seedProviderServiceName := util.SeedProviderServiceName(cluster)
 	nodePoolLabels := util.NodePoolLabels(cluster, np.Name)
+
+	datacenter := "navigator-default-datacenter"
+	if np.Datacenter != "" {
+		datacenter = np.Datacenter
+	}
+
+	rack := "navigator-default-rack"
+	if np.Rack != "" {
+		rack = np.Rack
+	}
+
 	set := &apps.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            statefulSetName,
@@ -190,6 +201,10 @@ func StatefulSetForCluster(
 									),
 								},
 								{
+									Name:  "CASSANDRA_ENDPOINT_SNITCH",
+									Value: "GossipingPropertyFileSnitch",
+								},
+								{
 									Name:  "CASSANDRA_SERVICE",
 									Value: seedProviderServiceName,
 								},
@@ -199,11 +214,11 @@ func StatefulSetForCluster(
 								},
 								{
 									Name:  "CASSANDRA_DC",
-									Value: "DC1-K8Demo",
+									Value: datacenter,
 								},
 								{
 									Name:  "CASSANDRA_RACK",
-									Value: "Rack1-K8Demo",
+									Value: rack,
 								},
 								{
 									Name: "JVM_OPTS",
