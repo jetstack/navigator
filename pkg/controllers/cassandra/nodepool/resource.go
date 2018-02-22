@@ -43,7 +43,7 @@ func StatefulSetForCluster(
 		datacenter = np.Datacenter
 	}
 
-	rack := "navigator-default-rack"
+	rack := np.Name
 	if np.Rack != "" {
 		rack = np.Rack
 	}
