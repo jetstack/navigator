@@ -1,6 +1,8 @@
 package validation
 
 import (
+	"reflect"
+
 	apimachineryvalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -20,6 +22,28 @@ func ValidateCassandraCluster(cass *navigator.CassandraCluster) field.ErrorList 
 
 func ValidateCassandraClusterUpdate(old, new *navigator.CassandraCluster) field.ErrorList {
 	allErrs := ValidateCassandraCluster(new)
+
+	fldPath := field.NewPath("spec")
+
+	npPath := fldPath.Child("nodePools")
+	for i, newNp := range new.Spec.NodePools {
+		idxPath := npPath.Index(i)
+
+		for _, oldNp := range old.Spec.NodePools {
+			if newNp.Name == oldNp.Name {
+				if newNp.Rack != oldNp.Rack {
+					allErrs = append(allErrs, field.Forbidden(idxPath.Child("rack"), "cannot modify rack"))
+				}
+				if newNp.Datacenter != oldNp.Datacenter {
+					allErrs = append(allErrs, field.Forbidden(idxPath.Child("datacenter"), "cannot modify datacenter"))
+				}
+				if !reflect.DeepEqual(newNp.NodeSelector, oldNp.NodeSelector) {
+					allErrs = append(allErrs, field.Forbidden(idxPath.Child("nodeSelector"), "cannot modify nodeSelector"))
+				}
+				break
+			}
+		}
+	}
 
 	return allErrs
 }
