@@ -1,14 +1,10 @@
 package nodepool
 
 import (
-	"strconv"
-	"strings"
+	"fmt"
 
 	appsv1beta1 "k8s.io/api/apps/v1beta1"
-	"k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 	appslisters "k8s.io/client-go/listers/apps/v1beta1"
 	corelisters "k8s.io/client-go/listers/core/v1"
@@ -79,57 +75,25 @@ func (e *defaultCassandraClusterNodepoolControl) removeUnusedStatefulSets(
 	return nil
 }
 
-// Return the lowest int from a slice of ints
-func min(v []int) (m int) {
-	if len(v) > 0 {
-		m = v[0]
-	} else {
-		panic("min called with empty slice")
-	}
-	for _, e := range v {
-		if e < m {
-			m = e
-		}
-	}
-	return
-}
-
 func (e *defaultCassandraClusterNodepoolControl) labelSeedNodes(
 	cluster *v1alpha1.CassandraCluster,
 	set *appsv1beta1.StatefulSet,
 ) error {
-	var nodepoolPods []*v1.Pod
-	allPods, err := e.pods.Pods(cluster.Namespace).List(labels.Everything())
+	// TODO: make number of seed nodes configurable
+	pod, err := e.pods.Pods(cluster.Namespace).Get(fmt.Sprintf("%s-%d", set.Name, 0))
 	if err != nil {
 		return err
 	}
-	for _, pod := range allPods {
-		if metav1.IsControlledBy(pod, set) {
-			nodepoolPods = append(nodepoolPods, pod)
-		}
-	}
 
-	// if there are no pods, return early
-	if len(nodepoolPods) < 1 {
-		return nil
-	}
-
-	// Choose the lowest StatefulSet member and mark it as a seed
-	numberedPods := make(map[int]*v1.Pod)
-	ns := []int{}
-	for _, p := range nodepoolPods {
-		elements := strings.Split(p.Name, "-")
-		n, err := strconv.Atoi(elements[len(elements)-1])
+	// only label if the current label is incorrect
+	if pod.Labels["seed"] != "true" {
+		podCopy := pod.DeepCopy()
+		podCopy.Labels["seed"] = "true"
+		_, err := e.kubeClient.CoreV1().Pods(podCopy.Namespace).Update(podCopy)
 		if err != nil {
 			return err
 		}
-		numberedPods[n] = p
-		ns = append(ns, n)
 	}
-
-	pod := numberedPods[min(ns)]
-	pod.Labels["seed"] = "true"
-	e.kubeClient.CoreV1().Pods(pod.Namespace).Update(pod)
 
 	return nil
 }
@@ -154,7 +118,10 @@ func (e *defaultCassandraClusterNodepoolControl) createOrUpdateStatefulSet(
 		return err
 	}
 
-	e.labelSeedNodes(cluster, existingSet)
+	err = e.labelSeedNodes(cluster, existingSet)
+	if err != nil {
+		return err
+	}
 
 	_, err = client.Update(desiredSet)
 	return err
@@ -169,7 +136,6 @@ func (e *defaultCassandraClusterNodepoolControl) syncStatefulSets(
 			return err
 		}
 	}
-
 	err := e.removeUnusedStatefulSets(cluster)
 	return err
 }
