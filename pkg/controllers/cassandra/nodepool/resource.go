@@ -23,6 +23,8 @@ const (
 
 	cassSnitch = "GossipingPropertyFileSnitch"
 
+	cassDefaultDatacenter = "navigator-default-datacenter"
+
 	// See https://jolokia.org/reference/html/agents.html#jvm-agent
 	jolokiaHost    = "127.0.0.1"
 	jolokiaPort    = 8778
@@ -38,7 +40,7 @@ func StatefulSetForCluster(
 	seedProviderServiceName := util.SeedProviderServiceName(cluster)
 	nodePoolLabels := util.NodePoolLabels(cluster, np.Name)
 
-	datacenter := "navigator-default-datacenter"
+	datacenter := cassDefaultDatacenter
 	if np.Datacenter != "" {
 		datacenter = np.Datacenter
 	}
