@@ -49,7 +49,14 @@ type CassandraClusterNodePool struct {
 	// +optional
 	NodeSelector map[string]string `json:"nodeSelector"`
 
-	Rack       string `json:"rack"`
+	// Rack specifies the cassandra rack with which to label nodes in this
+	// nodepool. If this is not set, a default will be selected.
+	// +optional
+	Rack string `json:"rack"`
+
+	// Datacenter specifies the cassandra datacenter with which to label nodes
+	// in this nodepool. If this is not set, a default will be selected.
+	// +optional
 	Datacenter string `json:"datacenter"`
 }
 
