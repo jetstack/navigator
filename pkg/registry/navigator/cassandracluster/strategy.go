@@ -89,8 +89,10 @@ func (cassandraClusterStrategy) Canonicalize(obj runtime.Object) {
 }
 
 func (cassandraClusterStrategy) ValidateUpdate(ctx genericapirequest.Context, obj, old runtime.Object) field.ErrorList {
-	cass := obj.(*navigator.CassandraCluster)
-	return validation.ValidateCassandraCluster(cass)
+	newCassandraCluster := obj.(*navigator.CassandraCluster)
+	oldCassandraCluster := old.(*navigator.CassandraCluster)
+
+	return validation.ValidateCassandraClusterUpdate(oldCassandraCluster, newCassandraCluster)
 }
 
 // implements interface RESTUpdateStrategy. This implementation validates updates to

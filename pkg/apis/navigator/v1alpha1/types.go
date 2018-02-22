@@ -31,7 +31,7 @@ type CassandraClusterSpec struct {
 	NavigatorClusterConfig `json:",inline"`
 
 	NodePools []CassandraClusterNodePool `json:"nodePools"`
-	Image     ImageSpec                  `json:"image"`
+	Image     *ImageSpec                 `json:"image"`
 	CqlPort   int32                      `json:"cqlPort"`
 }
 

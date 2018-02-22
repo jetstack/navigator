@@ -21,6 +21,8 @@ const (
 	cassDataVolumeName      = "cassandra-data"
 	cassDataVolumeMountPath = "/var/lib/cassandra"
 
+	cassSnitch = "GossipingPropertyFileSnitch"
+
 	// See https://jolokia.org/reference/html/agents.html#jvm-agent
 	jolokiaHost    = "127.0.0.1"
 	jolokiaPort    = 8778
@@ -202,7 +204,7 @@ func StatefulSetForCluster(
 								},
 								{
 									Name:  "CASSANDRA_ENDPOINT_SNITCH",
-									Value: "GossipingPropertyFileSnitch",
+									Value: cassSnitch,
 								},
 								{
 									Name:  "CASSANDRA_SERVICE",

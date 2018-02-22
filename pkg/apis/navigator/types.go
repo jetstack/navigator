@@ -28,7 +28,7 @@ type CassandraClusterSpec struct {
 	NavigatorClusterConfig
 
 	NodePools []CassandraClusterNodePool
-	Image     ImageSpec
+	Image     *ImageSpec
 	CqlPort   int32
 }
 
