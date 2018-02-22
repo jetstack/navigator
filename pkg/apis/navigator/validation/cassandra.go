@@ -50,9 +50,7 @@ func ValidateCassandraClusterUpdate(old, new *navigator.CassandraCluster) field.
 
 func ValidateCassandraClusterSpec(spec *navigator.CassandraClusterSpec, fldPath *field.Path) field.ErrorList {
 	allErrs := ValidateNavigatorClusterConfig(&spec.NavigatorClusterConfig, fldPath)
-	if spec.Image != nil {
-		allErrs = append(allErrs, ValidateImageSpec(spec.Image, fldPath.Child("image"))...)
-	}
+
 	npPath := fldPath.Child("nodePools")
 	allNames := sets.String{}
 	for i, np := range spec.NodePools {

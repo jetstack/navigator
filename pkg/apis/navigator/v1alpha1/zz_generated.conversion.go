@@ -198,7 +198,9 @@ func autoConvert_v1alpha1_CassandraClusterSpec_To_navigator_CassandraClusterSpec
 		return err
 	}
 	out.NodePools = *(*[]navigator.CassandraClusterNodePool)(unsafe.Pointer(&in.NodePools))
-	out.Image = (*navigator.ImageSpec)(unsafe.Pointer(in.Image))
+	if err := Convert_v1alpha1_ImageSpec_To_navigator_ImageSpec(&in.Image, &out.Image, s); err != nil {
+		return err
+	}
 	out.CqlPort = in.CqlPort
 	return nil
 }
@@ -213,7 +215,9 @@ func autoConvert_navigator_CassandraClusterSpec_To_v1alpha1_CassandraClusterSpec
 		return err
 	}
 	out.NodePools = *(*[]CassandraClusterNodePool)(unsafe.Pointer(&in.NodePools))
-	out.Image = (*ImageSpec)(unsafe.Pointer(in.Image))
+	if err := Convert_navigator_ImageSpec_To_v1alpha1_ImageSpec(&in.Image, &out.Image, s); err != nil {
+		return err
+	}
 	out.CqlPort = in.CqlPort
 	return nil
 }
