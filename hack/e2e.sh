@@ -216,6 +216,13 @@ function test_cassandracluster() {
         fail_test "Cassandra pilots did not elect a leader"
     fi
 
+    seed_label=$(kubectl get pods --namespace "${namespace}" \
+                 cass-${CHART_NAME}-cassandra-ringnodes-0 \
+                 -o jsonpath='{.metadata.labels.seed}')
+    if [ "$seed_label" != "true" ]; then
+        fail_test "First cassandra node not marked as seed"
+    fi
+
     # Wait 5 minutes for cassandra to start and listen for CQL queries.
     if ! retry TIMEOUT=300 cql_connect \
          "${namespace}" \
