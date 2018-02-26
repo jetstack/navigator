@@ -43,6 +43,21 @@ type CassandraClusterNodePool struct {
 	// Persistence specifies the configuration for persistent data for this
 	// node.
 	Persistence PersistenceConfig `json:"persistence,omitempty"`
+
+	// NodeSelector should be specified to force nodes in this pool to run on
+	// nodes matching the given selector.
+	// +optional
+	NodeSelector map[string]string `json:"nodeSelector"`
+
+	// Rack specifies the cassandra rack with which to label nodes in this
+	// nodepool. If this is not set, a default will be selected.
+	// +optional
+	Rack string `json:"rack"`
+
+	// Datacenter specifies the cassandra datacenter with which to label nodes
+	// in this nodepool. If this is not set, a default will be selected.
+	// +optional
+	Datacenter string `json:"datacenter"`
 }
 
 type CassandraClusterStatus struct {

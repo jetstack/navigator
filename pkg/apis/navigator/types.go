@@ -33,9 +33,12 @@ type CassandraClusterSpec struct {
 }
 
 type CassandraClusterNodePool struct {
-	Name        string
-	Replicas    int64
-	Persistence PersistenceConfig
+	Name         string
+	Replicas     int64
+	Persistence  PersistenceConfig
+	NodeSelector map[string]string
+	Rack         string
+	Datacenter   string
 }
 
 type CassandraClusterStatus struct {
