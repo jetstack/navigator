@@ -3,6 +3,7 @@ package nodepool
 import (
 	"fmt"
 
+	"github.com/golang/glog"
 	appsv1beta1 "k8s.io/api/apps/v1beta1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/kubernetes"
@@ -82,7 +83,8 @@ func (e *defaultCassandraClusterNodepoolControl) labelSeedNodes(
 	// TODO: make number of seed nodes configurable
 	pod, err := e.pods.Pods(cluster.Namespace).Get(fmt.Sprintf("%s-%d", set.Name, 0))
 	if err != nil {
-		return err
+		glog.Warningf("Couldn't get stateful set pod: %v", err)
+		return nil
 	}
 
 	// only label if the current label is incorrect
