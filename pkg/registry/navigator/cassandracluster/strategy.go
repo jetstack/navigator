@@ -66,10 +66,23 @@ func (cassandraClusterStrategy) NamespaceScoped() bool {
 	return true
 }
 
+func defaultSeeds(new *navigator.CassandraCluster) {
+	// default to 1 seed if not specified
+	for i := 0; i < len(new.Spec.NodePools); i++ {
+		if new.Spec.NodePools[i].Seeds == 0 {
+			new.Spec.NodePools[i].Seeds = 1
+		}
+	}
+}
+
 func (cassandraClusterStrategy) PrepareForCreate(ctx genericapirequest.Context, obj runtime.Object) {
+	new := obj.(*navigator.CassandraCluster)
+	defaultSeeds(new)
 }
 
 func (cassandraClusterStrategy) PrepareForUpdate(ctx genericapirequest.Context, obj, old runtime.Object) {
+	new := obj.(*navigator.CassandraCluster)
+	defaultSeeds(new)
 }
 
 func (cassandraClusterStrategy) Validate(ctx genericapirequest.Context, obj runtime.Object) field.ErrorList {
