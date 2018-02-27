@@ -1,6 +1,7 @@
 package validation
 
 import (
+	"fmt"
 	"reflect"
 
 	apimachineryvalidation "k8s.io/apimachinery/pkg/api/validation"
@@ -13,7 +14,18 @@ import (
 func ValidateCassandraClusterNodePool(np *navigator.CassandraClusterNodePool, fldPath *field.Path) field.ErrorList {
 	// TODO: call k8s.io/kubernetes/pkg/apis/core/validation.ValidateResourceRequirements on np.Resources
 	// this will require vendoring kubernetes/kubernetes.
-	return field.ErrorList{}
+
+	allErrs := field.ErrorList{}
+	if np.Seeds > np.Replicas {
+		allErrs = append(allErrs,
+			field.Invalid(
+				fldPath.Child("seeds"),
+				np.Seeds,
+				fmt.Sprintf("number of seeds cannot be greater than number of replicas (%d)", np.Replicas)),
+		)
+	}
+
+	return allErrs
 }
 
 func ValidateCassandraCluster(c *navigator.CassandraCluster) field.ErrorList {
