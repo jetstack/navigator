@@ -13,7 +13,7 @@ complex services "as a Service" within your organisation.
 ## Design
 
 As well as following "the operator model", Navigator additionally introduces
-the concept of 'Pilots' - small 'nanny' processes that run alongside each pod
+the concept of 'Pilots' - small 'nanny' processes that run inside each pod
 in your application deployment. These Pilots are responsible for managing the
 lifecycle of your underlying application process (e.g. an Elasticsearch JVM
 process) and periodically report state information about the individual node
@@ -25,7 +25,7 @@ prevent data loss, or otherwise update the Navigator API with details of the
 failure so that navigator-controller can take action to restore service.
 
 Navigator has a few unique traits that differ from similar projects (such as
-elasticsearch-operator, etcd-operator etc). 
+elasticsearch-operator, etcd-operator etc).
 
 - **navigator-apiserver** - this takes on a similar role to `kube-apiserver`.
 It is responsible for storing and coordinate all of the state stored for
@@ -40,10 +40,9 @@ It is responsible for actually realising your deployments within the Kubernetes
 cluster. It can be seen as the 'operator' for the various applications
 supported by `navigator-apiserver`.
 
-- **pilot-elasticsearch** - 
-- **pilot-cassandra**
-
-## Extending
+- **pilots** - the pilot is responsible for managing each database process.
+  Currently Navigator has two types: `pilot-elasticsearch` and
+  `pilot-cassandra`.
 
 ## Architecture
 
