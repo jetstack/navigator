@@ -71,6 +71,7 @@ planning.
 ## Links
 
 * [Quick-start](docs/quick-start)
+* [Developing quick-start](docs/developing.md)
 * [Resource types](docs/supported-types/README.md)
   * [ElasticsearchCluster](docs/supported-types/elasticsearch-cluster.md)
 
