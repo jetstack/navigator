@@ -43,7 +43,7 @@ type CassandraClusterNodePool struct {
 	Datacenter    string
 	Resources     v1.ResourceRequirements
 	SchedulerName string
-	Seeds         int
+	Seeds         int64
 }
 
 type CassandraClusterStatus struct {
