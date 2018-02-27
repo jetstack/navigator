@@ -10,6 +10,8 @@ other resource in Kubernetes core. This means you can manage fine-grained
 permissions via conventional RBAC rules, allowing you to offer popular but
 complex services "as a Service" within your organisation.
 
+To get started, jump to the [quick-start guide](docs/quick-start).
+
 ## Design
 
 As well as following "the operator model", Navigator additionally introduces
@@ -28,7 +30,7 @@ Navigator has a few unique traits that differ from similar projects (such as
 elasticsearch-operator, etcd-operator etc).
 
 - **navigator-apiserver** - this takes on a similar role to `kube-apiserver`.
-It is responsible for storing and coordinate all of the state stored for
+It is responsible for storing and coordinating all of the state stored for
 Navigator. It requires a connection to an etcd cluster in order to do this. In
 order to make Navigator API types generally consumable to users of your cluster,
 it registers itself with kube-aggregator. It performs validation of your
@@ -50,12 +52,15 @@ supported by `navigator-apiserver`.
 
 ## Supported applications
 
-Whilst we aim to support as many common applications as possible, it does take a certain level of operational knowledge of the applications in question in order
-to develop a pilot. Therefore, we'd like to reach out
-to others that are interested in our efforts & would like to see a new application added (or existing one improved!).
+Whilst we aim to support as many common applications as possible, it does take
+a certain level of operational knowledge of the applications in question in
+order to develop a pilot. Therefore, we'd like to reach out to others that are
+interested in our efforts & would like to see a new application added (or
+existing one improved!).
 
-Please search for or create an issue for the application in question you'd like to see a part of Navigator,
-and we can begin discussion on implementation & planning.
+Please search for or create an issue for the application in question you'd like
+to see a part of Navigator, and we can begin discussion on implementation &
+planning.
 
 | Name          | Version   | Status      | Notes                                                       |
 | ------------- | --------- | ----------- | ----------------------------------------------------------- |
@@ -72,9 +77,10 @@ and we can begin discussion on implementation & planning.
 
 ## E2E Testing
 
-Navigator has an end-to-end test suite which verifies that Navigator can be installed [as documented in the quick start guide](docs/quick-start).
-The tests are run on a Minikube cluster.
-Run the tests using the following sequence of commands:
+Navigator has an end-to-end test suite which verifies that Navigator can be
+installed [as documented in the quick start guide](docs/quick-start).  The
+tests are run on a Minikube cluster.  Run the tests using the following
+sequence of commands:
 
 ```
 minikube start
