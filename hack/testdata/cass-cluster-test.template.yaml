@@ -1,7 +1,7 @@
 apiVersion: "navigator.jetstack.io/v1alpha1"
 kind: "CassandraCluster"
 metadata:
-  name: "test"
+  name: ${CASS_NAME}
 spec:
   cqlPort: ${CASS_CQL_PORT}
   sysctls:
@@ -9,8 +9,8 @@ spec:
   nodePools:
   - name: "ringnodes"
     replicas: ${CASS_REPLICAS}
-    datacenter: "test-datacenter"
-    rack: "test-rack"
+    datacenter: "${CASS_NAME}-datacenter"
+    rack: "{CASS_NAME}-rack"
     persistence:
       enabled: true
       size: "5Gi"

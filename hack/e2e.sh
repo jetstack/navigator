@@ -190,8 +190,8 @@ fi
 function test_cassandracluster() {
     echo "Testing CassandraCluster"
     local namespace="${1}"
-    local CASS_NAME="test"
 
+    export CASS_NAME="test"
     export CASS_REPLICAS=1
     export CASS_CQL_PORT=9042
 
@@ -207,7 +207,7 @@ function test_cassandracluster() {
         --namespace "${namespace}" \
         --filename \
         <(envsubst \
-              '$NAVIGATOR_IMAGE_REPOSITORY:$NAVIGATOR_IMAGE_TAG:$NAVIGATOR_IMAGE_PULLPOLICY:$CASS_REPLICAS:$CASS_CQL_PORT' \
+              '$NAVIGATOR_IMAGE_REPOSITORY:$NAVIGATOR_IMAGE_TAG:$NAVIGATOR_IMAGE_PULLPOLICY:$CASS_NAME:$CASS_REPLICAS:$CASS_CQL_PORT' \
               < "${SCRIPT_DIR}/testdata/cass-cluster-test.template.yaml")
     then
         fail_test "Failed to create cassandracluster"
@@ -223,7 +223,7 @@ function test_cassandracluster() {
     fi
 
     seed_label=$(kubectl get pods --namespace "${namespace}" \
-                 cass-${CHART_NAME}-cassandra-ringnodes-0 \
+                 cass-${CASS_NAME}-ringnodes-0 \
                  -o jsonpath='{.metadata.labels.seed}')
     if [ "$seed_label" != "true" ]; then
         fail_test "First cassandra node not marked as seed"
@@ -296,7 +296,7 @@ function test_cassandracluster() {
         --namespace "${namespace}" \
         --filename \
         <(envsubst \
-              '$NAVIGATOR_IMAGE_REPOSITORY:$NAVIGATOR_IMAGE_TAG:$NAVIGATOR_IMAGE_PULLPOLICY:$CASS_REPLICAS:$CASS_CQL_PORT' \
+              '$NAVIGATOR_IMAGE_REPOSITORY:$NAVIGATOR_IMAGE_TAG:$NAVIGATOR_IMAGE_PULLPOLICY:$CASS_NAME:$CASS_REPLICAS:$CASS_CQL_PORT' \
               < "${SCRIPT_DIR}/testdata/cass-cluster-test.template.yaml")
 
     # Wait 60s for cassandra CQL port to change
@@ -313,7 +313,7 @@ function test_cassandracluster() {
         --namespace "${namespace}" \
         --filename \
         <(envsubst \
-              '$NAVIGATOR_IMAGE_REPOSITORY:$NAVIGATOR_IMAGE_TAG:$NAVIGATOR_IMAGE_PULLPOLICY:$CASS_REPLICAS:$CASS_CQL_PORT' \
+              '$NAVIGATOR_IMAGE_REPOSITORY:$NAVIGATOR_IMAGE_TAG:$NAVIGATOR_IMAGE_PULLPOLICY:$CASS_NAME:$CASS_REPLICAS:$CASS_CQL_PORT' \
               < "${SCRIPT_DIR}/testdata/cass-cluster-test.template.yaml")
 
     if ! retry TIMEOUT=300 stdout_equals 2 kubectl \
