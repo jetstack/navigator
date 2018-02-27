@@ -1,3 +1,0 @@
-pilotImage:
-  tag: build
-  pullPolicy: Never
