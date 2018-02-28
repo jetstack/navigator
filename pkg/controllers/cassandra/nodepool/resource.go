@@ -23,8 +23,6 @@ const (
 
 	cassSnitch = "GossipingPropertyFileSnitch"
 
-	cassDefaultDatacenter = "navigator-default-datacenter"
-
 	// See https://jolokia.org/reference/html/agents.html#jvm-agent
 	jolokiaHost    = "127.0.0.1"
 	jolokiaPort    = 8778
@@ -39,16 +37,9 @@ func StatefulSetForCluster(
 	statefulSetName := util.NodePoolResourceName(cluster, np)
 	seedProviderServiceName := util.SeedProviderServiceName(cluster)
 	nodePoolLabels := util.NodePoolLabels(cluster, np.Name)
-	datacenter := cassDefaultDatacenter
-	if np.Datacenter != "" {
-		datacenter = np.Datacenter
-	}
 
-	rack := np.Name
-	if np.Rack != "" {
-		rack = np.Rack
-	}
 	image := cassImageToUse(&cluster.Spec)
+
 	set := &apps.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            statefulSetName,
@@ -217,11 +208,11 @@ func StatefulSetForCluster(
 								},
 								{
 									Name:  "CASSANDRA_DC",
-									Value: datacenter,
+									Value: np.Datacenter,
 								},
 								{
 									Name:  "CASSANDRA_RACK",
-									Value: rack,
+									Value: np.Rack,
 								},
 								{
 									Name: "JVM_OPTS",
