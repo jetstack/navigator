@@ -194,6 +194,7 @@ function test_cassandracluster() {
     export CASS_NAME="test"
     export CASS_REPLICAS=1
     export CASS_CQL_PORT=9042
+    export CASS_VERSION="3.11.1"
 
     kubectl create namespace "${namespace}"
 
@@ -207,7 +208,7 @@ function test_cassandracluster() {
         --namespace "${namespace}" \
         --filename \
         <(envsubst \
-              '$NAVIGATOR_IMAGE_REPOSITORY:$NAVIGATOR_IMAGE_TAG:$NAVIGATOR_IMAGE_PULLPOLICY:$CASS_NAME:$CASS_REPLICAS:$CASS_CQL_PORT' \
+              '$NAVIGATOR_IMAGE_REPOSITORY:$NAVIGATOR_IMAGE_TAG:$NAVIGATOR_IMAGE_PULLPOLICY:$CASS_NAME:$CASS_REPLICAS:$CASS_CQL_PORT:$CASS_VERSION' \
               < "${SCRIPT_DIR}/testdata/cass-cluster-test.template.yaml")
     then
         fail_test "Failed to create cassandracluster"
@@ -296,7 +297,7 @@ function test_cassandracluster() {
         --namespace "${namespace}" \
         --filename \
         <(envsubst \
-              '$NAVIGATOR_IMAGE_REPOSITORY:$NAVIGATOR_IMAGE_TAG:$NAVIGATOR_IMAGE_PULLPOLICY:$CASS_NAME:$CASS_REPLICAS:$CASS_CQL_PORT' \
+              '$NAVIGATOR_IMAGE_REPOSITORY:$NAVIGATOR_IMAGE_TAG:$NAVIGATOR_IMAGE_PULLPOLICY:$CASS_NAME:$CASS_REPLICAS:$CASS_CQL_PORT:$CASS_VERSION' \
               < "${SCRIPT_DIR}/testdata/cass-cluster-test.template.yaml")
 
     # Wait 60s for cassandra CQL port to change
@@ -313,7 +314,7 @@ function test_cassandracluster() {
         --namespace "${namespace}" \
         --filename \
         <(envsubst \
-              '$NAVIGATOR_IMAGE_REPOSITORY:$NAVIGATOR_IMAGE_TAG:$NAVIGATOR_IMAGE_PULLPOLICY:$CASS_NAME:$CASS_REPLICAS:$CASS_CQL_PORT' \
+              '$NAVIGATOR_IMAGE_REPOSITORY:$NAVIGATOR_IMAGE_TAG:$NAVIGATOR_IMAGE_PULLPOLICY:$CASS_NAME:$CASS_REPLICAS:$CASS_CQL_PORT:$CASS_VERSION' \
               < "${SCRIPT_DIR}/testdata/cass-cluster-test.template.yaml")
 
     if ! retry TIMEOUT=300 stdout_equals 2 kubectl \

@@ -138,7 +138,16 @@ func (in *CassandraClusterSpec) DeepCopyInto(out *CassandraClusterSpec) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
-	out.Image = in.Image
+	if in.Image != nil {
+		in, out := &in.Image, &out.Image
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(ImageSpec)
+			**out = **in
+		}
+	}
+	out.Version = in.Version
 	return
 }
 

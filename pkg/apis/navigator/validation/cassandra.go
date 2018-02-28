@@ -14,9 +14,9 @@ func ValidateCassandraClusterNodePool(np *navigator.CassandraClusterNodePool, fl
 	return field.ErrorList{}
 }
 
-func ValidateCassandraCluster(cass *navigator.CassandraCluster) field.ErrorList {
-	allErrs := ValidateObjectMeta(&cass.ObjectMeta, true, apimachineryvalidation.NameIsDNSSubdomain, field.NewPath("metadata"))
-	allErrs = append(allErrs, ValidateCassandraClusterSpec(&cass.Spec, field.NewPath("spec"))...)
+func ValidateCassandraCluster(c *navigator.CassandraCluster) field.ErrorList {
+	allErrs := ValidateObjectMeta(&c.ObjectMeta, true, apimachineryvalidation.NameIsDNSSubdomain, field.NewPath("metadata"))
+	allErrs = append(allErrs, ValidateCassandraClusterSpec(&c.Spec, field.NewPath("spec"))...)
 	return allErrs
 }
 
@@ -44,13 +44,11 @@ func ValidateCassandraClusterUpdate(old, new *navigator.CassandraCluster) field.
 			}
 		}
 	}
-
 	return allErrs
 }
 
 func ValidateCassandraClusterSpec(spec *navigator.CassandraClusterSpec, fldPath *field.Path) field.ErrorList {
 	allErrs := ValidateNavigatorClusterConfig(&spec.NavigatorClusterConfig, fldPath)
-
 	npPath := fldPath.Child("nodePools")
 	allNames := sets.String{}
 	for i, np := range spec.NodePools {
@@ -61,6 +59,18 @@ func ValidateCassandraClusterSpec(spec *navigator.CassandraClusterSpec, fldPath 
 			allNames.Insert(np.Name)
 		}
 		allErrs = append(allErrs, ValidateCassandraClusterNodePool(&np, idxPath)...)
+	}
+	if spec.Image != nil {
+		allErrs = append(
+			allErrs,
+			ValidateImageSpec(spec.Image, fldPath.Child("image"))...,
+		)
+	}
+	if spec.Version.Equal(emptySemver) {
+		allErrs = append(
+			allErrs,
+			field.Required(fldPath.Child("version"), "must be a semver version"),
+		)
 	}
 	return allErrs
 }

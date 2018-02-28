@@ -119,7 +119,17 @@ func Convert_navigator_CassandraCluster_To_v1alpha1_CassandraCluster(in *navigat
 
 func autoConvert_v1alpha1_CassandraClusterList_To_navigator_CassandraClusterList(in *CassandraClusterList, out *navigator.CassandraClusterList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]navigator.CassandraCluster)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]navigator.CassandraCluster, len(*in))
+		for i := range *in {
+			if err := Convert_v1alpha1_CassandraCluster_To_navigator_CassandraCluster(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -130,7 +140,17 @@ func Convert_v1alpha1_CassandraClusterList_To_navigator_CassandraClusterList(in 
 
 func autoConvert_navigator_CassandraClusterList_To_v1alpha1_CassandraClusterList(in *navigator.CassandraClusterList, out *CassandraClusterList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]CassandraCluster)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]CassandraCluster, len(*in))
+		for i := range *in {
+			if err := Convert_navigator_CassandraCluster_To_v1alpha1_CassandraCluster(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -198,10 +218,9 @@ func autoConvert_v1alpha1_CassandraClusterSpec_To_navigator_CassandraClusterSpec
 		return err
 	}
 	out.NodePools = *(*[]navigator.CassandraClusterNodePool)(unsafe.Pointer(&in.NodePools))
-	if err := Convert_v1alpha1_ImageSpec_To_navigator_ImageSpec(&in.Image, &out.Image, s); err != nil {
-		return err
-	}
+	out.Image = (*navigator.ImageSpec)(unsafe.Pointer(in.Image))
 	out.CqlPort = in.CqlPort
+	out.Version = in.Version
 	return nil
 }
 
@@ -215,9 +234,8 @@ func autoConvert_navigator_CassandraClusterSpec_To_v1alpha1_CassandraClusterSpec
 		return err
 	}
 	out.NodePools = *(*[]CassandraClusterNodePool)(unsafe.Pointer(&in.NodePools))
-	if err := Convert_navigator_ImageSpec_To_v1alpha1_ImageSpec(&in.Image, &out.Image, s); err != nil {
-		return err
-	}
+	out.Version = in.Version
+	out.Image = (*ImageSpec)(unsafe.Pointer(in.Image))
 	out.CqlPort = in.CqlPort
 	return nil
 }

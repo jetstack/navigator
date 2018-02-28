@@ -3,7 +3,6 @@ package validation
 import (
 	"fmt"
 
-	"github.com/coreos/go-semver/semver"
 	apimachineryvalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -59,8 +58,6 @@ func ValidateElasticsearchPersistence(cfg *navigator.PersistenceConfig, fldPath 
 	}
 	return el
 }
-
-var emptySemver = semver.Version{}
 
 func ValidateElasticsearchClusterSpec(spec *navigator.ElasticsearchClusterSpec, fldPath *field.Path) field.ErrorList {
 	allErrs := ValidateNavigatorClusterConfig(&spec.NavigatorClusterConfig, fldPath)
