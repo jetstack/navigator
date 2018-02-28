@@ -39,7 +39,6 @@ func StatefulSetForCluster(
 	statefulSetName := util.NodePoolResourceName(cluster, np)
 	seedProviderServiceName := util.SeedProviderServiceName(cluster)
 	nodePoolLabels := util.NodePoolLabels(cluster, np.Name)
-
 	datacenter := cassDefaultDatacenter
 	if np.Datacenter != "" {
 		datacenter = np.Datacenter
@@ -49,7 +48,7 @@ func StatefulSetForCluster(
 	if np.Rack != "" {
 		rack = np.Rack
 	}
-
+	image := cassImageToUse(&cluster.Spec)
 	set := &apps.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            statefulSetName,
@@ -113,10 +112,10 @@ func StatefulSetForCluster(
 							},
 							Image: fmt.Sprintf(
 								"%s:%s",
-								cluster.Spec.Image.Repository,
-								cluster.Spec.Image.Tag,
+								image.Repository,
+								image.Tag,
 							),
-							ImagePullPolicy: cluster.Spec.Image.PullPolicy,
+							ImagePullPolicy: image.PullPolicy,
 							ReadinessProbe: &apiv1.Probe{
 								Handler: apiv1.Handler{
 									HTTPGet: &apiv1.HTTPGetAction{

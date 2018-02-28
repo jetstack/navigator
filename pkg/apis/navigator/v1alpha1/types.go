@@ -31,8 +31,14 @@ type CassandraClusterSpec struct {
 	NavigatorClusterConfig `json:",inline"`
 
 	NodePools []CassandraClusterNodePool `json:"nodePools"`
-	Image     ImageSpec                  `json:"image"`
-	CqlPort   int32                      `json:"cqlPort"`
+
+	// Image describes the database image to use
+	Image *ImageSpec `json:"image"`
+
+	CqlPort int32 `json:"cqlPort"`
+
+	// The version of the database to be used for nodes in the cluster.
+	Version semver.Version `json:"version"`
 }
 
 // CassandraClusterNodePool describes a node pool within a CassandraCluster.

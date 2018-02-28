@@ -6,6 +6,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
+	"github.com/coreos/go-semver/semver"
+
 	"github.com/jetstack/navigator/pkg/apis/navigator"
 )
 
@@ -15,6 +17,8 @@ var supportedPullPolicies = []string{
 	string(corev1.PullAlways),
 	"",
 }
+
+var emptySemver = semver.Version{}
 
 func ValidateImageSpec(img *navigator.ImageSpec, fldPath *field.Path) field.ErrorList {
 	el := field.ErrorList{}
