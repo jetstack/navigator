@@ -30,10 +30,6 @@ import (
 	"github.com/jetstack/navigator/pkg/apis/navigator/validation"
 )
 
-const (
-	cassDefaultDatacenter = "navigator-default-datacenter"
-)
-
 func NewStrategy(typer runtime.ObjectTyper) cassandraClusterStrategy {
 	return cassandraClusterStrategy{typer, names.SimpleNameGenerator}
 }
@@ -70,27 +66,10 @@ func (cassandraClusterStrategy) NamespaceScoped() bool {
 	return true
 }
 
-func defaultRackDatacenter(new *navigator.CassandraCluster) {
-	for i := 0; i < len(new.Spec.NodePools); i++ {
-		np := &new.Spec.NodePools[i]
-		if np.Datacenter == "" {
-			np.Datacenter = cassDefaultDatacenter
-		}
-
-		if np.Rack == "" {
-			np.Rack = np.Name
-		}
-	}
-}
-
 func (cassandraClusterStrategy) PrepareForCreate(ctx genericapirequest.Context, obj runtime.Object) {
-	new := obj.(*navigator.CassandraCluster)
-	defaultRackDatacenter(new)
 }
 
 func (cassandraClusterStrategy) PrepareForUpdate(ctx genericapirequest.Context, obj, old runtime.Object) {
-	new := obj.(*navigator.CassandraCluster)
-	defaultRackDatacenter(new)
 }
 
 func (cassandraClusterStrategy) Validate(ctx genericapirequest.Context, obj runtime.Object) field.ErrorList {
