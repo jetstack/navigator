@@ -1,20 +1,16 @@
-Cassandra across multiple availability zones
+Cassandra Across Multiple Availability Zones
 ============================================
 
-Navigator supports running Cassandra with rack and datacenter-aware
-replication. To deploy this, you must run a `nodePool` in each availability
-zone, and mark each as a separate Cassandra rack.
+Navigator supports running Cassandra with rack and datacenter-aware replication.
+To deploy this, you must run a `nodePool` in each availability zone, and mark each as a separate Cassandra rack.
 
-The `nodeSelector` field of a nodePool allows scheduling the nodePool to a set
-of nodes matching labels. This should be used with a node label such as
-`failure-domain.beta.kubernetes.io/zone`.
+The `nodeSelector` field of a nodePool allows scheduling the nodePool to a set of nodes matching labels.
+This should be used with a node label such as `failure-domain.beta.kubernetes.io/zone`.
 
-The `datacenter` and `rack` fields mark all Cassandra nodes in a nodepool as
-being located in that datacenter and rack. This information can then be used
-with the `NetworkTopologyStrategy` keyspace replica placement strategy.
+The `datacenter` and `rack` fields mark all Cassandra nodes in a nodepool as being located in that datacenter and rack.
+This information can then be used with the `NetworkTopologyStrategy` keyspace replica placement strategy.
 
-As an example, the nodePool section of a CassandraCluster spec for deploying
-into GKE in europe-west1:
+As an example, the nodePool section of a CassandraCluster spec for deploying into GKE in europe-west1:
 
 ```yaml
   nodePools:
