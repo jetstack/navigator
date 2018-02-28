@@ -1,14 +1,9 @@
 package nodepool
 
 import (
-	"fmt"
-
-	"github.com/golang/glog"
-	appsv1beta1 "k8s.io/api/apps/v1beta1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/kubernetes"
 	appslisters "k8s.io/client-go/listers/apps/v1beta1"
-	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/record"
 
 	v1alpha1 "github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
@@ -22,7 +17,6 @@ type Interface interface {
 type defaultCassandraClusterNodepoolControl struct {
 	kubeClient        kubernetes.Interface
 	statefulSetLister appslisters.StatefulSetLister
-	pods              corelisters.PodLister
 	recorder          record.EventRecorder
 }
 
@@ -31,13 +25,11 @@ var _ Interface = &defaultCassandraClusterNodepoolControl{}
 func NewControl(
 	kubeClient kubernetes.Interface,
 	statefulSetLister appslisters.StatefulSetLister,
-	pods corelisters.PodLister,
 	recorder record.EventRecorder,
 ) Interface {
 	return &defaultCassandraClusterNodepoolControl{
 		kubeClient:        kubeClient,
 		statefulSetLister: statefulSetLister,
-		pods:              pods,
 		recorder:          recorder,
 	}
 }
@@ -76,30 +68,6 @@ func (e *defaultCassandraClusterNodepoolControl) removeUnusedStatefulSets(
 	return nil
 }
 
-func (e *defaultCassandraClusterNodepoolControl) labelSeedNodes(
-	cluster *v1alpha1.CassandraCluster,
-	set *appsv1beta1.StatefulSet,
-) error {
-	// TODO: make number of seed nodes configurable
-	pod, err := e.pods.Pods(cluster.Namespace).Get(fmt.Sprintf("%s-%d", set.Name, 0))
-	if err != nil {
-		glog.Warningf("Couldn't get stateful set pod: %v", err)
-		return nil
-	}
-
-	// only label if the current label is incorrect
-	if pod.Labels["seed"] != "true" {
-		podCopy := pod.DeepCopy()
-		podCopy.Labels["seed"] = "true"
-		_, err := e.kubeClient.CoreV1().Pods(podCopy.Namespace).Update(podCopy)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 func (e *defaultCassandraClusterNodepoolControl) createOrUpdateStatefulSet(
 	cluster *v1alpha1.CassandraCluster,
 	nodePool *v1alpha1.CassandraClusterNodePool,
@@ -116,11 +84,6 @@ func (e *defaultCassandraClusterNodepoolControl) createOrUpdateStatefulSet(
 		return err
 	}
 	err = util.OwnerCheck(existingSet, cluster)
-	if err != nil {
-		return err
-	}
-
-	err = e.labelSeedNodes(cluster, existingSet)
 	if err != nil {
 		return err
 	}

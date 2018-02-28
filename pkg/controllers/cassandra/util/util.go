@@ -3,10 +3,12 @@ package util
 import (
 	"fmt"
 
+	"k8s.io/api/apps/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/selection"
+	appslisters "k8s.io/client-go/listers/apps/v1beta1"
 
 	"github.com/jetstack/navigator/pkg/apis/navigator"
 	v1alpha1 "github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
@@ -101,4 +103,28 @@ func OwnerCheck(
 		)
 	}
 	return nil
+}
+
+func StatefulSetsForCluster(
+	cluster *v1alpha1.CassandraCluster,
+	statefulSetLister appslisters.StatefulSetLister,
+) (results map[string]*v1beta1.StatefulSet, err error) {
+	results = map[string]*v1beta1.StatefulSet{}
+	lister := statefulSetLister.StatefulSets(cluster.Namespace)
+	selector, err := SelectorForCluster(cluster)
+	if err != nil {
+		return nil, err
+	}
+	existingSets, err := lister.List(selector)
+	if err != nil {
+		return nil, err
+	}
+	for _, set := range existingSets {
+		err := OwnerCheck(set, cluster)
+		if err != nil {
+			continue
+		}
+		results[set.Name] = set
+	}
+	return results, nil
 }

@@ -222,13 +222,6 @@ function test_cassandracluster() {
         fail_test "Cassandra pilots did not elect a leader"
     fi
 
-    seed_label=$(kubectl get pods --namespace "${namespace}" \
-                 cass-${CASS_NAME}-ringnodes-0 \
-                 -o jsonpath='{.metadata.labels.seed}')
-    if [ "$seed_label" != "true" ]; then
-        fail_test "First cassandra node not marked as seed"
-    fi
-
     # Wait 5 minutes for cassandra to start and listen for CQL queries.
     if ! retry TIMEOUT=300 cql_connect \
          "${namespace}" \
@@ -323,6 +316,17 @@ function test_cassandracluster() {
          "-o=go-template={{.status.readyReplicas}}"
     then
         fail_test "Second cassandra node did not become ready"
+    fi
+
+    # TODO: A better test would be to query the endpoints and check that only
+    # the `-0` pods are included. E.g.
+    # kubectl -n test-cassandra-1519754828-19864 get ep cass-cassandra-1519754828-19864-cassandra-seedprovider -o "jsonpath={.subsets[*].addresses[*].hostname}"
+    if ! stdout_equals "cass-${CASS_NAME}-ringnodes-0" \
+         kubectl get pods --namespace "${namespace}" \
+         --selector=navigator.jetstack.io/cassandra-seed=true \
+         --output 'jsonpath={.items[*].metadata.name}'
+    then
+        fail_test "First cassandra node not marked as seed"
     fi
 
     simulate_unresponsive_cassandra_process \

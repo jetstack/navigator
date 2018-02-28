@@ -10,6 +10,7 @@ import (
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/pilot"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/role"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/rolebinding"
+	"github.com/jetstack/navigator/pkg/controllers/cassandra/seedlabeller"
 	servicecql "github.com/jetstack/navigator/pkg/controllers/cassandra/service/cql"
 	serviceseedprovider "github.com/jetstack/navigator/pkg/controllers/cassandra/service/seedprovider"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/serviceaccount"
@@ -27,6 +28,7 @@ const (
 	MessageErrorSyncService        = "Error syncing service: %s"
 	MessageErrorSyncNodePools      = "Error syncing node pools: %s"
 	MessageErrorSyncPilots         = "Error syncing pilots: %s"
+	MessageErrorSyncSeedLabels     = "Error syncing seed labels: %s"
 	MessageSuccessSync             = "Successfully synced CassandraCluster"
 )
 
@@ -44,6 +46,7 @@ type defaultCassandraClusterControl struct {
 	serviceAccountControl      serviceaccount.Interface
 	roleControl                role.Interface
 	roleBindingControl         rolebinding.Interface
+	seedLabellerControl        seedlabeller.Interface
 	recorder                   record.EventRecorder
 }
 
@@ -55,6 +58,7 @@ func NewControl(
 	serviceAccountControl serviceaccount.Interface,
 	roleControl role.Interface,
 	roleBindingControl rolebinding.Interface,
+	seedlabellerControl seedlabeller.Interface,
 	recorder record.EventRecorder,
 ) ControlInterface {
 	return &defaultCassandraClusterControl{
@@ -65,6 +69,7 @@ func NewControl(
 		serviceAccountControl:      serviceAccountControl,
 		roleControl:                roleControl,
 		roleBindingControl:         roleBindingControl,
+		seedLabellerControl:        seedlabellerControl,
 		recorder:                   recorder,
 	}
 }
@@ -144,6 +149,17 @@ func (e *defaultCassandraClusterControl) Sync(c *v1alpha1.CassandraCluster) erro
 			apiv1.EventTypeWarning,
 			ErrorSync,
 			MessageErrorSyncRoleBinding,
+			err,
+		)
+		return err
+	}
+	err = e.seedLabellerControl.Sync(c)
+	if err != nil {
+		e.recorder.Eventf(
+			c,
+			apiv1.EventTypeWarning,
+			ErrorSync,
+			MessageErrorSyncSeedLabels,
 			err,
 		)
 		return err

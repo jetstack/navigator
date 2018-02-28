@@ -10,6 +10,8 @@ import (
 
 const (
 	TolerateUnreadyEndpointsAnnotationKey = "service.alpha.kubernetes.io/tolerate-unready-endpoints"
+	SeedLabelKey                          = "navigator.jetstack.io/cassandra-seed"
+	SeedLabelValue                        = "true"
 )
 
 func ServiceForCluster(
@@ -29,7 +31,7 @@ func updateServiceForCluster(
 	service.Spec.ClusterIP = "None"
 
 	// Only mark nodes explicitly labeled as seeds as seed nodes
-	service.Spec.Selector["seed"] = "true"
+	service.Spec.Selector[SeedLabelKey] = SeedLabelValue
 
 	// Headless service should not require a port.
 	// But without it, DNS records are not registered.
