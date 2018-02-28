@@ -20,4 +20,9 @@ func SetDefaults_CassandraClusterNodePool(np *CassandraClusterNodePool) {
 	if np.Rack == "" {
 		np.Rack = np.Name
 	}
+
+	// default to 1 seed if not specified
+	if np.Seeds == 0 {
+		np.Seeds = 1
+	}
 }
