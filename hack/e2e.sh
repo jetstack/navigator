@@ -222,6 +222,15 @@ if [[ "test_elasticsearchcluster" = "${TEST_PREFIX}"* ]]; then
     kube_delete_namespace_and_wait "${ES_TEST_NS}"
 fi
 
+function apply_cassandracluster() {
+    kubectl apply \
+        --namespace "${namespace}" \
+        --filename \
+        <(envsubst \
+              '$NAVIGATOR_IMAGE_REPOSITORY:$NAVIGATOR_IMAGE_TAG:$NAVIGATOR_IMAGE_PULLPOLICY:$CASS_NAME:$CASS_REPLICAS:$CASS_VERSION:$CASS_SEEDS' \
+              < "${SCRIPT_DIR}/testdata/cass-cluster-test.template.yaml")
+}
+
 function test_cassandracluster() {
     echo "Testing CassandraCluster"
     local namespace="${1}"
@@ -230,6 +239,7 @@ function test_cassandracluster() {
     export CASS_REPLICAS=1
     export CASS_CQL_PORT=9042
     export CASS_VERSION="3.11.1"
+    export CASS_SEEDS=1
 
     kube_create_namespace_with_quota "${namespace}"
 
@@ -239,12 +249,7 @@ function test_cassandracluster() {
         fail_test "Failed to get cassandraclusters"
     fi
 
-    if ! kubectl apply \
-        --namespace "${namespace}" \
-        --filename \
-        <(envsubst \
-              '$NAVIGATOR_IMAGE_REPOSITORY:$NAVIGATOR_IMAGE_TAG:$NAVIGATOR_IMAGE_PULLPOLICY:$CASS_NAME:$CASS_REPLICAS:$CASS_VERSION' \
-              < "${SCRIPT_DIR}/testdata/cass-cluster-test.template.yaml")
+    if ! apply_cassandracluster
     then
         fail_test "Failed to create cassandracluster"
     fi
@@ -338,12 +343,10 @@ function test_cassandracluster() {
 
     # Increment the replica count
     export CASS_REPLICAS=2
-    kubectl apply \
-        --namespace "${namespace}" \
-        --filename \
-        <(envsubst \
-              '$NAVIGATOR_IMAGE_REPOSITORY:$NAVIGATOR_IMAGE_TAG:$NAVIGATOR_IMAGE_PULLPOLICY:$CASS_NAME:$CASS_REPLICAS:$CASS_VERSION' \
-              < "${SCRIPT_DIR}/testdata/cass-cluster-test.template.yaml")
+    if ! apply_cassandracluster
+    then
+        fail_test "Failed to apply cassandracluster"
+    fi
 
     if ! retry TIMEOUT=300 stdout_equals 2 kubectl \
          --namespace "${namespace}" \
@@ -391,6 +394,20 @@ function test_cassandracluster() {
             --execute='CONSISTENCY ALL; SELECT * FROM space1.testtable1'
     then
         fail_test "Cassandra liveness probe failed to restart dead node"
+    fi
+
+    export CASS_REPLICAS=2
+    export CASS_SEEDS=2
+    if ! apply_cassandracluster
+    then
+        fail_test "Failed to apply cassandracluster"
+    fi
+
+    seed_label=$(kubectl get pods --namespace "${namespace}" \
+                 cass-${CASS_NAME}-ringnodes-1 \
+                 -o jsonpath='{.metadata.labels.seed}')
+    if [ "$seed_label" != "true" ]; then
+        fail_test "Second cassandra node not marked as seed"
     fi
 }
 
