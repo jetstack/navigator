@@ -5,7 +5,9 @@ Navigator supports running Cassandra with
 [rack and datacenter-aware replication](https://docs.datastax.com/en/cassandra/latest/cassandra/architecture/archDataDistributeReplication.html).
 To deploy this, you must run a `nodePool` in each availability zone, and mark each as a separate Cassandra rack.
 
-The `nodeSelector` field of a nodePool allows scheduling the nodePool to a set of nodes matching labels.
+The
+[`nodeSelector`](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector)
+field of a nodePool allows scheduling the nodePool to a set of nodes matching labels.
 This should be used with a node label such as
 [`failure-domain.beta.kubernetes.io/zone`](https://kubernetes.io/docs/reference/labels-annotations-taints/#failure-domainbetakubernetesiozone).
 
@@ -13,8 +15,9 @@ The `datacenter` and `rack` fields mark all Cassandra nodes in a nodepool as bei
 This information can then be used with the
 [`NetworkTopologyStrategy`](http://cassandra.apache.org/doc/latest/architecture/dynamo.html#network-topology-strategy)
 keyspace replica placement strategy.
+If these are not specified, Navigator will select an appropriate name for each: `datacenter` defaults to a static value, and `rack` defaults to the nodePool's name.
 
-As an example, the nodePool section of a CassandraCluster spec for deploying into GKE in europe-west1:
+As an example, the nodePool section of a CassandraCluster spec for deploying into GKE in europe-west1 with rack awareness enabled:
 
 ```yaml
   nodePools:
