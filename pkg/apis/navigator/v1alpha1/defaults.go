@@ -12,15 +12,12 @@ func addDefaultingFuncs(scheme *runtime.Scheme) error {
 	return RegisterDefaults(scheme)
 }
 
-func SetDefaults_CassandraClusterSpec(spec *CassandraClusterSpec) {
-	for i := 0; i < len(spec.NodePools); i++ {
-		np := &spec.NodePools[i]
-		if np.Datacenter == "" {
-			np.Datacenter = cassDefaultDatacenter
-		}
+func SetDefaults_CassandraClusterNodePool(np *CassandraClusterNodePool) {
+	if np.Datacenter == "" {
+		np.Datacenter = cassDefaultDatacenter
+	}
 
-		if np.Rack == "" {
-			np.Rack = np.Name
-		}
+	if np.Rack == "" {
+		np.Rack = np.Name
 	}
 }
