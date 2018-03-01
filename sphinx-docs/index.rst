@@ -10,6 +10,7 @@ Navigator - self managed DBaaS on Kubernetes
    :maxdepth: 2
    :caption: Contents:
 
+   quick-start
    developing
 
 

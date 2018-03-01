@@ -1,5 +1,5 @@
-Quickstart for developing Navigator
-===================================
+Development guide
+=================
 
 Setting up
 ----------
@@ -49,14 +49,14 @@ and set the ``pullPolicy`` to ``Never``, then create the cluster::
 Developing
 ----------
 
-Edit code, then build:
+Edit code, then build::
 
     make BUILD_TAG=dev build docker_build
 
-Or only for the component you're interested in:
+Or only for the component you're interested in::
 
      make BUILD_TAG=dev controller docker_build_controller
 
-Kill the component you're working on, for example the controller:
+Kill the component you're working on, for example the controller::
 
     kubectl delete pods -n navigator -l app=navigator -l component=controller
