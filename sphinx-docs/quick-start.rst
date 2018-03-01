@@ -1,5 +1,5 @@
-Quick-start - Elasticsearch
-===========================
+Quick-start
+===========
 
 Here we're going to deploy a distributed and scalable Elasticsearch cluster using the examples provided in this repository.
 This will involve first deploying Navigator, and then creating an ``ElasticsearchCluster`` resource.
