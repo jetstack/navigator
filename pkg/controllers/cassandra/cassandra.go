@@ -28,6 +28,7 @@ import (
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/pilot"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/role"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/rolebinding"
+	"github.com/jetstack/navigator/pkg/controllers/cassandra/seedlabeller"
 	servicecql "github.com/jetstack/navigator/pkg/controllers/cassandra/service/cql"
 	serviceseedprovider "github.com/jetstack/navigator/pkg/controllers/cassandra/service/seedprovider"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/serviceaccount"
@@ -110,7 +111,6 @@ func NewCassandra(
 		nodepool.NewControl(
 			kubeClient,
 			statefulSets.Lister(),
-			pods.Lister(),
 			recorder,
 		),
 		pilot.NewControl(
@@ -133,6 +133,12 @@ func NewCassandra(
 		rolebinding.NewControl(
 			kubeClient,
 			roleBindings.Lister(),
+			recorder,
+		),
+		seedlabeller.NewControl(
+			kubeClient,
+			statefulSets.Lister(),
+			pods.Lister(),
 			recorder,
 		),
 		recorder,

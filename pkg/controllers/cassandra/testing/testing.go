@@ -13,6 +13,7 @@ import (
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/pilot"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/role"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/rolebinding"
+	"github.com/jetstack/navigator/pkg/controllers/cassandra/seedlabeller"
 	servicecql "github.com/jetstack/navigator/pkg/controllers/cassandra/service/cql"
 	serviceseedprovider "github.com/jetstack/navigator/pkg/controllers/cassandra/service/seedprovider"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/serviceaccount"
@@ -57,6 +58,7 @@ type Fixture struct {
 	ServiceAccountControl      serviceaccount.Interface
 	RoleControl                role.Interface
 	RoleBindingControl         rolebinding.Interface
+	SeedLabellerControl        seedlabeller.Interface
 	k8sClient                  *fake.Clientset
 	k8sObjects                 []runtime.Object
 	naviClient                 *navigatorfake.Clientset
@@ -108,7 +110,6 @@ func (f *Fixture) setupAndSync() error {
 		f.NodepoolControl = nodepool.NewControl(
 			f.k8sClient,
 			statefulSets,
-			pods,
 			recorder,
 		)
 	}
@@ -151,6 +152,15 @@ func (f *Fixture) setupAndSync() error {
 		)
 	}
 
+	if f.SeedLabellerControl == nil {
+		f.SeedLabellerControl = seedlabeller.NewControl(
+			f.k8sClient,
+			statefulSets,
+			pods,
+			recorder,
+		)
+	}
+
 	c := cassandra.NewControl(
 		f.SeedProviderServiceControl,
 		f.CqlServiceControl,
@@ -159,6 +169,7 @@ func (f *Fixture) setupAndSync() error {
 		f.ServiceAccountControl,
 		f.RoleControl,
 		f.RoleBindingControl,
+		f.SeedLabellerControl,
 		recorder,
 	)
 	stopCh := make(chan struct{})
