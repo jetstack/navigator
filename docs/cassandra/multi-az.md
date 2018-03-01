@@ -1,6 +1,9 @@
 Cassandra Across Multiple Availability Zones
 ============================================
 
+With rack awareness
+-------------------
+
 Navigator supports running Cassandra with
 [rack and datacenter-aware replication](https://docs.datastax.com/en/cassandra/latest/cassandra/architecture/archDataDistributeReplication.html).
 To deploy this, you must run a `nodePool` in each availability zone, and mark each as a separate Cassandra rack.
@@ -51,4 +54,34 @@ As an example, the nodePool section of a CassandraCluster spec for deploying int
       enabled: true
       size: "5Gi"
       storageClass: "default"
+```
+
+Without rack awareness
+----------------------
+
+Since the default rack name is equal to the nodepool name,
+simply set the rack name to the same static value in each nodepool to disable rack awareness.
+
+A simplified example:
+
+```yaml
+  nodePools:
+  - name: "np-europe-west1-b"
+    replicas: 3
+    datacenter: "europe-west1"
+    rack: "default-rack"
+    nodeSelector:
+      failure-domain.beta.kubernetes.io/zone: "europe-west1-b"
+  - name: "np-europe-west1-c"
+    replicas: 3
+    datacenter: "europe-west1"
+    rack: "default-rack"
+    nodeSelector:
+      failure-domain.beta.kubernetes.io/zone: "europe-west1-c"
+  - name: "np-europe-west1-d"
+    replicas: 3
+    datacenter: "europe-west1"
+    rack: "default-rack"
+    nodeSelector:
+      failure-domain.beta.kubernetes.io/zone: "europe-west1-d"
 ```
