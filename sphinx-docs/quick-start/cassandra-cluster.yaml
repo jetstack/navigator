@@ -1,0 +1,26 @@
+apiVersion: "navigator.jetstack.io/v1alpha1"
+kind: "CassandraCluster"
+metadata:
+  name: "demo"
+spec:
+  version: "3.11.1"
+  cqlPort: 9042
+  sysctls:
+  - "vm.max_map_count=0"
+  nodePools:
+  - name: "ringnodes"
+    replicas: 3
+    datacenter: "demo-datacenter"
+    rack: "demo-rack"
+    persistence:
+      enabled: true
+      size: "5Gi"
+      storageClass: "default"
+    nodeSelector:
+  image:
+    repository: "cassandra"
+    tag: "3"
+    pullPolicy: "IfNotPresent"
+  pilotImage:
+    repository: "jetstackexperimental/navigator-pilot-cassandra"
+    tag: "canary"
