@@ -11,6 +11,7 @@ Navigator - self managed DBaaS on Kubernetes
    :caption: Contents:
 
    quick-start
+   elasticsearch
    cassandra
    developing
 

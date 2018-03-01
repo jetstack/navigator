@@ -1,0 +1,64 @@
+apiVersion: navigator.jetstack.io/v1alpha1
+kind: ElasticsearchCluster
+metadata:
+  name: demo
+spec:
+  ## Omitting the minimumMasters fields will cause navigator to automatically
+  ## determine a quorum of masters to use.
+  # minimumMasters: 2
+  version: 5.6.2
+
+  sysctls:
+  - vm.max_map_count=262144
+
+  securityContext:
+    runAsUser: 1000
+
+  pilotImage:
+    repository: jetstackexperimental/navigator-pilot-elasticsearch
+    tag: latest
+    pullPolicy: Always
+
+  nodePools:
+  - name: master
+    replicas: 3
+
+    roles:
+    - master
+
+    resources:
+      requests:
+        cpu: '500m'
+        memory: 2Gi
+      limits:
+        cpu: '1'
+        memory: 3Gi
+
+    persistence:
+      enabled: true
+      # size of the volume
+      size: 10Gi
+      # storageClass of the volume
+      storageClass: standard
+
+  - name: mixed
+    replicas: 2
+
+    roles:
+    - data
+    - ingest
+
+    resources:
+      requests:
+        cpu: '500m'
+        memory: 2Gi
+      limits:
+        cpu: '1'
+        memory: 3Gi
+
+    persistence:
+      enabled: true
+      # size of the volume
+      size: 10Gi
+      # storageClass of the volume
+      storageClass: standard
