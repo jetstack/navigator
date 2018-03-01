@@ -403,10 +403,11 @@ function test_cassandracluster() {
         fail_test "Failed to apply cassandracluster"
     fi
 
-    seed_label=$(kubectl get pods --namespace "${namespace}" \
-                 cass-${CASS_NAME}-ringnodes-1 \
-                 -o jsonpath='{.metadata.labels.seed}')
-    if [ "$seed_label" != "true" ]; then
+    if ! stdout_equals "cass-${CASS_NAME}-ringnodes-0 cass-${CASS_NAME}-ringnodes-1" \
+         kubectl get pods --namespace "${namespace}" \
+         --selector=navigator.jetstack.io/cassandra-seed=true \
+         --output 'jsonpath={.items[*].metadata.name}'
+    then
         fail_test "Second cassandra node not marked as seed"
     fi
 }
