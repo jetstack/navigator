@@ -222,11 +222,12 @@ func StatefulSetForCluster(
 									Name: "JVM_OPTS",
 									Value: fmt.Sprintf(
 										"-javaagent:%s/jolokia.jar=host=%s,port=%d,agentContext=%s "+
-											"-javaagent:%s/jmx_prometheus_javaagent.jar=8080:config.yaml",
+											"-javaagent:%s/jmx_prometheus_javaagent.jar=8080:%s/jmx_prometheus_javaagent.yaml",
 										sharedVolumeMountPath,
 										jolokiaHost,
 										jolokiaPort,
 										jolokiaContext,
+										sharedVolumeMountPath,
 										sharedVolumeMountPath,
 									),
 								},
@@ -322,6 +323,7 @@ func pilotInstallationContainer(
 			"/pilot",
 			"/jolokia.jar",
 			"/jmx_prometheus_javaagent.jar",
+			"/jmx_prometheus_javaagent.yaml",
 			"/kubernetes-cassandra.jar",
 			fmt.Sprintf("%s/", sharedVolumeMountPath),
 		},
