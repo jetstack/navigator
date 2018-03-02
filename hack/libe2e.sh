@@ -116,7 +116,7 @@ function simulate_unresponsive_cassandra_process() {
     kubectl \
         --namespace="${namespace}" \
         exec "${pod}" --container="${container}" -- \
-        nodetool decommission
+        /bin/sh -c 'JVM_OPTS="" exec nodetool decommission'
 }
 
 function signal_cassandra_process() {
