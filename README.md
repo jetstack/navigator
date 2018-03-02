@@ -12,6 +12,10 @@ complex services "as a Service" within your organisation.
 
 For more in-depth information and to get started, jump to the [docs](https://navigator-dbaas.readthedocs.io).
 
+Here's a quick demo of creating, scaling and deleting a Cassandra database:
+
+![](sphinx-docs/images/demo.gif)
+
 ## Supported databases
 
 Whilst we aim to support as many common applications as possible, it does take
