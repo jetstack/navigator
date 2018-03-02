@@ -9,6 +9,9 @@ Navigator - self managed DBaaS on Kubernetes
 Navigator is a Kubernetes extension for managing common stateful services on Kubernetes.
 It is implemented as a custom apiserver that operates behind kube-aggregator and introduces a variety of new Kubernetes resource types.
 
+.. image:: images/arch.jpg
+   :align: center
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
