@@ -231,6 +231,13 @@ function test_cassandracluster() {
         fail_test "Navigator controller failed to create cassandracluster service"
     fi
 
+    if ! retry TIMEOUT=300 in_cluster_command \
+        "${namespace}" \
+        "alpine:3.6" \
+        /bin/sh -c "apk add --no-cache curl && curl -vv http://cass-${CASS_NAME}-ringnodes-0.cass-${CASS_NAME}-seedprovider:8080"; then
+        fail_test "Pilot did not start Prometheus metric exporter"
+    fi
+
     # Create a database
     cql_connect \
         "${namespace}" \

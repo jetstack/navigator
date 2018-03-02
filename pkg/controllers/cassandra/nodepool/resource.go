@@ -61,6 +61,11 @@ func StatefulSetForCluster(
 			Template: apiv1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: nodePoolLabels,
+					Annotations: map[string]string{
+						"prometheus.io/port":   "8080",
+						"prometheus.io/path":   "/",
+						"prometheus.io/scrape": "true",
+					},
 				},
 				Spec: apiv1.PodSpec{
 					ServiceAccountName: util.ServiceAccountName(cluster),
@@ -163,6 +168,10 @@ func StatefulSetForCluster(
 									Name:          "cql",
 									ContainerPort: util.DefaultCqlPort,
 								},
+								{
+									Name:          "prometheus",
+									ContainerPort: int32(8080),
+								},
 							},
 							VolumeMounts: []apiv1.VolumeMount{
 								{
@@ -217,11 +226,14 @@ func StatefulSetForCluster(
 								{
 									Name: "JVM_OPTS",
 									Value: fmt.Sprintf(
-										"-javaagent:%s/jolokia.jar=host=%s,port=%d,agentContext=%s",
+										"-javaagent:%s/jolokia.jar=host=%s,port=%d,agentContext=%s "+
+											"-javaagent:%s/jmx_prometheus_javaagent.jar=8080:%s/jmx_prometheus_javaagent.yaml",
 										sharedVolumeMountPath,
 										jolokiaHost,
 										jolokiaPort,
 										jolokiaContext,
+										sharedVolumeMountPath,
+										sharedVolumeMountPath,
 									),
 								},
 								{
@@ -315,6 +327,8 @@ func pilotInstallationContainer(
 			"cp",
 			"/pilot",
 			"/jolokia.jar",
+			"/jmx_prometheus_javaagent.jar",
+			"/jmx_prometheus_javaagent.yaml",
 			"/kubernetes-cassandra.jar",
 			fmt.Sprintf("%s/", sharedVolumeMountPath),
 		},
