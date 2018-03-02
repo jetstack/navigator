@@ -61,6 +61,11 @@ func StatefulSetForCluster(
 			Template: apiv1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: nodePoolLabels,
+					Annotations: map[string]string{
+						"prometheus.io/port":   "8080",
+						"prometheus.io/path":   "/",
+						"prometheus.io/scrape": "true",
+					},
 				},
 				Spec: apiv1.PodSpec{
 					ServiceAccountName: util.ServiceAccountName(cluster),
