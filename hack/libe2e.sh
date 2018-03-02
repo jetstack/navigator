@@ -197,19 +197,26 @@ function cql_connect() {
     # XXX: This uses the standard Cassandra Docker image rather than the
     # gcr.io/google-samples/cassandra image used in the Cassandra chart, becasue
     # cqlsh is missing some dependencies in that image.
+    in_cluster_command "${namespace}" "cassandra:latest" /usr/bin/cqlsh "$@"
+}
+
+function in_cluster_command() {
+    local namespace="${1}"
+    shift
+    local image="${1}"
+    shift
     kubectl \
         run \
-        "cql-connect-${RANDOM}" \
+        "in-cluster-${1}-cmd-${RANDOM}" \
         --namespace="${namespace}" \
-        --command=true \
-        --image=cassandra:latest \
+        --image="${image}" \
         --restart=Never \
         --rm \
         --stdin=true \
         --attach=true \
         --quiet \
         -- \
-        /usr/bin/cqlsh "$@"
+        "${@}"
 }
 
 function kill_cassandra_process() {
