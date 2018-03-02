@@ -207,7 +207,7 @@ function in_cluster_command() {
     shift
     kubectl \
         run \
-        "in-cluster-${1}-cmd-${RANDOM}" \
+        "in-cluster-cmd-${RANDOM}" \
         --namespace="${namespace}" \
         --image="${image}" \
         --restart=Never \
