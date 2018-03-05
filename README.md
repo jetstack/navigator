@@ -14,7 +14,7 @@ For more in-depth information and to get started, jump to the [docs](https://nav
 
 Here's a quick demo of creating, scaling and deleting a Cassandra database:
 
-![](sphinx-docs/images/demo.gif)
+![](docs/images/demo.gif)
 
 ## Supported databases
 
