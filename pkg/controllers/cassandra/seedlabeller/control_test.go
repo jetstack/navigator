@@ -16,7 +16,7 @@ import (
 	casstesting "github.com/jetstack/navigator/pkg/controllers/cassandra/testing"
 )
 
-func CheckSeedLabel(podName, podNamespace string, t *testing.T, state *controllers.State) {
+func CheckSeedLabel(podName, seedLabelValue string, podNamespace string, t *testing.T, state *controllers.State) {
 	p, err := state.Clientset.
 		CoreV1().
 		Pods(podNamespace).
@@ -24,7 +24,7 @@ func CheckSeedLabel(podName, podNamespace string, t *testing.T, state *controlle
 	if err != nil {
 		t.Fatal(err)
 	}
-	if p.Labels[service.SeedLabelKey] != service.SeedLabelValue {
+	if p.Labels[service.SeedLabelKey] != seedLabelValue {
 		t.Errorf("unexpected seed label: %s", p.Labels)
 	}
 }
@@ -43,6 +43,20 @@ func TestSeedLabellerSync(t *testing.T) {
 	pod0LabelMissing.SetLabels(map[string]string{})
 	pod0ValueIncorrect := pod0LabelMissing.DeepCopy()
 	pod0ValueIncorrect.Labels[service.SeedLabelKey] = "blah"
+
+	pod1 := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "cass-cassandra-1-RingNodes-1",
+			Namespace: cluster.Namespace,
+		},
+	}
+
+	pod2 := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "cass-cassandra-1-RingNodes-2",
+			Namespace: cluster.Namespace,
+		},
+	}
 
 	type testT struct {
 		kubeObjects []runtime.Object
@@ -63,7 +77,7 @@ func TestSeedLabellerSync(t *testing.T) {
 			navObjects:  []runtime.Object{cluster},
 			cluster:     cluster,
 			assertions: func(t *testing.T, state *controllers.State) {
-				CheckSeedLabel(pod0.Name, pod0.Namespace, t, state)
+				CheckSeedLabel(pod0.Name, seedprovider.SeedLabelValue, pod0.Namespace, t, state)
 			},
 		},
 		"add label if key missing": {
@@ -71,7 +85,7 @@ func TestSeedLabellerSync(t *testing.T) {
 			navObjects:  []runtime.Object{cluster},
 			cluster:     cluster,
 			assertions: func(t *testing.T, state *controllers.State) {
-				CheckSeedLabel(pod0.Name, pod0.Namespace, t, state)
+				CheckSeedLabel(pod0.Name, seedprovider.SeedLabelValue, pod0.Namespace, t, state)
 			},
 		},
 		"fix label if value incorrect": {
@@ -79,7 +93,23 @@ func TestSeedLabellerSync(t *testing.T) {
 			navObjects:  []runtime.Object{cluster},
 			cluster:     cluster,
 			assertions: func(t *testing.T, state *controllers.State) {
-				CheckSeedLabel(pod0.Name, pod0.Namespace, t, state)
+				CheckSeedLabel(pod0.Name, seedprovider.SeedLabelValue, pod0.Namespace, t, state)
+			},
+		},
+		"add multiple seeds": {
+			kubeObjects: []runtime.Object{ss0, pod0, pod1, pod2},
+			navObjects:  []runtime.Object{cluster},
+			cluster:     cluster,
+			assertions: func(t *testing.T, state *controllers.State) {
+				CheckSeedLabel(pod1.Name, seedprovider.SeedLabelValue, pod1.Namespace, t, state)
+			},
+		},
+		"don't add too many seeds": {
+			kubeObjects: []runtime.Object{ss0, pod0, pod1, pod2},
+			navObjects:  []runtime.Object{cluster},
+			cluster:     cluster,
+			assertions: func(t *testing.T, state *controllers.State) {
+				CheckSeedLabel(pod2.Name, "", pod2.Namespace, t, state)
 			},
 		},
 	}

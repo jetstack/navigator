@@ -360,7 +360,7 @@ function test_cassandracluster() {
     # TODO: A better test would be to query the endpoints and check that only
     # the `-0` pods are included. E.g.
     # kubectl -n test-cassandra-1519754828-19864 get ep cass-cassandra-1519754828-19864-cassandra-seeds -o "jsonpath={.subsets[*].addresses[*].hostname}"
-    if ! stdout_equals "cass-${CASS_NAME}-ringnodes-0" \
+    if ! retry stdout_equals "cass-${CASS_NAME}-ringnodes-0" \
          kubectl get pods --namespace "${namespace}" \
          --selector=navigator.jetstack.io/cassandra-seed=true \
          --output 'jsonpath={.items[*].metadata.name}'
@@ -403,7 +403,7 @@ function test_cassandracluster() {
         fail_test "Failed to apply cassandracluster"
     fi
 
-    if ! stdout_equals "cass-${CASS_NAME}-ringnodes-0 cass-${CASS_NAME}-ringnodes-1" \
+    if ! retry stdout_equals "cass-${CASS_NAME}-ringnodes-0 cass-${CASS_NAME}-ringnodes-1" \
          kubectl get pods --namespace "${namespace}" \
          --selector=navigator.jetstack.io/cassandra-seed=true \
          --output 'jsonpath={.items[*].metadata.name}'

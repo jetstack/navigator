@@ -54,11 +54,11 @@ func (c *defaultSeedLabeller) labelSeedNodes(
 			return nil
 		}
 
-		// default to not a seed
-		desiredLabel := "false"
-
 		// label first n as seeds
-		if i < np.Seeds {
+		isSeed := i < np.Seeds
+
+		desiredLabel := ""
+		if isSeed {
 			desiredLabel = seedprovider.SeedLabelValue
 		}
 
@@ -70,7 +70,13 @@ func (c *defaultSeedLabeller) labelSeedNodes(
 		if labels == nil {
 			labels = map[string]string{}
 		}
-		labels[seedprovider.SeedLabelKey] = desiredLabel
+
+		if isSeed {
+			labels[seedprovider.SeedLabelKey] = desiredLabel
+		} else {
+			delete(labels, seedprovider.SeedLabelKey)
+		}
+
 		podCopy := pod.DeepCopy()
 		podCopy.SetLabels(labels)
 		_, err = c.kubeClient.CoreV1().Pods(podCopy.Namespace).Update(podCopy)
@@ -87,8 +93,10 @@ func (c *defaultSeedLabeller) Sync(cluster *v1alpha1.CassandraCluster) error {
 
 		set, err := c.statefulSetLister.StatefulSets(cluster.Namespace).Get(setName)
 		if err != nil {
-			return err
+			glog.Warningf("Couldn't get stateful set: %v", err)
+			return nil
 		}
+
 		err = c.labelSeedNodes(cluster, &np, set)
 		if err != nil {
 			return err

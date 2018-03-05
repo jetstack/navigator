@@ -27,7 +27,7 @@ func ValidateCassandraClusterNodePool(np *navigator.CassandraClusterNodePool, fl
 
 	if np.Seeds < 0 {
 		allErrs = append(allErrs,
-			field.Invalid(fldPath.Child("seeds"), np.Seeds, "number of seeds must be 1 or greater"),
+			field.Invalid(fldPath.Child("seeds"), np.Seeds, "number of seeds must be greater than or equal to 1"),
 		)
 	}
 

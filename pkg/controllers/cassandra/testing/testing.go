@@ -37,6 +37,7 @@ func ClusterForTest() *v1alpha1.CassandraCluster {
 				v1alpha1.CassandraClusterNodePool{
 					Name:     "RingNodes",
 					Replicas: 3,
+					Seeds:    2,
 				},
 			},
 		},
