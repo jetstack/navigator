@@ -75,7 +75,7 @@ type CassandraClusterNodePool struct {
 	// If specified, the pod will be dispatched by specified scheduler.
 	// If not specified, the pod will be dispatched by default scheduler.
 	// +optional
-	SchedulerName string
+	SchedulerName string `json:"schedulerName,omitempty"`
 }
 
 type CassandraClusterStatus struct {
@@ -199,7 +199,7 @@ type ElasticsearchClusterNodePool struct {
 	// If specified, the pod will be dispatched by specified scheduler.
 	// If not specified, the pod will be dispatched by default scheduler.
 	// +optional
-	SchedulerName string
+	SchedulerName string `json:"schedulerName,omitempty"`
 }
 
 // ElasticsearchClusterRole is a node role in an ElasticsearchCluster.

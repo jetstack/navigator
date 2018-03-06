@@ -164,6 +164,7 @@ func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.Elasticsear
 			TerminationGracePeriodSeconds: util.Int64Ptr(1800),
 			ServiceAccountName:            util.ServiceAccountName(c),
 			NodeSelector:                  np.NodeSelector,
+			SchedulerName:                 np.SchedulerName,
 			SecurityContext: &apiv1.PodSecurityContext{
 				FSGroup: c.Spec.NavigatorClusterConfig.SecurityContext.RunAsUser,
 			},
