@@ -1,0 +1,15 @@
+DBaaS
+minikube
+elasticsearch
+kubernetes
+kube
+aggregator
+etcd
+scalable
+multi
+allocatable
+stateful
+kubectl
+namespace
+apiserver
+lifecycle

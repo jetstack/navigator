@@ -21,7 +21,7 @@ or otherwise update the Navigator API with details of the failure so that naviga
   It performs validation of your resources, as well as performing conversions between API versions which allow us to maintain a stable API without hindering development.
 
 - **navigator-controller** - the controller is akin to ``kube-controller-manager``.
-  It is responsible for actually realising your deployments within the Kubernetes cluster.
+  It is responsible for actually realizing your deployments within the Kubernetes cluster.
   It can be seen as the 'operator' for the various applications supported by ``navigator-apiserver``.
 
 - **pilots** - the pilot is responsible for managing each database process.
