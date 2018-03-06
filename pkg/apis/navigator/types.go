@@ -29,10 +29,11 @@ type CassandraCluster struct {
 type CassandraClusterSpec struct {
 	NavigatorClusterConfig
 
-	NodePools []CassandraClusterNodePool
-	Version   version.Version
-	Image     *ImageSpec
-	CqlPort   int32
+	NodePools     []CassandraClusterNodePool
+	Version       version.Version
+	Image         *ImageSpec
+	CqlPort       int32
+	SchedulerName string
 }
 
 type CassandraClusterNodePool struct {
@@ -116,6 +117,7 @@ type ElasticsearchClusterSpec struct {
 	Plugins        []string
 	NodePools      []ElasticsearchClusterNodePool
 	MinimumMasters int32
+	SchedulerName  string
 }
 
 type ElasticsearchClusterNodePool struct {

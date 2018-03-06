@@ -41,6 +41,12 @@ type CassandraClusterSpec struct {
 
 	// The version of the database to be used for nodes in the cluster.
 	Version version.Version `json:"version"`
+
+	// If specified, the nodepools will be dispatched by specified scheduler.
+	// If not specified, nodepools will be dispatched by scheduler specified in
+	// the nodepool spec, or the default.
+	// +optional
+	SchedulerName string `json:"schedulerName,omitempty"`
 }
 
 // CassandraClusterNodePool describes a node pool within a CassandraCluster.
@@ -166,6 +172,12 @@ type ElasticsearchClusterSpec struct {
 	// cluster. If set, the value *must* be greater than or equal to a quorum
 	// of master nodes.
 	MinimumMasters int32 `json:"minimumMasters,omitempty"`
+
+	// If specified, the nodepools will be dispatched by specified scheduler.
+	// If not specified, nodepools will be dispatched by scheduler specified in
+	// the nodepool spec, or the default.
+	// +optional
+	SchedulerName string `json:"schedulerName,omitempty"`
 }
 
 // ElasticsearchClusterNodePool describes a node pool within an ElasticsearchCluster.
