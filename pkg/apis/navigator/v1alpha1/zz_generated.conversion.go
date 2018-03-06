@@ -172,6 +172,7 @@ func autoConvert_v1alpha1_CassandraClusterNodePool_To_navigator_CassandraCluster
 	out.Rack = in.Rack
 	out.Datacenter = in.Datacenter
 	out.Resources = in.Resources
+	out.SchedulerName = in.SchedulerName
 	return nil
 }
 
@@ -190,6 +191,7 @@ func autoConvert_navigator_CassandraClusterNodePool_To_v1alpha1_CassandraCluster
 	out.Rack = in.Rack
 	out.Datacenter = in.Datacenter
 	out.Resources = in.Resources
+	out.SchedulerName = in.SchedulerName
 	return nil
 }
 
