@@ -119,12 +119,13 @@ type ElasticsearchClusterSpec struct {
 }
 
 type ElasticsearchClusterNodePool struct {
-	Name         string
-	Replicas     int32
-	Roles        []ElasticsearchClusterRole
-	NodeSelector map[string]string
-	Resources    v1.ResourceRequirements
-	Persistence  PersistenceConfig
+	Name          string
+	Replicas      int32
+	Roles         []ElasticsearchClusterRole
+	NodeSelector  map[string]string
+	Resources     v1.ResourceRequirements
+	Persistence   PersistenceConfig
+	SchedulerName string
 }
 
 type ElasticsearchClusterRole string

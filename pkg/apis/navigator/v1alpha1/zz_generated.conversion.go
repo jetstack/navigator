@@ -375,6 +375,7 @@ func autoConvert_v1alpha1_ElasticsearchClusterNodePool_To_navigator_Elasticsearc
 	if err := Convert_v1alpha1_PersistenceConfig_To_navigator_PersistenceConfig(&in.Persistence, &out.Persistence, s); err != nil {
 		return err
 	}
+	out.SchedulerName = in.SchedulerName
 	return nil
 }
 
@@ -392,6 +393,7 @@ func autoConvert_navigator_ElasticsearchClusterNodePool_To_v1alpha1_Elasticsearc
 	if err := Convert_navigator_PersistenceConfig_To_v1alpha1_PersistenceConfig(&in.Persistence, &out.Persistence, s); err != nil {
 		return err
 	}
+	out.SchedulerName = in.SchedulerName
 	return nil
 }
 

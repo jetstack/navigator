@@ -195,6 +195,11 @@ type ElasticsearchClusterNodePool struct {
 	// should only be using for testing purposes.
 	// +optional
 	Persistence PersistenceConfig `json:"persistence,omitempty"`
+
+	// If specified, the pod will be dispatched by specified scheduler.
+	// If not specified, the pod will be dispatched by default scheduler.
+	// +optional
+	SchedulerName string
 }
 
 // ElasticsearchClusterRole is a node role in an ElasticsearchCluster.
