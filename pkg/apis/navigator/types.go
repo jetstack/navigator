@@ -5,6 +5,8 @@ import (
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/jetstack/navigator/pkg/cassandra/version"
 )
 
 // In this file we define the outer containing types for the ElasticsearchCluster
@@ -28,7 +30,7 @@ type CassandraClusterSpec struct {
 	NavigatorClusterConfig
 
 	NodePools []CassandraClusterNodePool
-	Version   semver.Version
+	Version   version.Version
 	Image     *ImageSpec
 	CqlPort   int32
 }
@@ -196,6 +198,8 @@ type PilotStatus struct {
 	Conditions         []PilotCondition
 	// Contains status information specific to Elasticsearch Pilots
 	Elasticsearch *ElasticsearchPilotStatus
+	// Contains status information specific to Cassandra Pilots
+	Cassandra *CassandraPilotStatus
 }
 
 type ElasticsearchPilotStatus struct {
@@ -204,6 +208,10 @@ type ElasticsearchPilotStatus struct {
 	// empty
 	Documents *int64
 	Version   semver.Version
+}
+
+type CassandraPilotStatus struct {
+	Version *version.Version
 }
 
 // PilotCondition contains condition information for a Pilot.

@@ -9,6 +9,8 @@ import (
 
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/golang/glog"
+
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/cassandra/nodetool"
 	clientset "github.com/jetstack/navigator/pkg/client/clientset/versioned"
@@ -80,8 +82,16 @@ func (p *Pilot) CmdFunc(pilot *v1alpha1.Pilot) (*exec.Cmd, error) {
 }
 
 func (p *Pilot) syncFunc(pilot *v1alpha1.Pilot) error {
-	if p.genericPilot.IsThisPilot(pilot) {
+	if pilot.Status.Cassandra == nil {
+		pilot.Status.Cassandra = &v1alpha1.CassandraPilotStatus{}
 	}
+
+	version, err := p.nodeTool.Version()
+	if err != nil {
+		pilot.Status.Cassandra.Version = nil
+		glog.Errorf("error while getting Cassandra version: %s", err)
+	}
+	pilot.Status.Cassandra.Version = version
 	return nil
 }
 

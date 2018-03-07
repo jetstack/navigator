@@ -9,6 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/jetstack/navigator/pkg/cassandra/nodetool/client"
+	"github.com/jetstack/navigator/pkg/cassandra/version"
 )
 
 // NodeState represents the cluster membership state of a C* node.
@@ -53,6 +54,7 @@ func (nm NodeMap) LocalNode() *Node {
 
 type Interface interface {
 	Status() (NodeMap, error)
+	Version() (*version.Version, error)
 }
 
 type tool struct {
@@ -170,4 +172,12 @@ func (t *tool) Status() (NodeMap, error) {
 		}
 	}
 	return nodes, nil
+}
+
+func (t *tool) Version() (*version.Version, error) {
+	ssInfo, err := t.client.StorageService()
+	if err != nil {
+		return nil, err
+	}
+	return ssInfo.ReleaseVersion, nil
 }

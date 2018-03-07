@@ -168,25 +168,18 @@ function stdout_gt() {
 }
 
 function dump_debug_logs() {
-    local namespace="${1}"
-    local output_dir="$(pwd)/_artifacts/${namespace}"
-
+    local output_dir="${1}"
     echo "Dumping cluster state to ${output_dir}"
     mkdir -p "${output_dir}"
     kubectl cluster-info dump \
-            --namespaces "${namespace}" \
+            --all-namespaces \
             --output-directory "${output_dir}" || true
-}
 
-function fail_and_exit() {
-    local namespace="${1}"
-
-    kubectl api-versions
-    kubectl get apiservice -o yaml
-
-    dump_debug_logs "${namespace}"
-
-    exit 1
+    # Some other resources which aren't included in cluster-info dump
+    for kind in apiservice cassandraclusters elasticsearchclusters pilots; do
+        kubectl get "${kind}" --all-namespaces --output json > "${output_dir}/${kind}.json" || true
+    done
+    kubectl api-versions > "${output_dir}/api-versions.txt" || true
 }
 
 function cql_connect() {

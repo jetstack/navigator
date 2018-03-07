@@ -1,7 +1,7 @@
 apiVersion: "navigator.jetstack.io/v1alpha1"
 kind: "CassandraCluster"
 metadata:
-  name: ${CASS_NAME}
+  name: "${CASS_NAME}"
 spec:
   version: "${CASS_VERSION}"
   cqlPort: ${CASS_CQL_PORT}
@@ -17,11 +17,7 @@ spec:
       size: "5Gi"
       storageClass: "default"
     nodeSelector:
-  image:
-    repository: "cassandra"
-    tag: "3"
-    pullPolicy: "IfNotPresent"
   pilotImage:
-    repository: ${NAVIGATOR_IMAGE_REPOSITORY}/navigator-pilot-cassandra
-    tag: ${NAVIGATOR_IMAGE_TAG}
-    pullPolicy: ${NAVIGATOR_IMAGE_PULLPOLICY}
+    repository: "${NAVIGATOR_IMAGE_REPOSITORY}/navigator-pilot-cassandra"
+    tag: "${NAVIGATOR_IMAGE_TAG}"
+    pullPolicy: "${NAVIGATOR_IMAGE_PULLPOLICY}"

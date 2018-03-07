@@ -38,6 +38,9 @@ source "${SCRIPT_DIR}/libe2e.sh"
 : ${CHART_VALUES:="${SCRIPT_DIR}/testdata/values.yaml"}
 : ${CHART_VALUES_CASSANDRA:="${SCRIPT_DIR}/testdata/values_cassandra.yaml"}
 
+# Save the cluster logs when the script exits (success or failure)
+trap "dump_debug_logs ${PWD}/_artifacts/dump_debug_logs" EXIT
+
 helm delete --purge "${RELEASE_NAME}" || true
 
 function debug_navigator_start() {
@@ -182,7 +185,7 @@ if [[ "test_elasticsearchcluster" = "${TEST_PREFIX}"* ]]; then
     ES_TEST_NS="test-elasticsearchcluster-${TEST_ID}"
     test_elasticsearchcluster "${ES_TEST_NS}"
     if [ "${FAILURE_COUNT}" -gt "0" ]; then
-        fail_and_exit "${ES_TEST_NS}"
+        exit 1
     fi
     kube_delete_namespace_and_wait "${ES_TEST_NS}"
 fi
@@ -221,6 +224,16 @@ function test_cassandracluster() {
          "generic-pilot:ConfigMap:Normal:LeaderElection"
     then
         fail_test "Cassandra pilots did not elect a leader"
+    fi
+
+    if ! retry TIMEOUT=300 \
+         stdout_equals "${CASS_VERSION}" \
+         kubectl --namespace "${namespace}" \
+         get pilots \
+         --output 'jsonpath={.items[0].status.cassandra.version}'
+    then
+        kubectl --namespace "${namespace}" get pilots -o yaml
+        fail_test "Pilots failed to report the expected version"
     fi
 
     # Wait 5 minutes for cassandra to start and listen for CQL queries.
@@ -351,9 +364,8 @@ if [[ "test_cassandracluster" = "${TEST_PREFIX}"* ]]; then
     done
 
     test_cassandracluster "${CASS_TEST_NS}"
-    dump_debug_logs "${CASS_TEST_NS}"
     if [ "${FAILURE_COUNT}" -gt "0" ]; then
-        fail_and_exit "${CASS_TEST_NS}"
+        exit 1
     fi
     kube_delete_namespace_and_wait "${CASS_TEST_NS}"
 fi
