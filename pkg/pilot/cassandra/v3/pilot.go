@@ -85,7 +85,6 @@ func (p *Pilot) syncFunc(pilot *v1alpha1.Pilot) error {
 	if pilot.Status.Cassandra == nil {
 		pilot.Status.Cassandra = &v1alpha1.CassandraPilotStatus{}
 	}
-
 	version, err := p.nodeTool.Version()
 	if err != nil {
 		pilot.Status.Cassandra.Version = nil

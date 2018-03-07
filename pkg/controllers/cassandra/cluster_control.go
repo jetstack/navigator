@@ -213,5 +213,16 @@ func NextAction(c *v1alpha1.CassandraCluster) controllers.Action {
 			}
 		}
 	}
+	for _, np := range c.Spec.NodePools {
+		nps := c.Status.NodePools[np.Name]
+		if nps.Version != nil {
+			if nps.Version.LessThan(&c.Spec.Version) {
+				return &actions.UpdateVersion{
+					Cluster:  c,
+					NodePool: &np,
+				}
+			}
+		}
+	}
 	return nil
 }
