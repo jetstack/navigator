@@ -310,6 +310,25 @@ function test_cassandracluster() {
         --debug \
         --execute="INSERT INTO space1.testtable1(key, value) VALUES('testkey1', 'testvalue1')"
 
+    # Upgrade to newer patch version
+    export CASS_VERSION="3.11.2"
+    kubectl apply \
+            --namespace "${namespace}" \
+            --filename \
+            <(envsubst \
+                  '$NAVIGATOR_IMAGE_REPOSITORY:$NAVIGATOR_IMAGE_TAG:$NAVIGATOR_IMAGE_PULLPOLICY:$CASS_NAME:$CASS_REPLICAS:$CASS_CQL_PORT:$CASS_VERSION' \
+                  < "${SCRIPT_DIR}/testdata/cass-cluster-test.template.yaml")
+
+    if ! retry TIMEOUT=300 \
+         stdout_equals "${CASS_VERSION}" \
+         kubectl --namespace "${namespace}" \
+         get pilots \
+         --output 'jsonpath={.items[0].status.cassandra.version}'
+    then
+        kubectl --namespace "${namespace}" get pilots -o yaml
+        fail_test "Pilots failed to report the expected version"
+    fi
+
     # Delete the Cassandra pod and wait for the CQL service to become
     # unavailable (readiness probe fails)
 

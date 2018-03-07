@@ -41,6 +41,11 @@ func (v *Version) Equal(versionB *Version) bool {
 	return v.semver.Equal(versionB.semver)
 }
 
+// TODO: Add tests for this
+func (v *Version) LessThan(versionB *Version) bool {
+	return v.semver.LessThan(versionB.semver)
+}
+
 func (v *Version) UnmarshalJSON(data []byte) error {
 	s, err := strconv.Unquote(string(data))
 	if err != nil {

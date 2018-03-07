@@ -9,15 +9,14 @@ import (
 	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/record"
 
+	"github.com/golang/glog"
+
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
+	"github.com/jetstack/navigator/pkg/cassandra/version"
 	navigator "github.com/jetstack/navigator/pkg/client/clientset/versioned"
 	navlisters "github.com/jetstack/navigator/pkg/client/listers/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/util"
-)
-
-const (
-	HashAnnotationKey = "navigator.jetstack.io/cassandra-pilot-hash"
 )
 
 type Interface interface {
@@ -105,13 +104,57 @@ func (c *pilotControl) syncPilots(cluster *v1alpha1.CassandraCluster) error {
 	return err
 }
 
+func (c *pilotControl) updateDiscoveredVersions(cluster *v1alpha1.CassandraCluster) error {
+	glog.V(4).Infof("updateDiscoveredVersions for cluster: %s", cluster.Name)
+	selector, err := util.SelectorForCluster(cluster)
+	if err != nil {
+		return err
+	}
+	pilots, err := c.pilots.List(selector)
+	if err != nil {
+		return err
+	}
+	if len(pilots) < 1 {
+		glog.V(4).Infof("No pilots found matching selector: %s", selector)
+	}
+	for _, pilot := range pilots {
+		if pilot.Status.Cassandra == nil {
+			glog.V(4).Infof("Skipping pilot with nil status: %s", pilot.Name)
+			continue
+		}
+		version := pilot.Status.Cassandra.Version
+		if version == nil {
+			glog.V(4).Infof("Skipping pilot with nil version: %s", pilot.Name)
+			continue
+		}
+		nodePoolNameForPilot, nodePoolNameFound := pilot.Labels[util.NodePoolNameLabelKey]
+		if !nodePoolNameFound {
+			glog.V(4).Infof("Skipping pilot without NodePoolNameLabelKey: %s", pilot.Name)
+			continue
+		}
+		if cluster.Status.NodePools == nil {
+			glog.V(4).Infof("Initialising Status.NodePools for: %s", cluster.Name)
+			cluster.Status.NodePools = map[string]v1alpha1.CassandraClusterNodePoolStatus{}
+		}
+		nodePoolStatus := cluster.Status.NodePools[nodePoolNameForPilot]
+		if nodePoolStatus.Version == nil || version.LessThan(nodePoolStatus.Version) {
+			glog.V(4).Infof("Found lower pilot version: %s, %s", nodePoolNameForPilot, version)
+			nodePoolStatus.Version = version
+			cluster.Status.NodePools[nodePoolNameForPilot] = nodePoolStatus
+			continue
+		}
+	}
+	return nil
+}
+
 func (c *pilotControl) Sync(cluster *v1alpha1.CassandraCluster) error {
 	err := c.syncPilots(cluster)
 	if err != nil {
 		return err
 	}
 	// TODO: Housekeeping. Remove pilots that don't have a corresponding pod.
-	return nil
+
+	return c.updateDiscoveredVersions(cluster)
 }
 
 func PilotForCluster(cluster *v1alpha1.CassandraCluster, pod *v1.Pod) *v1alpha1.Pilot {
@@ -123,4 +166,65 @@ func PilotForCluster(cluster *v1alpha1.CassandraCluster, pod *v1.Pod) *v1alpha1.
 			OwnerReferences: []metav1.OwnerReference{util.NewControllerRef(cluster)},
 		},
 	}
+}
+
+func UpdateLabels(
+	o metav1.Object,
+	newLabels map[string]string,
+) {
+	labels := o.GetLabels()
+	if labels == nil {
+		labels = map[string]string{}
+	}
+	for key, val := range newLabels {
+		labels[key] = val
+	}
+	o.SetLabels(labels)
+}
+
+type PilotBuilder struct {
+	pilot *v1alpha1.Pilot
+}
+
+func NewPilotBuilder() *PilotBuilder {
+	return &PilotBuilder{
+		pilot: &v1alpha1.Pilot{},
+	}
+}
+
+func (pb *PilotBuilder) ForCluster(cluster metav1.Object) *PilotBuilder {
+	UpdateLabels(pb.pilot, util.ClusterLabels(cluster))
+	pb.pilot.SetNamespace(cluster.GetNamespace())
+	pb.pilot.SetOwnerReferences(
+		append(
+			pb.pilot.GetOwnerReferences(),
+			util.NewControllerRef(cluster),
+		),
+	)
+	return pb
+}
+
+func (pb *PilotBuilder) ForNodePool(np *v1alpha1.CassandraClusterNodePool) *PilotBuilder {
+	UpdateLabels(
+		pb.pilot,
+		map[string]string{
+			util.NodePoolNameLabelKey: np.Name,
+		},
+	)
+	return pb
+}
+
+func (pb *PilotBuilder) WithCassandraStatus() *PilotBuilder {
+	pb.pilot.Status.Cassandra = &v1alpha1.CassandraPilotStatus{}
+	return pb
+}
+
+func (pb *PilotBuilder) WithDiscoveredCassandraVersion(v string) *PilotBuilder {
+	pb.WithCassandraStatus()
+	pb.pilot.Status.Cassandra.Version = version.New(v)
+	return pb
+}
+
+func (pb *PilotBuilder) Build() *v1alpha1.Pilot {
+	return pb.pilot
 }
