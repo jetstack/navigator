@@ -8,6 +8,8 @@ import (
 	"net/url"
 
 	"github.com/pborman/uuid"
+
+	"github.com/jetstack/navigator/pkg/cassandra/version"
 )
 
 const (
@@ -22,6 +24,7 @@ type StorageService struct {
 	JoiningNodes     []string             `json:""`
 	MovingNodes      []string             `json:""`
 	LocalHostId      uuid.UUID            `json:""`
+	ReleaseVersion   *version.Version     `json:""`
 }
 
 type Interface interface {

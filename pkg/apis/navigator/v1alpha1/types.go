@@ -5,6 +5,8 @@ import (
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/jetstack/navigator/pkg/cassandra/version"
 )
 
 const (
@@ -38,7 +40,7 @@ type CassandraClusterSpec struct {
 	CqlPort int32 `json:"cqlPort"`
 
 	// The version of the database to be used for nodes in the cluster.
-	Version semver.Version `json:"version"`
+	Version version.Version `json:"version"`
 }
 
 // CassandraClusterNodePool describes a node pool within a CassandraCluster.
@@ -288,6 +290,8 @@ type PilotStatus struct {
 	Conditions         []PilotCondition `json:"conditions"`
 	// Contains status information specific to Elasticsearch Pilots
 	Elasticsearch *ElasticsearchPilotStatus `json:"elasticsearch,omitempty"`
+	// Contains status information specific to Cassandra Pilots
+	Cassandra *CassandraPilotStatus `json:"cassandra,omitempty"`
 }
 
 type ElasticsearchPilotStatus struct {
@@ -297,6 +301,12 @@ type ElasticsearchPilotStatus struct {
 	Documents *int64 `json:"documents,omitempty"`
 	// Version as reported by the Elasticsearch process
 	Version semver.Version `json:"version,omitempty"`
+}
+
+type CassandraPilotStatus struct {
+	// Version as reported by the Cassandra process.
+	// `nil` indicates that the version is not yet known / not yet reported.
+	Version *version.Version `json:"version,omitempty"`
 }
 
 // PilotCondition contains condition information for a Pilot.

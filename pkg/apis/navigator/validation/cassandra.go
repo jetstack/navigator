@@ -66,11 +66,5 @@ func ValidateCassandraClusterSpec(spec *navigator.CassandraClusterSpec, fldPath 
 			ValidateImageSpec(spec.Image, fldPath.Child("image"))...,
 		)
 	}
-	if spec.Version.Equal(emptySemver) {
-		allErrs = append(
-			allErrs,
-			field.Required(fldPath.Child("version"), "must be a semver version"),
-		)
-	}
 	return allErrs
 }

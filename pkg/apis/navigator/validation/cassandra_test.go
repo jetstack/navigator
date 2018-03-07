@@ -7,6 +7,7 @@ import (
 
 	"github.com/jetstack/navigator/pkg/apis/navigator"
 	"github.com/jetstack/navigator/pkg/apis/navigator/validation"
+	"github.com/jetstack/navigator/pkg/cassandra/version"
 )
 
 var (
@@ -16,7 +17,7 @@ var (
 			Namespace: "bar",
 		},
 		Spec: navigator.CassandraClusterSpec{
-			Version: validSemver,
+			Version: *version.New("5.6.2"),
 			Image:   &validImageSpec,
 			NavigatorClusterConfig: validNavigatorClusterConfig,
 		},

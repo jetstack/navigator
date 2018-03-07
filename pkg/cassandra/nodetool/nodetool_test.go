@@ -14,6 +14,7 @@ import (
 
 	"github.com/jetstack/navigator/pkg/cassandra/nodetool"
 	"github.com/jetstack/navigator/pkg/cassandra/nodetool/client"
+	fakenodetool "github.com/jetstack/navigator/pkg/cassandra/nodetool/fake"
 )
 
 func TestNodeToolStatus(t *testing.T) {
@@ -355,4 +356,38 @@ func TestNodeToolStatus(t *testing.T) {
 			},
 		)
 	}
+}
+
+func TestNodeToolVersion(t *testing.T) {
+	t.Run(
+		"StorageService.ReleaseVersion is returned",
+		func(t *testing.T) {
+			expectedVersion := "3.9"
+			cl := fakenodetool.NewClient().SetReleaseVersion(expectedVersion)
+			nt := nodetool.New(cl)
+			version, err := nt.Version()
+			if err != nil {
+				t.Error("Unexpected error: ", err)
+			}
+			if version.String() != "3.9" {
+				t.Errorf("Unexpected version: %s != %s", expectedVersion, version)
+			}
+		},
+	)
+	t.Run(
+		"Client errors are passed through",
+		func(t *testing.T) {
+			cl := fakenodetool.NewClient().SetStorageServiceError("simulated client error")
+			nt := nodetool.New(cl)
+			version, err := nt.Version()
+			if err == nil {
+				t.Error("Expected an error")
+			} else {
+				t.Log("Error was:", err)
+			}
+			if version != nil {
+				t.Errorf("Expected a nil version. Got %s", version)
+			}
+		},
+	)
 }
