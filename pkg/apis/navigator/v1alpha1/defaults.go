@@ -2,6 +2,8 @@ package v1alpha1
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
+
+	"github.com/jetstack/navigator/pkg/util"
 )
 
 const (
@@ -22,7 +24,7 @@ func SetDefaults_CassandraClusterNodePool(np *CassandraClusterNodePool) {
 	}
 
 	// default to 1 seed if not specified
-	if np.Seeds == 0 {
-		np.Seeds = 1
+	if np.Seeds == nil {
+		np.Seeds = util.Int64Ptr(1)
 	}
 }

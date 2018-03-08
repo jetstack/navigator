@@ -16,19 +16,22 @@ func ValidateCassandraClusterNodePool(np *navigator.CassandraClusterNodePool, fl
 	// this will require vendoring kubernetes/kubernetes.
 
 	allErrs := field.ErrorList{}
-	if np.Seeds > np.Replicas {
-		allErrs = append(allErrs,
-			field.Invalid(
-				fldPath.Child("seeds"),
-				np.Seeds,
-				fmt.Sprintf("number of seeds cannot be greater than number of replicas (%d)", np.Replicas)),
-		)
-	}
 
-	if np.Seeds < 0 {
-		allErrs = append(allErrs,
-			field.Invalid(fldPath.Child("seeds"), np.Seeds, "number of seeds must be greater than or equal to 1"),
-		)
+	if np.Seeds != nil {
+		if *np.Seeds > np.Replicas {
+			allErrs = append(allErrs,
+				field.Invalid(
+					fldPath.Child("seeds"),
+					np.Seeds,
+					fmt.Sprintf("number of seeds cannot be greater than number of replicas (%d)", np.Replicas)),
+			)
+		}
+
+		if *np.Seeds < 1 {
+			allErrs = append(allErrs,
+				field.Invalid(fldPath.Child("seeds"), np.Seeds, "number of seeds must be greater than or equal to 1"),
+			)
+		}
 	}
 
 	return allErrs

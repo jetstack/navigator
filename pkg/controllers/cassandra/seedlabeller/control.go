@@ -55,7 +55,7 @@ func (c *defaultSeedLabeller) labelSeedNodes(
 		}
 
 		// label first n as seeds
-		isSeed := i < np.Seeds
+		isSeed := i < *np.Seeds
 
 		desiredLabel := ""
 		if isSeed {

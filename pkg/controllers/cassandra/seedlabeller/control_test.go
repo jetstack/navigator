@@ -14,6 +14,7 @@ import (
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/seedlabeller"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/service"
 	casstesting "github.com/jetstack/navigator/pkg/controllers/cassandra/testing"
+	"github.com/jetstack/navigator/pkg/util"
 )
 
 func CheckSeedLabel(podName, seedLabelValue string, podNamespace string, t *testing.T, state *controllers.State) {
@@ -43,6 +44,9 @@ func TestSeedLabellerSync(t *testing.T) {
 	pod0LabelMissing.SetLabels(map[string]string{})
 	pod0ValueIncorrect := pod0LabelMissing.DeepCopy()
 	pod0ValueIncorrect.Labels[service.SeedLabelKey] = "blah"
+
+	clusterOneSeed := cluster.DeepCopy()
+	clusterOneSeed.Spec.NodePools[0].Seeds = util.Int64Ptr(1)
 
 	pod1 := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -110,6 +114,14 @@ func TestSeedLabellerSync(t *testing.T) {
 			cluster:     cluster,
 			assertions: func(t *testing.T, state *controllers.State) {
 				CheckSeedLabel(pod2.Name, "", pod2.Namespace, t, state)
+			},
+		},
+		"delete label if seed number decreased": {
+			kubeObjects: []runtime.Object{ss0, pod0, pod1, pod2},
+			navObjects:  []runtime.Object{cluster},
+			cluster:     clusterOneSeed,
+			assertions: func(t *testing.T, state *controllers.State) {
+				CheckSeedLabel(pod1.Name, "", pod1.Namespace, t, state)
 			},
 		},
 	}
