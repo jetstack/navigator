@@ -116,28 +116,31 @@ function kube_event_exists() {
     return 1
 }
 
-function simulate_unresponsive_cassandra_process() {
-    local namespace=$1
-    local pod=$2
-    local container=$3
-    # Decommission causes cassandra to stop accepting CQL connections.
+function decommission_cassandra_node() {
+    local namespace="${1}"
+    local pod="${2}"
     kubectl \
         --namespace="${namespace}" \
-        exec "${pod}" --container="${container}" -- \
+        exec "${pod}" -- \
         /bin/sh -c 'JVM_OPTS="" exec nodetool decommission'
 }
 
 function signal_cassandra_process() {
-    local namespace=$1
-    local pod=$2
-    local container=$3
-    local signal=$4
+    local namespace="${1}"
+    local pod="${2}"
+    local signal="${3}"
 
     # Send STOP signal to all the cassandra user's processes
     kubectl \
         --namespace="${namespace}" \
-        exec "${pod}" --container="${container}" -- \
+        exec "${pod}" -- \
         bash -c "kill -${signal}"' -- $(ps -u cassandra -o pid=) && ps faux'
+}
+
+function simulate_unresponsive_cassandra_process() {
+    local namespace="${1}"
+    local pod="${2}"
+    signal_cassandra_process "${namespace}" "${pod}" "SIGSTOP"
 }
 
 function stdout_equals() {

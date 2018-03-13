@@ -4,7 +4,6 @@ metadata:
   name: "${CASS_NAME}"
 spec:
   version: "${CASS_VERSION}"
-  cqlPort: ${CASS_CQL_PORT}
   sysctls:
   - "vm.max_map_count=0"
   nodePools:

@@ -23,6 +23,7 @@ type State struct {
 	ConfigMapLister   corelisters.ConfigMapLister
 	PilotLister       listers.PilotLister
 	PodLister         corelisters.PodLister
+	ServiceLister     corelisters.ServiceLister
 }
 
 type Action interface {

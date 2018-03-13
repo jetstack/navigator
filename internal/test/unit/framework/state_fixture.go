@@ -60,6 +60,7 @@ func (s *StateFixture) Start() {
 		ConfigMapLister:    s.kubeSharedInformerFactory.Core().V1().ConfigMaps().Lister(),
 		PilotLister:        s.navigatorSharedInformerFactory.Navigator().V1alpha1().Pilots().Lister(),
 		PodLister:          s.kubeSharedInformerFactory.Core().V1().Pods().Lister(),
+		ServiceLister:      s.kubeSharedInformerFactory.Core().V1().Services().Lister(),
 	}
 	s.stopCh = make(chan struct{})
 	s.kubeSharedInformerFactory.Start(s.stopCh)
