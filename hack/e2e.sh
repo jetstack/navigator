@@ -46,15 +46,20 @@ helm delete --purge "${RELEASE_NAME}" || true
 function debug_navigator_start() {
     kubectl api-versions
     kubectl get pods --all-namespaces
-    kubectl describe deploy
-    kubectl describe pod
+    kubectl describe --namespace "${NAVIGATOR_NAMESPACE}" deploy
+    kubectl describe --namespace "${NAVIGATOR_NAMESPACE}"  pod
 }
 
-function helm_install() {
-    helm delete --purge "${RELEASE_NAME}" || true
+function navigator_install() {
     echo "Installing navigator..."
-    if helm --debug install --wait --name "${RELEASE_NAME}" contrib/charts/navigator \
-         --values ${CHART_VALUES}
+    helm delete --purge "${RELEASE_NAME}" || true
+    kube_delete_namespace_and_wait "${NAVIGATOR_NAMESPACE}"
+    kube_create_namespace_with_quota "${NAVIGATOR_NAMESPACE}"
+    if helm --debug install \
+            --namespace "${NAVIGATOR_NAMESPACE}" \
+            --wait \
+            --name "${RELEASE_NAME}" contrib/charts/navigator \
+            --values ${CHART_VALUES}
     then
         return 0
     fi
@@ -63,7 +68,7 @@ function helm_install() {
 
 # Retry helm install to work around intermittent API server availability.
 # See https://github.com/jetstack/navigator/issues/118
-if ! retry helm_install; then
+if ! retry navigator_install; then
     debug_navigator_start
     echo "ERROR: Failed to install Navigator"
     exit 1
@@ -73,12 +78,14 @@ fi
 function navigator_ready() {
     local replica_count_controller=$(
         kubectl get deployment ${RELEASE_NAME}-navigator-controller \
+                --namespace "${NAVIGATOR_NAMESPACE}" \
                 --output 'jsonpath={.status.readyReplicas}' || true)
     if [[ "${replica_count_controller}" -eq 0 ]]; then
         return 1
     fi
     local replica_count_apiserver=$(
         kubectl get deployment ${RELEASE_NAME}-navigator-apiserver \
+                --namespace "${NAVIGATOR_NAMESPACE}" \
                 --output 'jsonpath={.status.readyReplicas}' || true)
     if [[ "${replica_count_apiserver}" -eq 0 ]]; then
         return 1
@@ -91,7 +98,7 @@ function navigator_ready() {
     if ! kubectl get esc; then
         return 1
     fi
-    if ! kube_event_exists "kube-system" \
+    if ! kube_event_exists "${NAVIGATOR_NAMESPACE}" \
          "navigator-controller:Endpoints:Normal:LeaderElection"
     then
         return 1
@@ -117,7 +124,7 @@ function fail_test() {
 function test_elasticsearchcluster() {
     local namespace="${1}"
     echo "Testing ElasticsearchCluster"
-    kubectl create namespace "${namespace}"
+    kube_create_namespace_with_quota "${namespace}"
     if ! kubectl get esc; then
         fail_test "Failed to use shortname to get ElasticsearchClusters"
     fi
@@ -199,7 +206,7 @@ function test_cassandracluster() {
     export CASS_CQL_PORT=9042
     export CASS_VERSION="3.11.1"
 
-    kubectl create namespace "${namespace}"
+    kube_create_namespace_with_quota "${namespace}"
 
     if ! kubectl get \
          --namespace "${namespace}" \

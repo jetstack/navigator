@@ -41,6 +41,14 @@ function retry() {
     done
 }
 
+function kube_create_namespace_with_quota() {
+    local namespace=$1
+    kubectl create namespace "${namespace}"
+    kubectl create quota \
+            --namespace "${namespace}" \
+            --hard=cpu=16,memory=32G navigator-test-quota
+}
+
 function kube_delete_namespace_and_wait() {
     local namespace=$1
     # Delete ESCs and C* clusters in the namespace
@@ -208,6 +216,7 @@ function in_cluster_command() {
         --stdin=true \
         --attach=true \
         --quiet \
+        --limits="cpu=100m,memory=500Mi" \
         -- \
         "${@}"
 }

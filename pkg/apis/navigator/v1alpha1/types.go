@@ -66,6 +66,11 @@ type CassandraClusterNodePool struct {
 	// in this nodepool. If this is not set, a default will be selected.
 	// +optional
 	Datacenter string `json:"datacenter"`
+
+	// Resources specifies the resource requirements to be used for nodes that
+	// are part of the pool.
+	// +optional
+	Resources v1.ResourceRequirements `json:"resources,omitempty"`
 }
 
 type CassandraClusterStatus struct {

@@ -148,6 +148,7 @@ func StatefulSetForCluster(
 								SuccessThreshold:    1,
 								FailureThreshold:    6,
 							},
+							Resources: np.Resources,
 							SecurityContext: &apiv1.SecurityContext{
 								RunAsUser: cluster.Spec.NavigatorClusterConfig.SecurityContext.RunAsUser,
 							},

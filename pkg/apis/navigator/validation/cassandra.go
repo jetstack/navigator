@@ -11,6 +11,8 @@ import (
 )
 
 func ValidateCassandraClusterNodePool(np *navigator.CassandraClusterNodePool, fldPath *field.Path) field.ErrorList {
+	// TODO: call k8s.io/kubernetes/pkg/apis/core/validation.ValidateResourceRequirements on np.Resources
+	// this will require vendoring kubernetes/kubernetes.
 	return field.ErrorList{}
 }
 
