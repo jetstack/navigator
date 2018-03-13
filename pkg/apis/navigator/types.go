@@ -32,7 +32,6 @@ type CassandraClusterSpec struct {
 	NodePools []CassandraClusterNodePool
 	Version   version.Version
 	Image     *ImageSpec
-	CqlPort   int32
 }
 
 type CassandraClusterNodePool struct {

@@ -4,7 +4,6 @@ metadata:
   name: "demo"
 spec:
   version: "3.11.1"
-  cqlPort: 9042
   sysctls:
   - "vm.max_map_count=0"
   nodePools:

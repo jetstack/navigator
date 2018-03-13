@@ -12,7 +12,7 @@ import (
 	"github.com/jetstack/navigator/pkg/controllers"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/nodepool"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/seedlabeller"
-	"github.com/jetstack/navigator/pkg/controllers/cassandra/service/seedprovider"
+	"github.com/jetstack/navigator/pkg/controllers/cassandra/service"
 	casstesting "github.com/jetstack/navigator/pkg/controllers/cassandra/testing"
 )
 
@@ -24,7 +24,7 @@ func CheckSeedLabel(podName, podNamespace string, t *testing.T, state *controlle
 	if err != nil {
 		t.Fatal(err)
 	}
-	if p.Labels[seedprovider.SeedLabelKey] != seedprovider.SeedLabelValue {
+	if p.Labels[service.SeedLabelKey] != service.SeedLabelValue {
 		t.Errorf("unexpected seed label: %s", p.Labels)
 	}
 }
@@ -42,7 +42,7 @@ func TestSeedLabellerSync(t *testing.T) {
 	pod0LabelMissing := pod0.DeepCopy()
 	pod0LabelMissing.SetLabels(map[string]string{})
 	pod0ValueIncorrect := pod0LabelMissing.DeepCopy()
-	pod0ValueIncorrect.Labels[seedprovider.SeedLabelKey] = "blah"
+	pod0ValueIncorrect.Labels[service.SeedLabelKey] = "blah"
 
 	type testT struct {
 		kubeObjects []runtime.Object

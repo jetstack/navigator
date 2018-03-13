@@ -11,7 +11,7 @@ import (
 	"k8s.io/client-go/tools/record"
 
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
-	"github.com/jetstack/navigator/pkg/controllers/cassandra/service/seedprovider"
+	"github.com/jetstack/navigator/pkg/controllers/cassandra/service"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/util"
 )
 
@@ -53,14 +53,14 @@ func (c *defaultSeedLabeller) labelSeedNodes(
 		return nil
 	}
 	labels := pod.Labels
-	value := labels[seedprovider.SeedLabelKey]
-	if value == seedprovider.SeedLabelValue {
+	value := labels[service.SeedLabelKey]
+	if value == service.SeedLabelValue {
 		return nil
 	}
 	if labels == nil {
 		labels = map[string]string{}
 	}
-	labels[seedprovider.SeedLabelKey] = seedprovider.SeedLabelValue
+	labels[service.SeedLabelKey] = service.SeedLabelValue
 	podCopy := pod.DeepCopy()
 	podCopy.SetLabels(labels)
 	_, err = c.kubeClient.CoreV1().Pods(podCopy.Namespace).Update(podCopy)

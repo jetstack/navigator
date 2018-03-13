@@ -218,7 +218,7 @@ function test_cassandracluster() {
         --namespace "${namespace}" \
         --filename \
         <(envsubst \
-              '$NAVIGATOR_IMAGE_REPOSITORY:$NAVIGATOR_IMAGE_TAG:$NAVIGATOR_IMAGE_PULLPOLICY:$CASS_NAME:$CASS_REPLICAS:$CASS_CQL_PORT:$CASS_VERSION' \
+              '$NAVIGATOR_IMAGE_REPOSITORY:$NAVIGATOR_IMAGE_TAG:$NAVIGATOR_IMAGE_PULLPOLICY:$CASS_NAME:$CASS_REPLICAS:$CASS_VERSION' \
               < "${SCRIPT_DIR}/testdata/cass-cluster-test.template.yaml")
     then
         fail_test "Failed to create cassandracluster"
@@ -246,31 +246,31 @@ function test_cassandracluster() {
     # Wait 5 minutes for cassandra to start and listen for CQL queries.
     if ! retry TIMEOUT=300 cql_connect \
          "${namespace}" \
-         "cass-${CASS_NAME}-cql" \
-         9042; then
+         "cass-${CASS_NAME}-nodes" \
+         "${CASS_CQL_PORT}"; then
         fail_test "Navigator controller failed to create cassandracluster service"
     fi
 
     if ! retry TIMEOUT=300 in_cluster_command \
         "${namespace}" \
         "alpine:3.6" \
-        /bin/sh -c "apk add --no-cache curl && curl -vv http://cass-${CASS_NAME}-ringnodes-0.cass-${CASS_NAME}-seedprovider:8080"; then
+        /bin/sh -c "apk add --no-cache curl && curl -vv http://cass-${CASS_NAME}-nodes:8080"; then
         fail_test "Pilot did not start Prometheus metric exporter"
     fi
 
     # Create a database
     cql_connect \
         "${namespace}" \
-        "cass-${CASS_NAME}-cql" \
-        9042 \
+        "cass-${CASS_NAME}-nodes" \
+        "${CASS_CQL_PORT}" \
         --debug \
         < "${SCRIPT_DIR}/testdata/cassandra_test_database1.cql"
 
     # Insert a record
     cql_connect \
         "${namespace}" \
-        "cass-${CASS_NAME}-cql" \
-        9042 \
+        "cass-${CASS_NAME}-nodes" \
+        "${CASS_CQL_PORT}" \
         --debug \
         --execute="INSERT INTO space1.testtable1(key, value) VALUES('testkey1', 'testvalue1')"
 
@@ -282,8 +282,8 @@ function test_cassandracluster() {
         not \
         cql_connect \
         "${namespace}" \
-        "cass-${CASS_NAME}-cql" \
-        9042 \
+        "cass-${CASS_NAME}-nodes" \
+        "${CASS_CQL_PORT}" \
         --debug
     # Kill the cassandra process gracefully which allows it to flush its data to disk.
     # kill_cassandra_process \
@@ -303,29 +303,12 @@ function test_cassandracluster() {
          stdout_matches "testvalue1" \
          cql_connect \
          "${namespace}" \
-         "cass-${CASS_NAME}-cql" \
-         9042 \
+         "cass-${CASS_NAME}-nodes" \
+         "${CASS_CQL_PORT}" \
          --debug \
          --execute='SELECT * FROM space1.testtable1'
     then
         fail_test "Cassandra data was lost"
-    fi
-
-    # Change the CQL port
-    export CASS_CQL_PORT=9043
-    kubectl apply \
-        --namespace "${namespace}" \
-        --filename \
-        <(envsubst \
-              '$NAVIGATOR_IMAGE_REPOSITORY:$NAVIGATOR_IMAGE_TAG:$NAVIGATOR_IMAGE_PULLPOLICY:$CASS_NAME:$CASS_REPLICAS:$CASS_CQL_PORT:$CASS_VERSION' \
-              < "${SCRIPT_DIR}/testdata/cass-cluster-test.template.yaml")
-
-    # Wait 60s for cassandra CQL port to change
-    if ! retry TIMEOUT=60 cql_connect \
-         "${namespace}" \
-         "cass-${CASS_NAME}-cql" \
-         9043; then
-        fail_test "Navigator controller failed to update cassandracluster service"
     fi
 
     # Increment the replica count
@@ -334,7 +317,7 @@ function test_cassandracluster() {
         --namespace "${namespace}" \
         --filename \
         <(envsubst \
-              '$NAVIGATOR_IMAGE_REPOSITORY:$NAVIGATOR_IMAGE_TAG:$NAVIGATOR_IMAGE_PULLPOLICY:$CASS_NAME:$CASS_REPLICAS:$CASS_CQL_PORT:$CASS_VERSION' \
+              '$NAVIGATOR_IMAGE_REPOSITORY:$NAVIGATOR_IMAGE_TAG:$NAVIGATOR_IMAGE_PULLPOLICY:$CASS_NAME:$CASS_REPLICAS:$CASS_VERSION' \
               < "${SCRIPT_DIR}/testdata/cass-cluster-test.template.yaml")
 
     if ! retry TIMEOUT=300 stdout_equals 2 kubectl \
@@ -348,7 +331,7 @@ function test_cassandracluster() {
 
     # TODO: A better test would be to query the endpoints and check that only
     # the `-0` pods are included. E.g.
-    # kubectl -n test-cassandra-1519754828-19864 get ep cass-cassandra-1519754828-19864-cassandra-seedprovider -o "jsonpath={.subsets[*].addresses[*].hostname}"
+    # kubectl -n test-cassandra-1519754828-19864 get ep cass-cassandra-1519754828-19864-cassandra-seeds -o "jsonpath={.subsets[*].addresses[*].hostname}"
     if ! stdout_equals "cass-${CASS_NAME}-ringnodes-0" \
          kubectl get pods --namespace "${namespace}" \
          --selector=navigator.jetstack.io/cassandra-seed=true \
@@ -357,16 +340,32 @@ function test_cassandracluster() {
         fail_test "First cassandra node not marked as seed"
     fi
 
+    if ! retry \
+         stdout_matches "testvalue1" \
+         cql_connect \
+         "${namespace}" \
+         "cass-${CASS_NAME}-nodes" \
+         "${CASS_CQL_PORT}" \
+         --debug \
+         --execute='CONSISTENCY ALL; SELECT * FROM space1.testtable1'
+    then
+        fail_test "Data was not replicated to second node"
+    fi
+
     simulate_unresponsive_cassandra_process \
         "${namespace}" \
-        "cass-${CASS_NAME}-ringnodes-0" \
-        "cassandra"
+        "cass-${CASS_NAME}-ringnodes-0"
 
-    if ! retry cql_connect \
-         "${namespace}" \
-         "cass-${CASS_NAME}-cql" \
-         9043; then
-        fail_test "Cassandra readiness probe failed to bypass dead node"
+    if ! retry TIMEOUT=600 \
+            stdout_matches "testvalue1" \
+            cql_connect \
+            "${namespace}" \
+            "cass-${CASS_NAME}-nodes" \
+            "${CASS_CQL_PORT}" \
+            --debug \
+            --execute='CONSISTENCY ALL; SELECT * FROM space1.testtable1'
+    then
+        fail_test "Cassandra liveness probe failed to restart dead node"
     fi
 }
 

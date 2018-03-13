@@ -116,3 +116,64 @@ The ``resources`` field follows exactly the same specification as the Kubernetes
 (``pod.spec.containers[].resources``).
 
 See `Managing Compute Resources for Containers <https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/>`_ for more information.
+
+
+Connecting to Cassandra
+-----------------------
+
+If you apply the YAML manifest from the example above,
+Navigator will create a Cassandra cluster with three C* nodes running in three pods.
+The IP addresses assigned to each C* node may change when pods are rescheduled or restarted, but there are stable DNS names which allow you to connect to the cluster.
+
+Services and DNS Names
+~~~~~~~~~~~~~~~~~~~~~~
+
+Navigator creates two `headless services <https://kubernetes.io/docs/concepts/services-networking/service/#headless-services>`_ for every Cassandra cluster that it creates.
+Each service has a corresponding DNS domain name:
+
+#. The *nodes* service (e.g. ``cass-demo-nodes``) has a DNS domain name which resolves to the IP addresses of **all** the C* nodes in cluster (nodes 0, 1, and 2 in this example).
+#. The *seeds* service (e.g. ``cass-demo-seeds``) has a DNS domain name which resolves to the IP addresses of **only** the `seed nodes <http://cassandra.apache.org/doc/latest/faq/index.html#what-are-seeds>`_ (node 0 in this example).
+
+These DNS names have multiple HOST (`A`) records, one for each **healthy** C* node IP address.
+
+.. note::
+   The DNS server only includes `healthy <https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/>`_ nodes when answering requests for these two services.
+
+The DNS names can be resolved from any pod in the Kubernetes cluster:
+
+* If the pod is in the same namespace as the Cassandra cluster you need only use the left most label of the DNS name. E.g. ``cass-demo-nodes``.
+* If the pod is in a different namespace you must use the fully qualified DNS name. E.g. ``cass-demo-nodes.my-namespace.svc.cluster.local``.
+
+.. note::
+   Read `DNS for Services and Pods <https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/>`_ for more information about DNS in Kubernetes.
+
+TCP Ports
+~~~~~~~~~
+
+The C* nodes all listen on the following TCP ports:
+
+#. **9042**: For CQL client connections.
+#. **8080**: For Prometheus client connections.
+
+Connect using a CQL Client
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Navigator configures all the nodes in a Cassandra cluster to listen on TCP port 9042 for `CQL client connections <http://cassandra.apache.org/doc/latest/cql/>`_.
+And there are `CQL drivers for most popular programming languages <http://cassandra.apache.org/doc/latest/getting_started/drivers.html>`_.
+Most drivers have the ability to connect to a single node and then discover all the other cluster nodes.
+
+For example, you could use the `Datastax Python driver <http://datastax.github.io/python-driver/>`_ to connect to the Cassandra cluster as follows:
+
+.. code-block:: python
+
+   from cassandra.cluster import Cluster
+
+   cluster = Cluster(['cass-demo-nodes'], port=9042)
+   session = cluster.connect()
+   rows = session.execute('SELECT ... FROM ...')
+   for row in rows:
+       print row
+
+.. note::
+   The IP address to which the driver makes the initial connection
+   depends on the DNS server and operating system configuration.
