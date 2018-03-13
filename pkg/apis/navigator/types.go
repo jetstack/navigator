@@ -42,6 +42,7 @@ type CassandraClusterNodePool struct {
 	NodeSelector map[string]string
 	Rack         string
 	Datacenter   string
+	Resources    v1.ResourceRequirements
 }
 
 type CassandraClusterStatus struct {

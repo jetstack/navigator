@@ -17,6 +17,10 @@ spec:
       size: "5Gi"
       storageClass: "default"
     nodeSelector:
+    resources:
+      requests:
+        cpu: '500m'
+        memory: 2Gi
   image:
     repository: "cassandra"
     tag: "3"

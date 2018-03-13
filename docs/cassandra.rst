@@ -9,6 +9,14 @@ Example ``CassandraCluster`` resource:
 .. include:: quick-start/cassandra-cluster.yaml
    :literal:
 
+Node Pools
+----------
+
+The C* nodes in a Navigator ``cassandracluster`` are configured and grouped by rack and data center
+and in Navigator, these groups of nodes are called ``nodepools``.
+
+All the C* nodes (pods) in a ``nodepool`` have the same configuration and the following sections describe the configuration options that are available:
+
 Cassandra Across Multiple Availability Zones
 --------------------------------------------
 
@@ -96,3 +104,15 @@ A simplified example:
       rack: "default-rack"
       nodeSelector:
         failure-domain.beta.kubernetes.io/zone: "europe-west1-d"
+
+Managing Compute Resources for Cassandra Clusters
+-------------------------------------------------
+
+Each ``nodepool`` has a ``resources`` attribute which defines the resource requirements and limits for each C* node (pod) in the pool.
+
+In the example above, each C* node (pod) in the ``nodepool`` named ``ringnodes`` will request half a CPU core and 2GiB of memory.
+
+The ``resources`` field follows exactly the same specification as the Kubernetes Pod API
+(``pod.spec.containers[].resources``).
+
+See `Managing Compute Resources for Containers <https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/>`_ for more information.

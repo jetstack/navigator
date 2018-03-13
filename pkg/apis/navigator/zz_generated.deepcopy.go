@@ -99,6 +99,7 @@ func (in *CassandraClusterNodePool) DeepCopyInto(out *CassandraClusterNodePool) 
 			(*out)[key] = val
 		}
 	}
+	in.Resources.DeepCopyInto(&out.Resources)
 	return
 }
 
