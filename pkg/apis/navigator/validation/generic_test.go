@@ -5,6 +5,7 @@ import (
 
 	"github.com/coreos/go-semver/semver"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 
 	"github.com/jetstack/navigator/pkg/apis/navigator"
 )
@@ -19,6 +20,10 @@ var (
 		Repository: validImageRepo,
 		PullPolicy: validImagePullPolicy,
 	}
+	validNodePoolPersistenceConfig = navigator.PersistenceConfig{
+		Enabled: true,
+		Size:    resource.MustParse("10Gi"),
+	}
 	validNavigatorClusterConfig = navigator.NavigatorClusterConfig{
 		PilotImage: validImageSpec,
 	}
@@ -30,6 +35,16 @@ var (
 		"missing tag": {
 			Repository: validImageRepo,
 			PullPolicy: validImagePullPolicy,
+		},
+	}
+	persistenceErrorCases = map[string]navigator.PersistenceConfig{
+		"persistence disabled": {
+			Enabled: false,
+			Size:    resource.MustParse("10Gi"),
+		},
+		"persistence increased size": {
+			Enabled: true,
+			Size:    resource.MustParse("25Gi"),
 		},
 	}
 	navigatorClusterConfigErrorCases = map[string]navigator.NavigatorClusterConfig{
