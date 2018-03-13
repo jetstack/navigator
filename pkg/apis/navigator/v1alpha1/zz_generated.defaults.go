@@ -34,7 +34,6 @@ func RegisterDefaults(scheme *runtime.Scheme) error {
 }
 
 func SetObjectDefaults_CassandraCluster(in *CassandraCluster) {
-	SetDefaults_CassandraClusterSpec(&in.Spec)
 	for i := range in.Spec.NodePools {
 		a := &in.Spec.NodePools[i]
 		SetDefaults_CassandraClusterNodePool(a)

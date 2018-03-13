@@ -1,17 +1,9 @@
-Configure scheduler type
+Configure Scheduler Type
 ------------------------
 
-If a custom scheduler type is required (for example if you are deploying with Portworx or another storage provider), this can be set on either each nodepool:
-
-.. code-block:: yaml
-
-    spec:
-      schedulerName: "fancy-scheduler"
-      nodePools:
-      - name: "ringnodes-1"
-      - name: "ringnodes-2"
-
-or for an entire cluster:
+If a `custom scheduler <https://kubernetes.io/docs/tasks/administer-cluster/configure-multiple-schedulers/>`_ type is required
+(for example if you are deploying with `stork <https://docs.portworx.com/scheduler/kubernetes/stork.html>`_ or another storage provider),
+this can be set on each nodepool:
 
 .. code-block:: yaml
 
@@ -22,4 +14,4 @@ or for an entire cluster:
       - name: "ringnodes-2"
         schedulerName: "fancy-scheduler"
 
-The nodepool field takes precedent, falling back to the cluster value if it is defined, then the default scheduler.
+If the nodepool field is not specified, the default scheduler is used.

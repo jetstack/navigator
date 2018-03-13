@@ -228,7 +228,6 @@ func autoConvert_v1alpha1_CassandraClusterSpec_To_navigator_CassandraClusterSpec
 	out.Image = (*navigator.ImageSpec)(unsafe.Pointer(in.Image))
 	out.CqlPort = in.CqlPort
 	out.Version = in.Version
-	out.SchedulerName = in.SchedulerName
 	return nil
 }
 
@@ -245,7 +244,6 @@ func autoConvert_navigator_CassandraClusterSpec_To_v1alpha1_CassandraClusterSpec
 	out.Version = in.Version
 	out.Image = (*ImageSpec)(unsafe.Pointer(in.Image))
 	out.CqlPort = in.CqlPort
-	out.SchedulerName = in.SchedulerName
 	return nil
 }
 
@@ -433,7 +431,6 @@ func autoConvert_v1alpha1_ElasticsearchClusterSpec_To_navigator_ElasticsearchClu
 	out.NodePools = *(*[]navigator.ElasticsearchClusterNodePool)(unsafe.Pointer(&in.NodePools))
 	out.Image = (*navigator.ImageSpec)(unsafe.Pointer(in.Image))
 	out.MinimumMasters = in.MinimumMasters
-	out.SchedulerName = in.SchedulerName
 	return nil
 }
 
@@ -451,7 +448,6 @@ func autoConvert_navigator_ElasticsearchClusterSpec_To_v1alpha1_ElasticsearchClu
 	out.Plugins = *(*[]string)(unsafe.Pointer(&in.Plugins))
 	out.NodePools = *(*[]ElasticsearchClusterNodePool)(unsafe.Pointer(&in.NodePools))
 	out.MinimumMasters = in.MinimumMasters
-	out.SchedulerName = in.SchedulerName
 	return nil
 }
 
