@@ -2,6 +2,7 @@ package validation
 
 import (
 	"fmt"
+	"reflect"
 
 	apimachineryvalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -99,6 +100,32 @@ func ValidateElasticsearchClusterSpec(spec *navigator.ElasticsearchClusterSpec, 
 func ValidateElasticsearchCluster(esc *navigator.ElasticsearchCluster) field.ErrorList {
 	allErrs := ValidateObjectMeta(&esc.ObjectMeta, true, apimachineryvalidation.NameIsDNSSubdomain, field.NewPath("metadata"))
 	allErrs = append(allErrs, ValidateElasticsearchClusterSpec(&esc.Spec, field.NewPath("spec"))...)
+	return allErrs
+}
+
+func ValidateElasticsearchClusterUpdate(old, new *navigator.ElasticsearchCluster) field.ErrorList {
+	allErrs := ValidateElasticsearchCluster(new)
+
+	fldPath := field.NewPath("spec")
+
+	npPath := fldPath.Child("nodePools")
+	for i, newNp := range new.Spec.NodePools {
+		idxPath := npPath.Index(i)
+
+		for _, oldNp := range old.Spec.NodePools {
+			if newNp.Name == oldNp.Name {
+				if !reflect.DeepEqual(newNp.NodeSelector, oldNp.NodeSelector) {
+					allErrs = append(allErrs, field.Forbidden(idxPath.Child("nodeSelector"), "cannot modify nodeSelector"))
+				}
+
+				if !reflect.DeepEqual(newNp.Persistence, oldNp.Persistence) {
+					allErrs = append(allErrs, field.Forbidden(idxPath.Child("persistence"), "cannot modify persistence configuration"))
+				}
+
+				break
+			}
+		}
+	}
 	return allErrs
 }
 
