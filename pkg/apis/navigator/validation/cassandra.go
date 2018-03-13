@@ -42,6 +42,11 @@ func ValidateCassandraClusterUpdate(old, new *navigator.CassandraCluster) field.
 				if !reflect.DeepEqual(newNp.NodeSelector, oldNp.NodeSelector) {
 					allErrs = append(allErrs, field.Forbidden(idxPath.Child("nodeSelector"), "cannot modify nodeSelector"))
 				}
+
+				if !reflect.DeepEqual(newNp.Persistence, oldNp.Persistence) {
+					allErrs = append(allErrs, field.Forbidden(idxPath.Child("persistence"), "cannot modify persistence configuration"))
+				}
+
 				break
 			}
 		}
