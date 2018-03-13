@@ -32,7 +32,6 @@ planning.
 | ------------- | --------- | ----------- | --------------------------------------------------------------------------------- |
 | Elasticsearch | 5.x       | Alpha       | [more info](https://navigator-dbaas.readthedocs.io/en/latest/elasticsearch.html)  |
 | Cassandra     | 3.x       | Alpha       | [more info](https://navigator-dbaas.readthedocs.io/en/latest/cassandra.html)      |
-| Couchbase     |           | Coming soon |                                                                                   |
 
 ## Credits
 
