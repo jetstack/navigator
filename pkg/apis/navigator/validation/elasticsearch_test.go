@@ -495,6 +495,10 @@ func TestValidateElasticsearchClusterUpdate(t *testing.T) {
 			old: baseCluster,
 			new: baseCluster,
 		},
+		"enable persistence config": {
+			old: setPersistence(baseCluster, navigator.PersistenceConfig{Enabled: false}),
+			new: baseCluster,
+		},
 	}
 
 	for title, persistence := range persistenceErrorCases {

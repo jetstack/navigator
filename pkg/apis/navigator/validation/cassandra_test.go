@@ -143,6 +143,10 @@ func TestValidateCassandraClusterUpdate(t *testing.T) {
 			new:           setDatacenter(validCassCluster, "doot"),
 			errorExpected: true,
 		},
+		"enable persistence config": {
+			old: setPersistence(validCassCluster, navigator.PersistenceConfig{Enabled: false}),
+			new: validCassCluster,
+		},
 	}
 
 	for title, persistence := range persistenceErrorCases {
