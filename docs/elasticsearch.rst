@@ -10,3 +10,5 @@ Example ``ElasticsearchCluster`` resource:
    :literal:
 
 .. include:: configure-scheduler.rst
+
+.. include:: managing-compute-resources.rst

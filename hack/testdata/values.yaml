@@ -31,8 +31,3 @@ controller:
     repository: jetstackexperimental/navigator-controller
     tag: build
     pullPolicy: Never
-
-resources:
-  requests:
-    cpu: 50m
-    memory: 64Mi
