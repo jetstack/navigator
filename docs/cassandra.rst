@@ -17,6 +17,8 @@ and in Navigator, these groups of nodes are called ``nodepools``.
 
 All the C* nodes (pods) in a ``nodepool`` have the same configuration and the following sections describe the configuration options that are available:
 
+.. include:: configure-scheduler.rst
+
 Cassandra Across Multiple Availability Zones
 --------------------------------------------
 

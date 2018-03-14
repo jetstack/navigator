@@ -68,6 +68,7 @@ func StatefulSetForCluster(
 				Spec: apiv1.PodSpec{
 					ServiceAccountName: util.ServiceAccountName(cluster),
 					NodeSelector:       np.NodeSelector,
+					SchedulerName:      np.SchedulerName,
 					Volumes: []apiv1.Volume{
 						apiv1.Volume{
 							Name: sharedVolumeName,

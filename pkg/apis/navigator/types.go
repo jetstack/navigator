@@ -35,13 +35,14 @@ type CassandraClusterSpec struct {
 }
 
 type CassandraClusterNodePool struct {
-	Name         string
-	Replicas     int64
-	Persistence  PersistenceConfig
-	NodeSelector map[string]string
-	Rack         string
-	Datacenter   string
-	Resources    v1.ResourceRequirements
+	Name          string
+	Replicas      int64
+	Persistence   PersistenceConfig
+	NodeSelector  map[string]string
+	Rack          string
+	Datacenter    string
+	Resources     v1.ResourceRequirements
+	SchedulerName string
 }
 
 type CassandraClusterStatus struct {
@@ -117,12 +118,13 @@ type ElasticsearchClusterSpec struct {
 }
 
 type ElasticsearchClusterNodePool struct {
-	Name         string
-	Replicas     int32
-	Roles        []ElasticsearchClusterRole
-	NodeSelector map[string]string
-	Resources    v1.ResourceRequirements
-	Persistence  PersistenceConfig
+	Name          string
+	Replicas      int32
+	Roles         []ElasticsearchClusterRole
+	NodeSelector  map[string]string
+	Resources     v1.ResourceRequirements
+	Persistence   PersistenceConfig
+	SchedulerName string
 }
 
 type ElasticsearchClusterRole string
