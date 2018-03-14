@@ -335,6 +335,10 @@ func pilotInstallationContainer(
 				apiv1.ResourceCPU:    resource.MustParse("10m"),
 				apiv1.ResourceMemory: resource.MustParse("8Mi"),
 			},
+			Limits: apiv1.ResourceList{
+				apiv1.ResourceCPU:    resource.MustParse("10m"),
+				apiv1.ResourceMemory: resource.MustParse("8Mi"),
+			},
 		},
 	}
 }

@@ -22,3 +22,5 @@ and in Navigator, these groups of nodes are called ``nodepools``.
    - ``persistence``
 
 .. include:: configure-scheduler.rst
+
+.. include:: managing-compute-resources.rst

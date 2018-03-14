@@ -46,7 +46,8 @@ function kube_create_namespace_with_quota() {
     kubectl create namespace "${namespace}"
     kubectl create quota \
             --namespace "${namespace}" \
-            --hard=cpu=16,memory=32G navigator-test-quota
+            --hard=cpu=16,requests.cpu=16,limits.cpu=16,memory=32G,requests.memory=32G,limits.memory=32G \
+            navigator-test-quota
 }
 
 function kube_delete_namespace_and_wait() {
@@ -220,6 +221,7 @@ function in_cluster_command() {
         --attach=true \
         --quiet \
         --limits="cpu=100m,memory=500Mi" \
+        --requests="cpu=100m,memory=500Mi" \
         -- \
         "${@}"
 }
