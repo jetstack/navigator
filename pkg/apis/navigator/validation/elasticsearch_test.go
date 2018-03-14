@@ -490,6 +490,15 @@ func TestValidateElasticsearchClusterUpdate(t *testing.T) {
 		return e
 	}
 
+	setRole := func(
+		e *navigator.ElasticsearchCluster,
+		r []navigator.ElasticsearchClusterRole,
+	) *navigator.ElasticsearchCluster {
+		e = e.DeepCopy()
+		e.Spec.NodePools[0].Roles = r
+		return e
+	}
+
 	tests := map[string]testT{
 		"unchanged cluster": {
 			old: baseCluster,
@@ -498,6 +507,15 @@ func TestValidateElasticsearchClusterUpdate(t *testing.T) {
 		"enable persistence config": {
 			old: setPersistence(baseCluster, navigator.PersistenceConfig{Enabled: false}),
 			new: baseCluster,
+		},
+		"change role": {
+			old: baseCluster,
+			new: setRole(baseCluster, []navigator.ElasticsearchClusterRole{
+				navigator.ElasticsearchRoleData,
+				navigator.ElasticsearchRoleMaster,
+				navigator.ElasticsearchRoleIngest,
+			}),
+			errorExpected: true,
 		},
 	}
 
