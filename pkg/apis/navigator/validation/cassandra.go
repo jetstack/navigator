@@ -33,15 +33,24 @@ func ValidateCassandraClusterUpdate(old, new *navigator.CassandraCluster) field.
 
 		for _, oldNp := range old.Spec.NodePools {
 			if newNp.Name == oldNp.Name {
-				if newNp.Rack != oldNp.Rack {
-					allErrs = append(allErrs, field.Forbidden(idxPath.Child("rack"), "cannot modify rack"))
+				if !reflect.DeepEqual(newNp.Persistence, oldNp.Persistence) {
+					if oldNp.Persistence.Enabled {
+						allErrs = append(allErrs, field.Forbidden(idxPath.Child("persistence"), "cannot modify persistence configuration once enabled"))
+					}
 				}
-				if newNp.Datacenter != oldNp.Datacenter {
-					allErrs = append(allErrs, field.Forbidden(idxPath.Child("datacenter"), "cannot modify datacenter"))
+
+				restoreReplicas := newNp.Replicas
+				newNp.Replicas = oldNp.Replicas
+
+				restorePersistence := newNp.Persistence
+				newNp.Persistence = oldNp.Persistence
+
+				if !reflect.DeepEqual(newNp, oldNp) {
+					allErrs = append(allErrs, field.Forbidden(field.NewPath("spec"), "updates to nodepool for fields other than 'replicas' and 'persistence' are forbidden."))
 				}
-				if !reflect.DeepEqual(newNp.NodeSelector, oldNp.NodeSelector) {
-					allErrs = append(allErrs, field.Forbidden(idxPath.Child("nodeSelector"), "cannot modify nodeSelector"))
-				}
+				newNp.Replicas = restoreReplicas
+				newNp.Persistence = restorePersistence
+
 				break
 			}
 		}

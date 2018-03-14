@@ -22,11 +22,7 @@ var (
 		"some": "selector",
 	}
 	// TODO: expand test cases here
-	validNodePoolResources         = corev1.ResourceRequirements{}
-	validNodePoolPersistenceConfig = navigator.PersistenceConfig{
-		Enabled: true,
-		Size:    resource.MustParse("10Gi"),
-	}
+	validNodePoolResources = corev1.ResourceRequirements{}
 
 	validSpecPluginsList = []string{"anything"}
 	validESCluster       = &navigator.ElasticsearchCluster{
@@ -470,5 +466,82 @@ func TestValidateElasticsearchClusterSpec(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestValidateElasticsearchClusterUpdate(t *testing.T) {
+	type testT struct {
+		old           *navigator.ElasticsearchCluster
+		new           *navigator.ElasticsearchCluster
+		errorExpected bool
+	}
+
+	baseCluster := validESCluster.DeepCopy()
+	baseCluster.Spec.NodePools = []navigator.ElasticsearchClusterNodePool{
+		newValidNodePool("test", 3, navigator.ElasticsearchRoleMaster),
+	}
+
+	setPersistence := func(
+		e *navigator.ElasticsearchCluster,
+		p navigator.PersistenceConfig,
+	) *navigator.ElasticsearchCluster {
+		e = e.DeepCopy()
+		e.Spec.NodePools[0].Persistence = p
+		return e
+	}
+
+	setRole := func(
+		e *navigator.ElasticsearchCluster,
+		r []navigator.ElasticsearchClusterRole,
+	) *navigator.ElasticsearchCluster {
+		e = e.DeepCopy()
+		e.Spec.NodePools[0].Roles = r
+		return e
+	}
+
+	tests := map[string]testT{
+		"unchanged cluster": {
+			old: baseCluster,
+			new: baseCluster,
+		},
+		"enable persistence config": {
+			old: setPersistence(baseCluster, navigator.PersistenceConfig{Enabled: false}),
+			new: baseCluster,
+		},
+		"change role": {
+			old: baseCluster,
+			new: setRole(baseCluster, []navigator.ElasticsearchClusterRole{
+				navigator.ElasticsearchRoleData,
+				navigator.ElasticsearchRoleMaster,
+				navigator.ElasticsearchRoleIngest,
+			}),
+			errorExpected: true,
+		},
+	}
+
+	for title, persistence := range persistenceErrorCases {
+		tests[title] = testT{
+			old:           baseCluster,
+			new:           setPersistence(baseCluster, persistence),
+			errorExpected: true,
+		}
+	}
+
+	for title, tc := range tests {
+		t.Run(
+			title,
+			func(t *testing.T) {
+				errs := validation.ValidateElasticsearchClusterUpdate(tc.old, tc.new)
+				if tc.errorExpected && len(errs) == 0 {
+					t.Errorf("expected error but got none")
+				}
+				if !tc.errorExpected && len(errs) != 0 {
+					t.Errorf("unexpected errors: %s", errs)
+				}
+				for _, e := range errs {
+					t.Logf("error string is: %s", e)
+				}
+			},
+		)
 	}
 }
