@@ -15,7 +15,13 @@ Node Pools
 The C* nodes in a Navigator ``cassandracluster`` are configured and grouped by rack and data center
 and in Navigator, these groups of nodes are called ``nodepools``.
 
-All the C* nodes (pods) in a ``nodepool`` have the same configuration and the following sections describe the configuration options that are available:
+All the C* nodes (pods) in a ``nodepool`` have the same configuration and the following sections describe the configuration options that are available.
+
+.. note::
+   Other than the following whitelisted fields, updates to nodepool configuration are not allowed:
+
+   - ``replicas``
+   - ``persistence``
 
 .. include:: configure-scheduler.rst
 
