@@ -121,6 +121,31 @@ function fail_test() {
     echo "TEST FAILURE: $1"
 }
 
+function test_general() {
+    echo "Testing General"
+    local namespace="${1}"
+
+    kube_create_namespace_with_quota "${namespace}"
+
+    local invalid_namespace="notarealnamespace"
+    echo "Ensuring NamespaceLifecycle admission controller blocks creation of resources in non-existent namespaces"
+    if kubectl create --namespace "${invalid_namespace}" -f "${SCRIPT_DIR}/testdata/testpilot.yaml"; then
+        fail_test "navigator-apiserver allowed creation of a resource in a namespace that does not exist"
+    fi
+
+    echo "Ensuring we can create resources in valid namespaces"
+    if ! kubectl create --namespace "${namespace}" -f "${SCRIPT_DIR}/testdata/testpilot.yaml"; then
+        fail_test "navigator-apiserver should allow creation of resources in namespaces that exist"
+    fi
+}
+
+GENERAL_TEST_NS="test-general-${TEST_ID}"
+test_general "${GENERAL_TEST_NS}"
+if [ "${FAILURE_COUNT}" -gt "0" ]; then
+    exit 1
+fi
+kube_delete_namespace_and_wait "${GENERAL_TEST_NS}"
+
 function test_elasticsearchcluster() {
     local namespace="${1}"
     echo "Testing ElasticsearchCluster"
