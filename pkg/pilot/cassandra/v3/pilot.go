@@ -30,17 +30,20 @@ type Pilot struct {
 	// a reference to the GenericPilot for this Pilot
 	genericPilot *genericpilot.GenericPilot
 	nodeTool     nodetool.Interface
+
+	decommissionInProgress bool
 }
 
 func NewPilot(opts *PilotOptions) (*Pilot, error) {
 	pilotInformer := opts.sharedInformerFactory.Navigator().V1alpha1().Pilots()
 
 	p := &Pilot{
-		Options:             opts,
-		navigatorClient:     opts.navigatorClientset,
-		pilotLister:         pilotInformer.Lister(),
-		pilotInformerSynced: pilotInformer.Informer().HasSynced,
-		nodeTool:            opts.nodeTool,
+		Options:                opts,
+		navigatorClient:        opts.navigatorClientset,
+		pilotLister:            pilotInformer.Lister(),
+		pilotInformerSynced:    pilotInformer.Informer().HasSynced,
+		nodeTool:               opts.nodeTool,
+		decommissionInProgress: false,
 	}
 
 	// hack to test the seedprovider, this should use whatever pattern is decided upon here:

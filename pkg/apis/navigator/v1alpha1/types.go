@@ -329,6 +329,32 @@ type PilotList struct {
 }
 
 type PilotSpec struct {
+	Elasticsearch *PilotElasticsearchSpec `json:"elasticsearch"`
+	Cassandra     *PilotCassandraSpec     `json:"cassandra"`
+}
+
+type PilotPhase string
+
+const (
+	// PreStart occurs before the Pilot's subprocess has been started.
+	PilotPhasePreStart PilotPhase = "PreStart"
+	// PostStart occurs immediately after the Pilot's subprocess has been
+	// started.
+	PilotPhasePostStart PilotPhase = "PostStart"
+	// PreStop occurs just before the Pilot's subprocess is sent a graceful
+	// termination signal. These hooks will block termination of the process.
+	PilotPhasePreStop PilotPhase = "PreStop"
+	// PostStop occurs after the Pilot's has stopped. These can be used to
+	// clean up, or whatever other action that may need to be performed.
+	PilotPhasePostStop PilotPhase = "PostStop"
+)
+
+type PilotElasticsearchSpec struct {
+}
+
+type PilotCassandraSpec struct {
+	// Decommissioned should be set to true if we want to decommission this node
+	Decommissioned bool `json:"decommissioned"`
 }
 
 type PilotStatus struct {
@@ -363,6 +389,9 @@ type CassandraPilotStatus struct {
 	// This field may be nil if the version number is not currently known.
 	// +optional
 	Version *version.Version `json:"version,omitempty"`
+
+	// Decommissioned is true if we think we have successfully decommissioned this node
+	Decommissioned bool `json:"decommissioned"`
 }
 
 // PilotCondition contains condition information for a Pilot.

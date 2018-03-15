@@ -177,6 +177,24 @@ type PilotList struct {
 }
 
 type PilotSpec struct {
+	Elasticsearch *PilotElasticsearchSpec
+	Cassandra     *PilotCassandraSpec
+}
+
+type PilotPhase string
+
+const (
+	PilotPhasePreStart  PilotPhase = "PreStart"
+	PilotPhasePostStart PilotPhase = "PostStart"
+	PilotPhasePreStop   PilotPhase = "PreStop"
+	PilotPhasePostStop  PilotPhase = "PostStop"
+)
+
+type PilotElasticsearchSpec struct {
+}
+
+type PilotCassandraSpec struct {
+	Decommissioned bool
 }
 
 type PilotStatus struct {
@@ -196,7 +214,8 @@ type ElasticsearchPilotStatus struct {
 }
 
 type CassandraPilotStatus struct {
-	Version *version.Version
+	Version        *version.Version
+	Decommissioned bool
 }
 
 // PilotCondition contains condition information for a Pilot.
