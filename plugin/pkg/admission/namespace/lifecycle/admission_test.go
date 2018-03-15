@@ -33,9 +33,9 @@ import (
 	kubeclientset "k8s.io/client-go/kubernetes"
 
 	"github.com/jetstack/navigator/pkg/apis/navigator"
-	"github.com/jetstack/navigator/pkg/client/clientset_generated/internalclientset"
-	"github.com/jetstack/navigator/pkg/client/clientset_generated/internalclientset/fake"
-	informers "github.com/jetstack/navigator/pkg/client/informers_generated/internalversion"
+	internalclientset "github.com/jetstack/navigator/pkg/client/clientset/internalversion"
+	"github.com/jetstack/navigator/pkg/client/clientset/internalversion/fake"
+	informers "github.com/jetstack/navigator/pkg/client/informers/internalversion"
 
 	navadmission "github.com/jetstack/navigator/pkg/apiserver/admission"
 )
