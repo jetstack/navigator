@@ -460,8 +460,7 @@ func TestValidateElasticsearchClusterSpec(t *testing.T) {
 					field != "test.plugins" &&
 					field != "test.nodePools" &&
 					field != "test.pilot" &&
-					field != "test.image" &&
-					field != "test.sysctl" {
+					field != "test.image" {
 					t.Errorf("%s: missing prefix for: %v", n, err)
 				}
 			}

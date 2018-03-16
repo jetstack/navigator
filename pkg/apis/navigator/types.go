@@ -151,8 +151,6 @@ type NavigatorClusterConfig struct {
 	PilotImage ImageSpec
 
 	SecurityContext NavigatorSecurityContext
-
-	Sysctls []string
 }
 
 type NavigatorSecurityContext struct {

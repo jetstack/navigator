@@ -4,8 +4,6 @@ metadata:
   name: "${CASS_NAME}"
 spec:
   version: "${CASS_VERSION}"
-  sysctls:
-  - "vm.max_map_count=0"
   nodePools:
   - name: "ringnodes"
     replicas: ${CASS_REPLICAS}
