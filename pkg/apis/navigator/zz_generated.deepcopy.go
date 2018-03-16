@@ -429,11 +429,6 @@ func (in *NavigatorClusterConfig) DeepCopyInto(out *NavigatorClusterConfig) {
 	*out = *in
 	out.PilotImage = in.PilotImage
 	in.SecurityContext.DeepCopyInto(&out.SecurityContext)
-	if in.Sysctls != nil {
-		in, out := &in.Sysctls, &out.Sysctls
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	}
 	return
 }
 

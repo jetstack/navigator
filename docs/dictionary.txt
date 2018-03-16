@@ -20,3 +20,4 @@ scalable
 stateful
 portworx
 whitelisted
+tolerations

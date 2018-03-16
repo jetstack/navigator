@@ -8,9 +8,6 @@ spec:
   # minimumMasters: 2
   version: 5.6.2
 
-  sysctls:
-  - vm.max_map_count=262144
-
   securityContext:
     runAsUser: 1000
 

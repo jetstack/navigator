@@ -6,6 +6,7 @@ This will involve first deploying Navigator, and then creating an ``Elasticsearc
 All management of the Elasticsearch cluster will be through changes to the ElasticsearchCluster manifest.
 
 1) Install Navigator using `Helm <https://github.com/kubernetes/helm>`_
+-----------------------------------------------------------------------
 
 .. code-block:: bash
 
@@ -19,7 +20,23 @@ You should see the Navigator service start in the ``navigator`` namespace:
     NAME                        READY     STATUS         RESTARTS   AGE
     navigator-745449320-dcgms   1/1       Running        0          30s
 
-2) We can now create a new ElasticsearchCluster:
+2) Prepare your Kubernetes nodes
+--------------------------------
+
+Elasticsearch requires certain `important system configuration settings <https://www.elastic.co/guide/en/elasticsearch/reference/current/system-config.html>`_ to be configured on the host operating system i.e. on the Kubernetes node.
+For this demonstration, it should be sufficient to run ``sysctl -w vm.max_map_count=262144``, which `increases a particular virtual memory limit <https://www.elastic.co/guide/en/elasticsearch/reference/current/vm-max-map-count.html>`_.
+You can quickly run the command on *all* your Kubernetes nodes by installing the following ``DaemonSet``:
+
+.. code-block:: bash
+
+  $ kubectl apply -f docs/quick-start/sysctl-daemonset.yaml
+
+Or you can log into each node and run the command by hand.
+
+See :ref:`system-configuration-elastic-search` for more information.
+
+3) Create an Elasticsearch cluster
+----------------------------------
 
 .. code-block:: bash
 
@@ -43,7 +60,8 @@ All of the options you may need for configuring your cluster are documented on t
     es-demo-master-554549909-pp557    1/1       Running   0          7m
     es-demo-master-554549909-vjgrt    1/1       Running   0          7m
 
-3) Scale the data nodes:
+4) Scale the data nodes
+-----------------------
 
 Scaling the nodes can be done by modifying your ElasticsearchCluster manifest.
 Currently this is only possible using ``kubectl replace``, due to bugs with the way ThirdPartyResource's are handled in kubectl 1.5.

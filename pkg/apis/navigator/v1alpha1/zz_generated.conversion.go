@@ -529,7 +529,6 @@ func autoConvert_v1alpha1_NavigatorClusterConfig_To_navigator_NavigatorClusterCo
 	if err := Convert_v1alpha1_NavigatorSecurityContext_To_navigator_NavigatorSecurityContext(&in.SecurityContext, &out.SecurityContext, s); err != nil {
 		return err
 	}
-	out.Sysctls = *(*[]string)(unsafe.Pointer(&in.Sysctls))
 	return nil
 }
 
@@ -545,7 +544,6 @@ func autoConvert_navigator_NavigatorClusterConfig_To_v1alpha1_NavigatorClusterCo
 	if err := Convert_navigator_NavigatorSecurityContext_To_v1alpha1_NavigatorSecurityContext(&in.SecurityContext, &out.SecurityContext, s); err != nil {
 		return err
 	}
-	out.Sysctls = *(*[]string)(unsafe.Pointer(&in.Sysctls))
 	return nil
 }
 

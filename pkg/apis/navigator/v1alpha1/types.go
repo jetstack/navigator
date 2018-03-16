@@ -243,10 +243,6 @@ type NavigatorClusterConfig struct {
 
 	// Security related options that are common to all cluster kinds
 	SecurityContext NavigatorSecurityContext `json:"securityContext,omitempty"`
-
-	// Sysctl can be used to specify a list of sysctl values to set on start-up
-	// This can be used to set for example the vm.max_map_count parameter.
-	Sysctls []string `json:"sysctls"`
 }
 
 type NavigatorSecurityContext struct {
