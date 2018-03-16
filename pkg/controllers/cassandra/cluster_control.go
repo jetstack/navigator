@@ -212,6 +212,13 @@ func NextAction(c *v1alpha1.CassandraCluster) controllers.Action {
 				NodePool: &np,
 			}
 		}
+
+		if np.Replicas < nps.ReadyReplicas {
+			return &actions.ScaleIn{
+				Cluster:  c,
+				NodePool: &np,
+			}
+		}
 	}
 	return nil
 }
