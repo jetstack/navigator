@@ -40,9 +40,16 @@ func (e *defaultCassandraClusterNodepoolControl) createStatefulSet(
 	desiredSet := StatefulSetForCluster(cluster, nodePool)
 	client := e.kubeClient.AppsV1beta1().StatefulSets(cluster.Namespace)
 	lister := e.statefulSetLister.StatefulSets(desiredSet.Namespace)
-	_, err := lister.Get(desiredSet.Name)
+	existingSet, err := lister.Get(desiredSet.Name)
 	// StatefulSet already exists
 	if err == nil {
+		// XXX Temporary hack to enable scale out until we implement ScaleOut action.
+		if *existingSet.Spec.Replicas < *desiredSet.Spec.Replicas {
+			existingSet = existingSet.DeepCopy()
+			existingSet.Spec.Replicas = desiredSet.Spec.Replicas
+			_, err = client.Update(existingSet)
+			return err
+		}
 		return nil
 	}
 	if !k8sErrors.IsNotFound(err) {
