@@ -36,7 +36,7 @@ type CassandraClusterSpec struct {
 
 type CassandraClusterNodePool struct {
 	Name          string
-	Replicas      int64
+	Replicas      int32
 	Persistence   PersistenceConfig
 	NodeSelector  map[string]string
 	Rack          string
@@ -50,7 +50,7 @@ type CassandraClusterStatus struct {
 }
 
 type CassandraClusterNodePoolStatus struct {
-	ReadyReplicas int64
+	ReadyReplicas int32
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

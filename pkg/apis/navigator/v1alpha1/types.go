@@ -44,7 +44,7 @@ type CassandraClusterSpec struct {
 // CassandraClusterNodePool describes a node pool within a CassandraCluster.
 type CassandraClusterNodePool struct {
 	Name     string `json:"name"`
-	Replicas int64  `json:"replicas"`
+	Replicas int32  `json:"replicas"`
 
 	// Persistence specifies the configuration for persistent data for this
 	// node.
@@ -81,7 +81,7 @@ type CassandraClusterStatus struct {
 }
 
 type CassandraClusterNodePoolStatus struct {
-	ReadyReplicas int64 `json:"readyReplicas"`
+	ReadyReplicas int32 `json:"readyReplicas"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
