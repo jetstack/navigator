@@ -161,9 +161,11 @@ func NewCassandra(
 		),
 		recorder,
 		&controllers.State{
-			Clientset:         kubeClient,
-			StatefulSetLister: statefulSets.Lister(),
-			Recorder:          recorder,
+			Clientset:          kubeClient,
+			NavigatorClientset: naviClient,
+			StatefulSetLister:  statefulSets.Lister(),
+			PilotLister:        pilots.Lister(),
+			Recorder:           recorder,
 		},
 	)
 	cc.recorder = recorder

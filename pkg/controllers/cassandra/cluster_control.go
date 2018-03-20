@@ -3,6 +3,7 @@ package cassandra
 import (
 	"github.com/golang/glog"
 	apiv1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/listers/apps/v1beta1"
 	"k8s.io/client-go/tools/record"
 
 	v1alpha1 "github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
@@ -15,6 +16,7 @@ import (
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/seedlabeller"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/service"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/serviceaccount"
+	"github.com/jetstack/navigator/pkg/controllers/cassandra/util"
 )
 
 const (
@@ -170,7 +172,10 @@ func (e *defaultCassandraClusterControl) Sync(c *v1alpha1.CassandraCluster) erro
 		return err
 	}
 
-	a := NextAction(c)
+	a, err := NextAction(c, e.state.StatefulSetLister)
+	if err != nil {
+		return c.Status, err
+	}
 	if a != nil {
 		err = a.Execute(e.state)
 		if err != nil {
@@ -194,14 +199,14 @@ func (e *defaultCassandraClusterControl) Sync(c *v1alpha1.CassandraCluster) erro
 	return nil
 }
 
-func NextAction(c *v1alpha1.CassandraCluster) controllers.Action {
+func NextAction(c *v1alpha1.CassandraCluster, statefulSetLister v1beta1.StatefulSetLister) (controllers.Action, error) {
 	for _, np := range c.Spec.NodePools {
 		_, found := c.Status.NodePools[np.Name]
 		if !found {
 			return &actions.CreateNodePool{
 				Cluster:  c,
 				NodePool: &np,
-			}
+			}, nil
 		}
 	}
 	for _, np := range c.Spec.NodePools {
@@ -210,15 +215,21 @@ func NextAction(c *v1alpha1.CassandraCluster) controllers.Action {
 			return &actions.ScaleOut{
 				Cluster:  c,
 				NodePool: &np,
-			}
+			}, nil
 		}
 
-		if np.Replicas < nps.ReadyReplicas {
+		statefulSetName := util.NodePoolResourceName(c, &np)
+		ss, err := statefulSetLister.StatefulSets(c.Namespace).Get(statefulSetName)
+		if err != nil {
+			return nil, err
+		}
+
+		if np.Replicas < *ss.Spec.Replicas {
 			return &actions.ScaleIn{
 				Cluster:  c,
 				NodePool: &np,
-			}
+			}, nil
 		}
 	}
-	return nil
+	return nil, nil
 }
