@@ -34,40 +34,6 @@ func NewControl(
 	}
 }
 
-func (e *defaultCassandraClusterNodepoolControl) removeUnusedStatefulSets(
-	cluster *v1alpha1.CassandraCluster,
-) error {
-	expectedStatefulSetNames := map[string]bool{}
-	for _, pool := range cluster.Spec.NodePools {
-		name := util.NodePoolResourceName(cluster, &pool)
-		expectedStatefulSetNames[name] = true
-	}
-	client := e.kubeClient.AppsV1beta1().StatefulSets(cluster.Namespace)
-	lister := e.statefulSetLister.StatefulSets(cluster.Namespace)
-	selector, err := util.SelectorForCluster(cluster)
-	if err != nil {
-		return err
-	}
-	existingSets, err := lister.List(selector)
-	if err != nil {
-		return err
-	}
-	for _, set := range existingSets {
-		err := util.OwnerCheck(set, cluster)
-		if err != nil {
-			return err
-		}
-		_, found := expectedStatefulSetNames[set.Name]
-		if !found {
-			err := client.Delete(set.Name, nil)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
 func (e *defaultCassandraClusterNodepoolControl) createOrUpdateStatefulSet(
 	cluster *v1alpha1.CassandraCluster,
 	nodePool *v1alpha1.CassandraClusterNodePool,
@@ -101,8 +67,7 @@ func (e *defaultCassandraClusterNodepoolControl) syncStatefulSets(
 			return err
 		}
 	}
-	err := e.removeUnusedStatefulSets(cluster)
-	return err
+	return nil
 }
 
 func (e *defaultCassandraClusterNodepoolControl) Sync(cluster *v1alpha1.CassandraCluster) error {
