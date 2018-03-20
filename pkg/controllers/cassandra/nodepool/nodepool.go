@@ -7,7 +7,6 @@ import (
 	"k8s.io/client-go/tools/record"
 
 	v1alpha1 "github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
-	"github.com/jetstack/navigator/pkg/controllers/cassandra/util"
 )
 
 type Interface interface {
@@ -34,42 +33,34 @@ func NewControl(
 	}
 }
 
-func (e *defaultCassandraClusterNodepoolControl) createOrUpdateStatefulSet(
+func (e *defaultCassandraClusterNodepoolControl) createStatefulSet(
 	cluster *v1alpha1.CassandraCluster,
 	nodePool *v1alpha1.CassandraClusterNodePool,
 ) error {
 	desiredSet := StatefulSetForCluster(cluster, nodePool)
 	client := e.kubeClient.AppsV1beta1().StatefulSets(cluster.Namespace)
 	lister := e.statefulSetLister.StatefulSets(desiredSet.Namespace)
-	existingSet, err := lister.Get(desiredSet.Name)
-	if k8sErrors.IsNotFound(err) {
-		_, err = client.Create(desiredSet)
+	_, err := lister.Get(desiredSet.Name)
+	// StatefulSet already exists
+	if err == nil {
+		return nil
+	}
+	if !k8sErrors.IsNotFound(err) {
 		return err
 	}
-	if err != nil {
-		return err
+	_, err = client.Create(desiredSet)
+	if k8sErrors.IsAlreadyExists(err) {
+		return nil
 	}
-	err = util.OwnerCheck(existingSet, cluster)
-	if err != nil {
-		return err
-	}
-
-	_, err = client.Update(desiredSet)
 	return err
 }
 
-func (e *defaultCassandraClusterNodepoolControl) syncStatefulSets(
-	cluster *v1alpha1.CassandraCluster,
-) error {
+func (e *defaultCassandraClusterNodepoolControl) Sync(cluster *v1alpha1.CassandraCluster) error {
 	for _, pool := range cluster.Spec.NodePools {
-		err := e.createOrUpdateStatefulSet(cluster, &pool)
+		err := e.createStatefulSet(cluster, &pool)
 		if err != nil {
 			return err
 		}
 	}
 	return nil
-}
-
-func (e *defaultCassandraClusterNodepoolControl) Sync(cluster *v1alpha1.CassandraCluster) error {
-	return e.syncStatefulSets(cluster)
 }
