@@ -39,10 +39,17 @@ func (a *ScaleIn) Execute(s *controllers.State) error {
 			return err
 		}
 
+		if len(pilots) <= 1 {
+			return fmt.Errorf(
+				"Not enough pilots to scale down: %d",
+				len(pilots),
+			)
+		}
+
 		allDecommissioned := true
 
 		nPilotsToRemove := int(*ss.Spec.Replicas - a.NodePool.Replicas)
-		for i := 0; i < nPilotsToRemove; i++ {
+		for i := 1; i <= nPilotsToRemove; i++ {
 			p := pilots[len(pilots)-i].DeepCopy()
 			if p.Spec.Cassandra == nil {
 				p.Spec.Cassandra = &v1alpha1.PilotCassandraSpec{}
@@ -51,14 +58,16 @@ func (a *ScaleIn) Execute(s *controllers.State) error {
 			if !p.Spec.Cassandra.Decommissioned {
 				p.Spec.Cassandra.Decommissioned = true
 				_, err := s.NavigatorClientset.NavigatorV1alpha1().Pilots(p.Namespace).Update(p)
-				if err == nil {
-					s.Recorder.Eventf(
-						p,
-						corev1.EventTypeNormal,
-						a.Name(),
-						"Marked cassandra pilot %s for decommission", p.Name,
-					)
+				if err != nil {
+					return err
 				}
+
+				s.Recorder.Eventf(
+					p,
+					corev1.EventTypeNormal,
+					a.Name(),
+					"Marked cassandra pilot %s for decommission", p.Name,
+				)
 			}
 
 			if p.Status.Cassandra == nil {
