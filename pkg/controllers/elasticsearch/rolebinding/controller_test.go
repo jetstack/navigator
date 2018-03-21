@@ -183,5 +183,3 @@ func TestNotControlledByUs(t *testing.T) {
 	// TODO: invent some way to neatly check the status of the 'cluster' after running
 	f.runExpectError(cluster)
 }
-
-func int32Ptr(i int32) *int32 { return &i }

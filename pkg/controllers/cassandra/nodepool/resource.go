@@ -12,6 +12,7 @@ import (
 
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/util"
+	"github.com/jetstack/navigator/pkg/util/ptr"
 )
 
 const (
@@ -48,7 +49,7 @@ func StatefulSetForCluster(
 			OwnerReferences: []metav1.OwnerReference{util.NewControllerRef(cluster)},
 		},
 		Spec: apps.StatefulSetSpec{
-			Replicas: util.Int32Ptr(int32(np.Replicas)),
+			Replicas: ptr.Int32(np.Replicas),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: nodePoolLabels,
 			},

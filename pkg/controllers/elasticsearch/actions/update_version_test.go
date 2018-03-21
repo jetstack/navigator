@@ -12,16 +12,10 @@ import (
 	"github.com/jetstack/navigator/internal/test/unit/framework"
 	"github.com/jetstack/navigator/internal/test/util/generate"
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
+	"github.com/jetstack/navigator/pkg/util/ptr"
 )
 
 const esImageRepo = "docker.elastic.co/elasticsearch/elasticsearch"
-
-func int32Ptr(i int32) *int32 {
-	return &i
-}
-func int64Ptr(i int64) *int64 {
-	return &i
-}
 
 func TestUpdateVersion(t *testing.T) {
 	type testT struct {
@@ -38,7 +32,7 @@ func TestUpdateVersion(t *testing.T) {
 			kubeObjects: []runtime.Object{
 				generate.StatefulSet(generate.StatefulSetConfig{
 					Name:            "es-test-data",
-					Replicas:        int32Ptr(3),
+					Replicas:        ptr.Int32(3),
 					Version:         "6.1.1",
 					Image:           esImageRepo + ":6.1.1",
 					CurrentRevision: "a",
@@ -56,12 +50,12 @@ func TestUpdateVersion(t *testing.T) {
 			shouldUpdate: true,
 			expectedStatefulSet: generate.StatefulSet(generate.StatefulSetConfig{
 				Name:            "es-test-data",
-				Replicas:        int32Ptr(3),
+				Replicas:        ptr.Int32(3),
 				Version:         "6.1.1",
 				Image:           esImageRepo + ":6.1.2",
 				CurrentRevision: "a",
 				CurrentReplicas: 3,
-				Partition:       int32Ptr(2),
+				Partition:       ptr.Int32(2),
 				ReadyReplicas:   3,
 			}),
 			err: false,
@@ -70,13 +64,13 @@ func TestUpdateVersion(t *testing.T) {
 			kubeObjects: []runtime.Object{
 				generate.StatefulSet(generate.StatefulSetConfig{
 					Name:            "es-test-data",
-					Replicas:        int32Ptr(3),
+					Replicas:        ptr.Int32(3),
 					Version:         "6.1.1",
 					Image:           esImageRepo + ":6.1.2",
 					CurrentRevision: "a",
 					CurrentReplicas: 2,
 					UpdatedReplicas: 1,
-					Partition:       int32Ptr(2),
+					Partition:       ptr.Int32(2),
 					ReadyReplicas:   3,
 				}),
 			},
@@ -96,13 +90,13 @@ func TestUpdateVersion(t *testing.T) {
 			shouldUpdate: true,
 			expectedStatefulSet: generate.StatefulSet(generate.StatefulSetConfig{
 				Name:            "es-test-data",
-				Replicas:        int32Ptr(3),
+				Replicas:        ptr.Int32(3),
 				Version:         "6.1.1",
 				Image:           esImageRepo + ":6.1.2",
 				CurrentRevision: "a",
 				CurrentReplicas: 2,
 				UpdatedReplicas: 1,
-				Partition:       int32Ptr(1),
+				Partition:       ptr.Int32(1),
 				ReadyReplicas:   3,
 			}),
 			err: false,
@@ -111,7 +105,7 @@ func TestUpdateVersion(t *testing.T) {
 			kubeObjects: []runtime.Object{
 				generate.StatefulSet(generate.StatefulSetConfig{
 					Name:            "es-test-data",
-					Replicas:        int32Ptr(3),
+					Replicas:        ptr.Int32(3),
 					Version:         "6.1.1",
 					Image:           esImageRepo + ":6.1.1",
 					CurrentRevision: "a",
@@ -139,7 +133,7 @@ func TestUpdateVersion(t *testing.T) {
 			kubeObjects: []runtime.Object{
 				generate.StatefulSet(generate.StatefulSetConfig{
 					Name:            "es-test-data",
-					Replicas:        int32Ptr(3),
+					Replicas:        ptr.Int32(3),
 					Version:         "6.1.1",
 					Image:           esImageRepo + ":6.1.1",
 					CurrentRevision: "a",
@@ -167,13 +161,13 @@ func TestUpdateVersion(t *testing.T) {
 			kubeObjects: []runtime.Object{
 				generate.StatefulSet(generate.StatefulSetConfig{
 					Name:            "es-test-data",
-					Replicas:        int32Ptr(3),
+					Replicas:        ptr.Int32(3),
 					Version:         "6.1.1",
 					Image:           esImageRepo + ":6.1.2",
 					CurrentRevision: "b",
 					UpdateRevision:  "b",
 					CurrentReplicas: 3,
-					Partition:       int32Ptr(2),
+					Partition:       ptr.Int32(2),
 					ReadyReplicas:   3,
 				}),
 			},
@@ -193,13 +187,13 @@ func TestUpdateVersion(t *testing.T) {
 			shouldUpdate: true,
 			expectedStatefulSet: generate.StatefulSet(generate.StatefulSetConfig{
 				Name:            "es-test-data",
-				Replicas:        int32Ptr(3),
+				Replicas:        ptr.Int32(3),
 				Version:         "6.1.2",
 				Image:           esImageRepo + ":6.1.2",
 				CurrentRevision: "b",
 				UpdateRevision:  "b",
 				CurrentReplicas: 3,
-				Partition:       int32Ptr(2),
+				Partition:       ptr.Int32(2),
 				ReadyReplicas:   3,
 			}),
 			err: false,
@@ -208,7 +202,7 @@ func TestUpdateVersion(t *testing.T) {
 			kubeObjects: []runtime.Object{
 				generate.StatefulSet(generate.StatefulSetConfig{
 					Name:            "es-test-data",
-					Replicas:        int32Ptr(3),
+					Replicas:        ptr.Int32(3),
 					Version:         "6.1.1",
 					Image:           esImageRepo + ":6.1.2",
 					CurrentRevision: "a",
