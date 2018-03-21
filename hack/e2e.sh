@@ -23,6 +23,18 @@ source "${SCRIPT_DIR}/libe2e.sh"
 
 # Override these variables in order change the repository and pull policy from
 # if you've published test images to your own repository.
+: ${CHART_VALUES:="${SCRIPT_DIR}/testdata/values.yaml"}
+: ${NAVIGATOR_IMAGE_REPOSITORY:="jetstackexperimental"}
+: ${NAVIGATOR_IMAGE_TAG:="build"}
+: ${NAVIGATOR_IMAGE_PULLPOLICY:="Never"}
+
+export \
+    NAVIGATOR_IMAGE_REPOSITORY \
+    NAVIGATOR_IMAGE_TAG \
+    NAVIGATOR_IMAGE_PULLPOLICY
+
+# Override these variables in order change the repository and pull policy from
+# if you've published test images to your own repository.
 : ${CHART_VALUES_CASSANDRA:="${SCRIPT_DIR}/testdata/values_cassandra.yaml"}
 
 # Save the cluster logs when the script exits (success or failure)
@@ -34,28 +46,6 @@ TEST_ID="$(date +%s)-${RANDOM}"
 function fail_test() {
     FAILURE_COUNT=$(($FAILURE_COUNT+1))
     echo "TEST FAILURE: $1"
-}
-
-function cql_connect() {
-    local namespace="${1}"
-    local host="${2}"
-    local port="${3}"
-    # Attempt to negotiate a CQL connection.
-    # No queries are performed.
-    # stdin=false (the default) ensures that cqlsh does not go into interactive
-    # mode.
-    kubectl \
-        run \
-        "cql-responding-${RANDOM}" \
-        --namespace="${namespace}" \
-        --command=true \
-        --image=cassandra:3 \
-        --restart=Never \
-        --rm \
-        --stdin=false \
-        --attach=true \
-        -- \
-        /usr/bin/cqlsh --debug "${host}" "${port}"
 }
 
 function test_general() {

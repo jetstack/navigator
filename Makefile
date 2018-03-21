@@ -38,9 +38,9 @@ test: go_test
 	go test -c -o e2e-tests ./test/e2e
 	# Prepare e2e test environment (deploy Helm, Navigator).
 	# Then run older bash style cassandra e2e test suite
+	${HACK_DIR}/prepare-e2e.sh; \
 	NAVIGATOR_IMAGE_REPOSITORY="${REGISTRY}" \
 	NAVIGATOR_IMAGE_TAG="${BUILD_TAG}" \
-	${HACK_DIR}/prepare-e2e.sh; \
 	${HACK_DIR}/e2e.sh;
 	# Execute e2e tests
 	./e2e-tests \
