@@ -308,11 +308,11 @@ func buildInitContainers(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.Elastics
 			Resources: apiv1.ResourceRequirements{
 				Requests: apiv1.ResourceList{
 					apiv1.ResourceCPU:    resource.MustParse("10m"),
-					apiv1.ResourceMemory: resource.MustParse("8Mi"),
+					apiv1.ResourceMemory: resource.MustParse("50Mi"),
 				},
 				Limits: apiv1.ResourceList{
 					apiv1.ResourceCPU:    resource.MustParse("10m"),
-					apiv1.ResourceMemory: resource.MustParse("8Mi"),
+					apiv1.ResourceMemory: resource.MustParse("50Mi"),
 				},
 			},
 		},
