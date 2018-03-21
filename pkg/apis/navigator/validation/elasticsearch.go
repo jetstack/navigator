@@ -2,8 +2,8 @@ package validation
 
 import (
 	"fmt"
+	"reflect"
 
-	"github.com/coreos/go-semver/semver"
 	apimachineryvalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -60,8 +60,6 @@ func ValidateElasticsearchPersistence(cfg *navigator.PersistenceConfig, fldPath 
 	return el
 }
 
-var emptySemver = semver.Version{}
-
 func ValidateElasticsearchClusterSpec(spec *navigator.ElasticsearchClusterSpec, fldPath *field.Path) field.ErrorList {
 	allErrs := ValidateNavigatorClusterConfig(&spec.NavigatorClusterConfig, fldPath)
 	if spec.Image != nil {
@@ -102,6 +100,42 @@ func ValidateElasticsearchClusterSpec(spec *navigator.ElasticsearchClusterSpec, 
 func ValidateElasticsearchCluster(esc *navigator.ElasticsearchCluster) field.ErrorList {
 	allErrs := ValidateObjectMeta(&esc.ObjectMeta, true, apimachineryvalidation.NameIsDNSSubdomain, field.NewPath("metadata"))
 	allErrs = append(allErrs, ValidateElasticsearchClusterSpec(&esc.Spec, field.NewPath("spec"))...)
+	return allErrs
+}
+
+func ValidateElasticsearchClusterUpdate(old, new *navigator.ElasticsearchCluster) field.ErrorList {
+	allErrs := ValidateElasticsearchCluster(new)
+
+	fldPath := field.NewPath("spec")
+
+	npPath := fldPath.Child("nodePools")
+	for i, newNp := range new.Spec.NodePools {
+		idxPath := npPath.Index(i)
+
+		for _, oldNp := range old.Spec.NodePools {
+			if newNp.Name == oldNp.Name {
+				if !reflect.DeepEqual(newNp.Persistence, oldNp.Persistence) {
+					if oldNp.Persistence.Enabled {
+						allErrs = append(allErrs, field.Forbidden(idxPath.Child("persistence"), "cannot modify persistence configuration once enabled"))
+					}
+				}
+
+				restoreReplicas := newNp.Replicas
+				newNp.Replicas = oldNp.Replicas
+
+				restorePersistence := newNp.Persistence
+				newNp.Persistence = oldNp.Persistence
+
+				if !reflect.DeepEqual(newNp, oldNp) {
+					allErrs = append(allErrs, field.Forbidden(field.NewPath("spec"), "updates to nodepool for fields other than 'replicas' and 'persistence' are forbidden."))
+				}
+				newNp.Replicas = restoreReplicas
+				newNp.Persistence = restorePersistence
+
+				break
+			}
+		}
+	}
 	return allErrs
 }
 

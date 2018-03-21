@@ -3,17 +3,28 @@ kind: "CassandraCluster"
 metadata:
   name: "demo"
 spec:
-  cqlPort: 9042
-  sysctls:
-  - "vm.max_map_count=0"
+  version: "3.11.1"
   nodePools:
-  - name: "RingNodes"
+  - name: "ringnodes"
     replicas: 3
+    datacenter: "demo-datacenter"
+    rack: "demo-rack"
     persistence:
       enabled: true
       size: "5Gi"
       storageClass: "default"
+    nodeSelector: {}
+    resources:
+      requests:
+        cpu: "500m"
+        memory: "2Gi"
+      limits:
+        cpu: "1"
+        memory: "3Gi"
   image:
     repository: "cassandra"
     tag: "3"
     pullPolicy: "IfNotPresent"
+  pilotImage:
+    repository: "jetstackexperimental/navigator-pilot-cassandra"
+    tag: "canary"

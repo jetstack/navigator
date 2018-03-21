@@ -21,6 +21,8 @@ const (
 	cassDataVolumeName      = "cassandra-data"
 	cassDataVolumeMountPath = "/var/lib/cassandra"
 
+	cassSnitch = "GossipingPropertyFileSnitch"
+
 	// See https://jolokia.org/reference/html/agents.html#jvm-agent
 	jolokiaHost    = "127.0.0.1"
 	jolokiaPort    = 8778
@@ -33,8 +35,10 @@ func StatefulSetForCluster(
 ) *apps.StatefulSet {
 
 	statefulSetName := util.NodePoolResourceName(cluster, np)
-	seedProviderServiceName := util.SeedProviderServiceName(cluster)
 	nodePoolLabels := util.NodePoolLabels(cluster, np.Name)
+
+	image := cassImageToUse(&cluster.Spec)
+
 	set := &apps.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            statefulSetName,
@@ -44,8 +48,7 @@ func StatefulSetForCluster(
 			OwnerReferences: []metav1.OwnerReference{util.NewControllerRef(cluster)},
 		},
 		Spec: apps.StatefulSetSpec{
-			Replicas:    util.Int32Ptr(int32(np.Replicas)),
-			ServiceName: seedProviderServiceName,
+			Replicas: util.Int32Ptr(int32(np.Replicas)),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: nodePoolLabels,
 			},
@@ -56,9 +59,16 @@ func StatefulSetForCluster(
 			Template: apiv1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: nodePoolLabels,
+					Annotations: map[string]string{
+						"prometheus.io/port":   "8080",
+						"prometheus.io/path":   "/",
+						"prometheus.io/scrape": "true",
+					},
 				},
 				Spec: apiv1.PodSpec{
 					ServiceAccountName: util.ServiceAccountName(cluster),
+					NodeSelector:       np.NodeSelector,
+					SchedulerName:      np.SchedulerName,
 					Volumes: []apiv1.Volume{
 						apiv1.Volume{
 							Name: sharedVolumeName,
@@ -97,10 +107,10 @@ func StatefulSetForCluster(
 							},
 							Image: fmt.Sprintf(
 								"%s:%s",
-								cluster.Spec.Image.Repository,
-								cluster.Spec.Image.Tag,
+								image.Repository,
+								image.Tag,
 							),
-							ImagePullPolicy: cluster.Spec.Image.PullPolicy,
+							ImagePullPolicy: image.PullPolicy,
 							ReadinessProbe: &apiv1.Probe{
 								Handler: apiv1.Handler{
 									HTTPGet: &apiv1.HTTPGetAction{
@@ -137,6 +147,7 @@ func StatefulSetForCluster(
 								SuccessThreshold:    1,
 								FailureThreshold:    6,
 							},
+							Resources: np.Resources,
 							SecurityContext: &apiv1.SecurityContext{
 								RunAsUser: cluster.Spec.NavigatorClusterConfig.SecurityContext.RunAsUser,
 							},
@@ -155,7 +166,11 @@ func StatefulSetForCluster(
 								},
 								{
 									Name:          "cql",
-									ContainerPort: util.DefaultCqlPort,
+									ContainerPort: int32(9042),
+								},
+								{
+									Name:          "prometheus",
+									ContainerPort: int32(8080),
 								},
 							},
 							VolumeMounts: []apiv1.VolumeMount{
@@ -180,17 +195,12 @@ func StatefulSetForCluster(
 									Value: "100M",
 								},
 								{
-									Name: "CASSANDRA_SEEDS",
-									Value: fmt.Sprintf(
-										"%s-0.%s.%s.svc.cluster.local",
-										statefulSetName,
-										seedProviderServiceName,
-										cluster.Namespace,
-									),
+									Name:  "CASSANDRA_ENDPOINT_SNITCH",
+									Value: cassSnitch,
 								},
 								{
 									Name:  "CASSANDRA_SERVICE",
-									Value: seedProviderServiceName,
+									Value: util.SeedsServiceName(cluster),
 								},
 								{
 									Name:  "CASSANDRA_CLUSTER_NAME",
@@ -198,20 +208,23 @@ func StatefulSetForCluster(
 								},
 								{
 									Name:  "CASSANDRA_DC",
-									Value: "DC1-K8Demo",
+									Value: np.Datacenter,
 								},
 								{
 									Name:  "CASSANDRA_RACK",
-									Value: "Rack1-K8Demo",
+									Value: np.Rack,
 								},
 								{
 									Name: "JVM_OPTS",
 									Value: fmt.Sprintf(
-										"-javaagent:%s/jolokia.jar=host=%s,port=%d,agentContext=%s",
+										"-javaagent:%s/jolokia.jar=host=%s,port=%d,agentContext=%s "+
+											"-javaagent:%s/jmx_prometheus_javaagent.jar=8080:%s/jmx_prometheus_javaagent.yaml",
 										sharedVolumeMountPath,
 										jolokiaHost,
 										jolokiaPort,
 										jolokiaContext,
+										sharedVolumeMountPath,
+										sharedVolumeMountPath,
 									),
 								},
 								{
@@ -305,6 +318,8 @@ func pilotInstallationContainer(
 			"cp",
 			"/pilot",
 			"/jolokia.jar",
+			"/jmx_prometheus_javaagent.jar",
+			"/jmx_prometheus_javaagent.yaml",
 			"/kubernetes-cassandra.jar",
 			fmt.Sprintf("%s/", sharedVolumeMountPath),
 		},
@@ -317,6 +332,10 @@ func pilotInstallationContainer(
 		},
 		Resources: apiv1.ResourceRequirements{
 			Requests: apiv1.ResourceList{
+				apiv1.ResourceCPU:    resource.MustParse("10m"),
+				apiv1.ResourceMemory: resource.MustParse("8Mi"),
+			},
+			Limits: apiv1.ResourceList{
 				apiv1.ResourceCPU:    resource.MustParse("10m"),
 				apiv1.ResourceMemory: resource.MustParse("8Mi"),
 			},

@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/coreos/go-semver/semver"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/jetstack/navigator/pkg/apis/navigator"
@@ -22,22 +22,20 @@ var (
 		"some": "selector",
 	}
 	// TODO: expand test cases here
-	validNodePoolResources         = corev1.ResourceRequirements{}
-	validNodePoolPersistenceConfig = navigator.PersistenceConfig{
-		Enabled: true,
-		Size:    resource.MustParse("10Gi"),
-	}
-
-	validImageTag        = "latest"
-	validImageRepo       = "something"
-	validImagePullPolicy = corev1.PullIfNotPresent
-	validImageSpec       = navigator.ImageSpec{
-		Tag:        validImageTag,
-		Repository: validImageRepo,
-		PullPolicy: validImagePullPolicy,
-	}
+	validNodePoolResources = corev1.ResourceRequirements{}
 
 	validSpecPluginsList = []string{"anything"}
+	validESCluster       = &navigator.ElasticsearchCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo",
+			Namespace: "bar",
+		},
+		Spec: navigator.ElasticsearchClusterSpec{
+			Version: validSemver,
+			Image:   &validImageSpec,
+			NavigatorClusterConfig: validNavigatorClusterConfig,
+		},
+	}
 )
 
 func newValidNodePool(name string, replicas int32, roles ...navigator.ElasticsearchClusterRole) navigator.ElasticsearchClusterNodePool {
@@ -335,7 +333,6 @@ func TestValidateElasticsearchClusterSpec(t *testing.T) {
 		Resources:    validNodePoolResources,
 		Persistence:  validNodePoolPersistenceConfig,
 	}
-	validSemver := *semver.New("5.6.2")
 	errorCases := map[string]navigator.ElasticsearchClusterSpec{
 		"empty spec": {},
 		"valid node pools with duplicate names": {
@@ -350,13 +347,6 @@ func TestValidateElasticsearchClusterSpec(t *testing.T) {
 			NavigatorClusterConfig: navigator.NavigatorClusterConfig{
 				PilotImage: validImageSpec,
 			},
-		},
-		"missing pilot image": {
-			Plugins:        validSpecPluginsList,
-			NodePools:      []navigator.ElasticsearchClusterNodePool{newValidNodePool("test", 3, navigator.ElasticsearchRoleMaster)},
-			Image:          &validImageSpec,
-			MinimumMasters: 2,
-			Version:        validSemver,
 		},
 		"minimum masters set too low": {
 			Plugins:        validSpecPluginsList,
@@ -388,6 +378,20 @@ func TestValidateElasticsearchClusterSpec(t *testing.T) {
 			},
 		},
 	}
+
+	setNavigatorClusterConfig := func(
+		c *navigator.ElasticsearchCluster,
+		ncc navigator.NavigatorClusterConfig,
+	) *navigator.ElasticsearchCluster {
+		c = c.DeepCopy()
+		c.Spec.NavigatorClusterConfig = ncc
+		return c
+	}
+
+	for title, ncc := range navigatorClusterConfigErrorCases {
+		errorCases[title] = setNavigatorClusterConfig(validESCluster, ncc).Spec
+	}
+
 	successCases := []navigator.ElasticsearchClusterSpec{
 		{
 			NodePools:      []navigator.ElasticsearchClusterNodePool{newValidNodePool("test", 3, navigator.ElasticsearchRoleMaster)},
@@ -456,11 +460,87 @@ func TestValidateElasticsearchClusterSpec(t *testing.T) {
 					field != "test.plugins" &&
 					field != "test.nodePools" &&
 					field != "test.pilot" &&
-					field != "test.image" &&
-					field != "test.sysctl" {
+					field != "test.image" {
 					t.Errorf("%s: missing prefix for: %v", n, err)
 				}
 			}
 		})
+	}
+}
+
+func TestValidateElasticsearchClusterUpdate(t *testing.T) {
+	type testT struct {
+		old           *navigator.ElasticsearchCluster
+		new           *navigator.ElasticsearchCluster
+		errorExpected bool
+	}
+
+	baseCluster := validESCluster.DeepCopy()
+	baseCluster.Spec.NodePools = []navigator.ElasticsearchClusterNodePool{
+		newValidNodePool("test", 3, navigator.ElasticsearchRoleMaster),
+	}
+
+	setPersistence := func(
+		e *navigator.ElasticsearchCluster,
+		p navigator.PersistenceConfig,
+	) *navigator.ElasticsearchCluster {
+		e = e.DeepCopy()
+		e.Spec.NodePools[0].Persistence = p
+		return e
+	}
+
+	setRole := func(
+		e *navigator.ElasticsearchCluster,
+		r []navigator.ElasticsearchClusterRole,
+	) *navigator.ElasticsearchCluster {
+		e = e.DeepCopy()
+		e.Spec.NodePools[0].Roles = r
+		return e
+	}
+
+	tests := map[string]testT{
+		"unchanged cluster": {
+			old: baseCluster,
+			new: baseCluster,
+		},
+		"enable persistence config": {
+			old: setPersistence(baseCluster, navigator.PersistenceConfig{Enabled: false}),
+			new: baseCluster,
+		},
+		"change role": {
+			old: baseCluster,
+			new: setRole(baseCluster, []navigator.ElasticsearchClusterRole{
+				navigator.ElasticsearchRoleData,
+				navigator.ElasticsearchRoleMaster,
+				navigator.ElasticsearchRoleIngest,
+			}),
+			errorExpected: true,
+		},
+	}
+
+	for title, persistence := range persistenceErrorCases {
+		tests[title] = testT{
+			old:           baseCluster,
+			new:           setPersistence(baseCluster, persistence),
+			errorExpected: true,
+		}
+	}
+
+	for title, tc := range tests {
+		t.Run(
+			title,
+			func(t *testing.T) {
+				errs := validation.ValidateElasticsearchClusterUpdate(tc.old, tc.new)
+				if tc.errorExpected && len(errs) == 0 {
+					t.Errorf("expected error but got none")
+				}
+				if !tc.errorExpected && len(errs) != 0 {
+					t.Errorf("unexpected errors: %s", errs)
+				}
+				for _, e := range errs {
+					t.Logf("error string is: %s", e)
+				}
+			},
+		)
 	}
 }

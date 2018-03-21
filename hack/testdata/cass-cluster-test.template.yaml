@@ -1,0 +1,27 @@
+apiVersion: "navigator.jetstack.io/v1alpha1"
+kind: "CassandraCluster"
+metadata:
+  name: "${CASS_NAME}"
+spec:
+  version: "${CASS_VERSION}"
+  nodePools:
+  - name: "ringnodes"
+    replicas: ${CASS_REPLICAS}
+    datacenter: "${CASS_NAME}-datacenter"
+    rack: "{CASS_NAME}-rack"
+    persistence:
+      enabled: true
+      size: "5Gi"
+      storageClass: "default"
+    nodeSelector: {}
+    resources:
+      requests:
+        cpu: "500m"
+        memory: "2Gi"
+      limits:
+        cpu: "500m"
+        memory: "2Gi"
+  pilotImage:
+    repository: "${NAVIGATOR_IMAGE_REPOSITORY}/navigator-pilot-cassandra"
+    tag: "${NAVIGATOR_IMAGE_TAG}"
+    pullPolicy: "${NAVIGATOR_IMAGE_PULLPOLICY}"

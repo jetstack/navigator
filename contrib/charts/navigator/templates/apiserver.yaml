@@ -36,6 +36,7 @@ spec:
           args:
           - navigator-apiserver
           - --etcd-servers=http://localhost:2379
+          - --admission-control=KubernetesNamespaceLifecycle
 {{- range .Values.apiserver.extraArgs }}
           - {{ . }}
 {{- end }}
@@ -44,5 +45,21 @@ spec:
         - name: etcd
           image: quay.io/coreos/etcd:v3.2.7
           imagePullPolicy: IfNotPresent
+          command:
+          - etcd
+          args:
+          - "-data-dir"
+          - /var/lib/etcd
+          volumeMounts:
+          - name: data
+            mountPath: /var/lib/etcd
           resources:
 {{ toYaml .Values.resources | indent 12 }}
+      volumes:
+      - name: data
+{{ if .Values.apiserver.persistence.enabled }}
+        persistentVolumeClaim:
+          claimName: {{ template "fullname" . }}-apiserver
+{{- else }}
+        emptyDir: {}
+{{- end }}

@@ -20,16 +20,26 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"time"
 
+	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apiserver/pkg/admission"
+	admissionmetrics "k8s.io/apiserver/pkg/admission/metrics"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	genericoptions "k8s.io/apiserver/pkg/server/options"
-	// "k8s.io/sample-apiserver/pkg/admission/plugin/banflunder"
+	kubeinformers "k8s.io/client-go/informers"
+	kubeclientset "k8s.io/client-go/kubernetes"
+	restclient "k8s.io/client-go/rest"
 
+	"github.com/jetstack/navigator/pkg/api"
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/apiserver"
+	navigatorinitializer "github.com/jetstack/navigator/pkg/apiserver/admission"
 	clientset "github.com/jetstack/navigator/pkg/client/clientset/internalversion"
 	informers "github.com/jetstack/navigator/pkg/client/informers/internalversion"
 )
@@ -40,8 +50,9 @@ type NavigatorServerOptions struct {
 	RecommendedOptions *genericoptions.RecommendedOptions
 	Admission          *genericoptions.AdmissionOptions
 
-	StdOut io.Writer
-	StdErr io.Writer
+	StandaloneMode bool
+	StdOut         io.Writer
+	StdErr         io.Writer
 }
 
 func NewNavigatorServerOptions(out, errOut io.Writer) *NavigatorServerOptions {
@@ -78,6 +89,7 @@ func NewCommandStartNavigatorServer(out, errOut io.Writer, stopCh <-chan struct{
 	}
 
 	flags := cmd.Flags()
+	o.AddFlags(flags)
 	o.RecommendedOptions.AddFlags(flags)
 	o.Admission.AddFlags(flags)
 
@@ -95,9 +107,17 @@ func (o *NavigatorServerOptions) Complete() error {
 	return nil
 }
 
+// AddFlags adds flags related to Navigator to the specified FlagSet
+func (o *NavigatorServerOptions) AddFlags(fs *pflag.FlagSet) {
+	fs.BoolVar(&o.StandaloneMode, "standalone-mode", false, ""+
+		"Standalone mode runs the APIServer in a mode that doesn't require a "+
+		"connection to a core Kubernetes API server. For example, admission "+
+		"control is disabled in standalone mode.")
+}
+
 func (o NavigatorServerOptions) Config() (*apiserver.Config, error) {
 	// register admission plugins
-	// banflunder.Register(o.Admission.Plugins)
+	registerAllAdmissionPlugins(o.Admission.Plugins)
 
 	// TODO have a "real" external address
 	if err := o.RecommendedOptions.SecureServing.MaybeDefaultWithSelfSignedCerts("localhost", nil, []net.IP{net.ParseIP("127.0.0.1")}); err != nil {
@@ -113,21 +133,55 @@ func (o NavigatorServerOptions) Config() (*apiserver.Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	informerFactory := informers.NewSharedInformerFactory(client, serverConfig.LoopbackClientConfig.Timeout)
-	// admissionInitializer, err := navigatorinitializer.New(informerFactory)
-	// if err != nil {
-	// 	return nil, err
-	// }
+	sharedInformers := informers.NewSharedInformerFactory(client, serverConfig.LoopbackClientConfig.Timeout)
 
-	// if err := o.Admission.ApplyTo(serverConfig, admissionInitializer); err != nil {
-	// 	return nil, err
-	// }
+	// only enable admission control when running in-cluster as we require a
+	// kubernetes client
+	if !o.StandaloneMode {
+		inClusterConfig, err := restclient.InClusterConfig()
+		if err != nil {
+			glog.Errorf("Failed to get kube client config: %v", err)
+			return nil, err
+		}
+		inClusterConfig.GroupVersion = &schema.GroupVersion{}
+
+		kubeClient, err := kubeclientset.NewForConfig(inClusterConfig)
+		if err != nil {
+			glog.Errorf("Failed to create clientset interface: %v", err)
+			return nil, err
+		}
+
+		kubeSharedInformers := kubeinformers.NewSharedInformerFactory(kubeClient, 10*time.Minute)
+		serverConfig.SharedInformerFactory = kubeSharedInformers
+
+		serverConfig.AdmissionControl, err = buildAdmission(&o, client, sharedInformers, kubeClient, kubeSharedInformers)
+		if err != nil {
+			return nil, fmt.Errorf("failed to initialize admission: %v", err)
+		}
+	}
 
 	config := &apiserver.Config{
 		GenericConfig:         serverConfig,
-		SharedInformerFactory: informerFactory,
+		SharedInformerFactory: sharedInformers,
 	}
 	return config, nil
+}
+
+// buildAdmission constructs the admission chain
+func buildAdmission(s *NavigatorServerOptions,
+	client clientset.Interface, sharedInformers informers.SharedInformerFactory,
+	kubeClient kubeclientset.Interface, kubeSharedInformers kubeinformers.SharedInformerFactory) (admission.Interface, error) {
+
+	admissionControlPluginNames := s.Admission.PluginNames
+	glog.Infof("Admission control plugin names: %v", admissionControlPluginNames)
+	var err error
+
+	pluginInitializer := navigatorinitializer.NewPluginInitializer(client, sharedInformers, kubeClient, kubeSharedInformers)
+	admissionConfigProvider, err := admission.ReadAdmissionConfiguration(admissionControlPluginNames, s.Admission.ConfigFile, api.Scheme)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read plugin config: %v", err)
+	}
+	return s.Admission.Plugins.NewFromPlugins(admissionControlPluginNames, admissionConfigProvider, pluginInitializer, admissionmetrics.WithControllerMetrics)
 }
 
 func (o NavigatorServerOptions) RunNavigatorServer(stopCh <-chan struct{}) error {

@@ -25,6 +25,9 @@ source "${SCRIPT_DIR}/libe2e.sh"
 # if you've published test images to your own repository.
 : ${CHART_VALUES_CASSANDRA:="${SCRIPT_DIR}/testdata/values_cassandra.yaml"}
 
+# Save the cluster logs when the script exits (success or failure)
+trap "dump_debug_logs ${PWD}/_artifacts/dump_debug_logs" EXIT
+
 FAILURE_COUNT=0
 TEST_ID="$(date +%s)-${RANDOM}"
 
@@ -55,12 +58,41 @@ function cql_connect() {
         /usr/bin/cqlsh --debug "${host}" "${port}"
 }
 
+function test_general() {
+    echo "Testing General"
+    local namespace="${1}"
+
+    kube_create_namespace_with_quota "${namespace}"
+
+    local invalid_namespace="notarealnamespace"
+    echo "Ensuring NamespaceLifecycle admission controller blocks creation of resources in non-existent namespaces"
+    if kubectl create --namespace "${invalid_namespace}" -f "${SCRIPT_DIR}/testdata/testpilot.yaml"; then
+        fail_test "navigator-apiserver allowed creation of a resource in a namespace that does not exist"
+    fi
+
+    echo "Ensuring we can create resources in valid namespaces"
+    if ! kubectl create --namespace "${namespace}" -f "${SCRIPT_DIR}/testdata/testpilot.yaml"; then
+        fail_test "navigator-apiserver should allow creation of resources in namespaces that exist"
+    fi
+}
+
+GENERAL_TEST_NS="test-general-${TEST_ID}"
+test_general "${GENERAL_TEST_NS}"
+if [ "${FAILURE_COUNT}" -gt "0" ]; then
+    exit 1
+fi
+kube_delete_namespace_and_wait "${GENERAL_TEST_NS}"
+
 function test_cassandracluster() {
     echo "Testing CassandraCluster"
     local namespace="${1}"
-    local CHART_NAME="cassandra-${TEST_ID}"
 
-    kubectl create namespace "${namespace}"
+    export CASS_NAME="test"
+    export CASS_REPLICAS=1
+    export CASS_CQL_PORT=9042
+    export CASS_VERSION="3.11.1"
+
+    kube_create_namespace_with_quota "${namespace}"
 
     if ! kubectl get \
          --namespace "${namespace}" \
@@ -68,14 +100,17 @@ function test_cassandracluster() {
         fail_test "Failed to get cassandraclusters"
     fi
 
-    helm install \
-         --debug \
-         --wait \
-         --name "${CHART_NAME}" \
-         --namespace "${namespace}" \
-         contrib/charts/cassandra \
-         --values "${CHART_VALUES_CASSANDRA}" \
-         --set replicaCount=1
+    if ! kubectl apply \
+        --namespace "${namespace}" \
+        --filename \
+        <(envsubst \
+              '$NAVIGATOR_IMAGE_REPOSITORY:$NAVIGATOR_IMAGE_TAG:$NAVIGATOR_IMAGE_PULLPOLICY:$CASS_NAME:$CASS_REPLICAS:$CASS_VERSION' \
+              < "${SCRIPT_DIR}/testdata/cass-cluster-test.template.yaml")
+    then
+        fail_test "Failed to create cassandracluster"
+    fi
+
+    kubectl get cassandraclusters -n "${namespace}" -o yaml
 
     # A Pilot is elected leader
     if ! retry TIMEOUT=300 kube_event_exists "${namespace}" \
@@ -84,45 +119,62 @@ function test_cassandracluster() {
         fail_test "Cassandra pilots did not elect a leader"
     fi
 
+    if ! retry TIMEOUT=300 \
+         stdout_equals "${CASS_VERSION}" \
+         kubectl --namespace "${namespace}" \
+         get pilots \
+         --output 'jsonpath={.items[0].status.cassandra.version}'
+    then
+        kubectl --namespace "${namespace}" get pilots -o yaml
+        fail_test "Pilots failed to report the expected version"
+    fi
+
     # Wait 5 minutes for cassandra to start and listen for CQL queries.
     if ! retry TIMEOUT=300 cql_connect \
          "${namespace}" \
-         "cass-${CHART_NAME}-cassandra-cql" \
-         9042; then
+         "cass-${CASS_NAME}-nodes" \
+         "${CASS_CQL_PORT}"; then
         fail_test "Navigator controller failed to create cassandracluster service"
+    fi
+
+    if ! retry TIMEOUT=300 in_cluster_command \
+        "${namespace}" \
+        "alpine:3.6" \
+        /bin/sh -c "apk add --no-cache curl && curl -vv http://cass-${CASS_NAME}-nodes:8080"; then
+        fail_test "Pilot did not start Prometheus metric exporter"
     fi
 
     # Create a database
     cql_connect \
         "${namespace}" \
-        "cass-${CHART_NAME}-cassandra-cql" \
-        9042 \
+        "cass-${CASS_NAME}-nodes" \
+        "${CASS_CQL_PORT}" \
         --debug \
         < "${SCRIPT_DIR}/testdata/cassandra_test_database1.cql"
 
     # Insert a record
     cql_connect \
         "${namespace}" \
-        "cass-${CHART_NAME}-cassandra-cql" \
-        9042 \
+        "cass-${CASS_NAME}-nodes" \
+        "${CASS_CQL_PORT}" \
         --debug \
         --execute="INSERT INTO space1.testtable1(key, value) VALUES('testkey1', 'testvalue1')"
 
     # Delete the Cassandra pod and wait for the CQL service to become
     # unavailable (readiness probe fails)
 
-    kubectl --namespace "${namespace}" delete pod "cass-${CHART_NAME}-cassandra-ringnodes-0"
+    kubectl --namespace "${namespace}" delete pod "cass-${CASS_NAME}-ringnodes-0"
     retry \
         not \
         cql_connect \
         "${namespace}" \
-        "cass-${CHART_NAME}-cassandra-cql" \
-        9042 \
+        "cass-${CASS_NAME}-nodes" \
+        "${CASS_CQL_PORT}" \
         --debug
     # Kill the cassandra process gracefully which allows it to flush its data to disk.
     # kill_cassandra_process \
     #     "${namespace}" \
-    #     "cass-${CHART_NAME}-cassandra-ringnodes-0" \
+    #     "cass-${CASS_NAME}-ringnodes-0" \
     #     "cassandra" \
     #     "SIGTERM"
 
@@ -137,57 +189,69 @@ function test_cassandracluster() {
          stdout_matches "testvalue1" \
          cql_connect \
          "${namespace}" \
-         "cass-${CHART_NAME}-cassandra-cql" \
-         9042 \
+         "cass-${CASS_NAME}-nodes" \
+         "${CASS_CQL_PORT}" \
          --debug \
          --execute='SELECT * FROM space1.testtable1'
     then
         fail_test "Cassandra data was lost"
     fi
 
-    # Change the CQL port
-    helm --debug upgrade \
-         "${CHART_NAME}" \
-         contrib/charts/cassandra \
-         --values "${CHART_VALUES_CASSANDRA}" \
-         --set replicaCount=1 \
-         --set cqlPort=9043
-
-    # Wait 60s for cassandra CQL port to change
-    if ! retry TIMEOUT=60 cql_connect \
-         "${namespace}" \
-         "cass-${CHART_NAME}-cassandra-cql" \
-         9043; then
-        fail_test "Navigator controller failed to update cassandracluster service"
-    fi
-
     # Increment the replica count
-    helm --debug upgrade \
-         "${CHART_NAME}" \
-         contrib/charts/cassandra \
-         --values "${CHART_VALUES_CASSANDRA}" \
-         --set cqlPort=9043 \
-         --set replicaCount=2
+    export CASS_REPLICAS=2
+    kubectl apply \
+        --namespace "${namespace}" \
+        --filename \
+        <(envsubst \
+              '$NAVIGATOR_IMAGE_REPOSITORY:$NAVIGATOR_IMAGE_TAG:$NAVIGATOR_IMAGE_PULLPOLICY:$CASS_NAME:$CASS_REPLICAS:$CASS_VERSION' \
+              < "${SCRIPT_DIR}/testdata/cass-cluster-test.template.yaml")
 
     if ! retry TIMEOUT=300 stdout_equals 2 kubectl \
          --namespace "${namespace}" \
          get statefulsets \
-         "cass-${CHART_NAME}-cassandra-ringnodes" \
+         "cass-${CASS_NAME}-ringnodes" \
          "-o=go-template={{.status.readyReplicas}}"
     then
         fail_test "Second cassandra node did not become ready"
     fi
 
+    # TODO: A better test would be to query the endpoints and check that only
+    # the `-0` pods are included. E.g.
+    # kubectl -n test-cassandra-1519754828-19864 get ep cass-cassandra-1519754828-19864-cassandra-seeds -o "jsonpath={.subsets[*].addresses[*].hostname}"
+    if ! stdout_equals "cass-${CASS_NAME}-ringnodes-0" \
+         kubectl get pods --namespace "${namespace}" \
+         --selector=navigator.jetstack.io/cassandra-seed=true \
+         --output 'jsonpath={.items[*].metadata.name}'
+    then
+        fail_test "First cassandra node not marked as seed"
+    fi
+
+    if ! retry \
+         stdout_matches "testvalue1" \
+         cql_connect \
+         "${namespace}" \
+         "cass-${CASS_NAME}-nodes" \
+         "${CASS_CQL_PORT}" \
+         --debug \
+         --execute='CONSISTENCY ALL; SELECT * FROM space1.testtable1'
+    then
+        fail_test "Data was not replicated to second node"
+    fi
+
     simulate_unresponsive_cassandra_process \
         "${namespace}" \
-        "cass-${CHART_NAME}-cassandra-ringnodes-0" \
-        "cassandra"
+        "cass-${CASS_NAME}-ringnodes-0"
 
-    if ! retry cql_connect \
-         "${namespace}" \
-         "cass-${CHART_NAME}-cassandra-cql" \
-         9043; then
-        fail_test "Cassandra readiness probe failed to bypass dead node"
+    if ! retry TIMEOUT=600 \
+            stdout_matches "testvalue1" \
+            cql_connect \
+            "${namespace}" \
+            "cass-${CASS_NAME}-nodes" \
+            "${CASS_CQL_PORT}" \
+            --debug \
+            --execute='CONSISTENCY ALL; SELECT * FROM space1.testtable1'
+    then
+        fail_test "Cassandra liveness probe failed to restart dead node"
     fi
 }
 
@@ -199,9 +263,8 @@ if [[ "test_cassandracluster" = "${TEST_PREFIX}"* ]]; then
     done
 
     test_cassandracluster "${CASS_TEST_NS}"
-    dump_debug_logs "${CASS_TEST_NS}"
     if [ "${FAILURE_COUNT}" -gt "0" ]; then
-        fail_and_exit "${CASS_TEST_NS}"
+        exit 1
     fi
     kube_delete_namespace_and_wait "${CASS_TEST_NS}"
 fi

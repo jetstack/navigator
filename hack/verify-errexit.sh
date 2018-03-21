@@ -28,7 +28,7 @@ REPO_ROOT=$(dirname "${BASH_SOURCE}")/..
 if [ "$*" != "" ]; then
   args="$*"
 else
-  args=$(ls "$REPO_ROOT" | grep -v vendor | grep -v glide)
+  args=$(ls "$REPO_ROOT" | grep -v vendor | grep -v glide | grep -v docs)
 fi
 
 # Gather the list of files that appear to be shell scripts.

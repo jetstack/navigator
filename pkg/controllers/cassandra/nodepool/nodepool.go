@@ -87,6 +87,7 @@ func (e *defaultCassandraClusterNodepoolControl) createOrUpdateStatefulSet(
 	if err != nil {
 		return err
 	}
+
 	_, err = client.Update(desiredSet)
 	return err
 }

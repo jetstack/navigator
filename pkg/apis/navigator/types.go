@@ -5,6 +5,8 @@ import (
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/jetstack/navigator/pkg/cassandra/version"
 )
 
 // In this file we define the outer containing types for the ElasticsearchCluster
@@ -28,14 +30,19 @@ type CassandraClusterSpec struct {
 	NavigatorClusterConfig
 
 	NodePools []CassandraClusterNodePool
-	Image     ImageSpec
-	CqlPort   int32
+	Version   version.Version
+	Image     *ImageSpec
 }
 
 type CassandraClusterNodePool struct {
-	Name        string
-	Replicas    int64
-	Persistence PersistenceConfig
+	Name          string
+	Replicas      int32
+	Persistence   PersistenceConfig
+	NodeSelector  map[string]string
+	Rack          string
+	Datacenter    string
+	Resources     v1.ResourceRequirements
+	SchedulerName string
 }
 
 type CassandraClusterStatus struct {
@@ -43,7 +50,7 @@ type CassandraClusterStatus struct {
 }
 
 type CassandraClusterNodePoolStatus struct {
-	ReadyReplicas int64
+	ReadyReplicas int32
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -111,12 +118,13 @@ type ElasticsearchClusterSpec struct {
 }
 
 type ElasticsearchClusterNodePool struct {
-	Name         string
-	Replicas     int32
-	Roles        []ElasticsearchClusterRole
-	NodeSelector map[string]string
-	Resources    v1.ResourceRequirements
-	Persistence  PersistenceConfig
+	Name          string
+	Replicas      int32
+	Roles         []ElasticsearchClusterRole
+	NodeSelector  map[string]string
+	Resources     v1.ResourceRequirements
+	Persistence   PersistenceConfig
+	SchedulerName string
 }
 
 type ElasticsearchClusterRole string
@@ -143,8 +151,6 @@ type NavigatorClusterConfig struct {
 	PilotImage ImageSpec
 
 	SecurityContext NavigatorSecurityContext
-
-	Sysctls []string
 }
 
 type NavigatorSecurityContext struct {
@@ -192,6 +198,8 @@ type PilotStatus struct {
 	Conditions         []PilotCondition
 	// Contains status information specific to Elasticsearch Pilots
 	Elasticsearch *ElasticsearchPilotStatus
+	// Contains status information specific to Cassandra Pilots
+	Cassandra *CassandraPilotStatus
 }
 
 type ElasticsearchPilotStatus struct {
@@ -200,6 +208,10 @@ type ElasticsearchPilotStatus struct {
 	// empty
 	Documents *int64
 	Version   semver.Version
+}
+
+type CassandraPilotStatus struct {
+	Version *version.Version
 }
 
 // PilotCondition contains condition information for a Pilot.

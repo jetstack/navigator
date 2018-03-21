@@ -41,6 +41,15 @@ function retry() {
     done
 }
 
+function kube_create_namespace_with_quota() {
+    local namespace=$1
+    kubectl create namespace "${namespace}"
+    kubectl create quota \
+            --namespace "${namespace}" \
+            --hard=cpu=16,requests.cpu=16,limits.cpu=16,memory=32G,requests.memory=32G,limits.memory=32G \
+            navigator-test-quota
+}
+
 function kube_delete_namespace_and_wait() {
     local namespace=$1
     # Delete ESCs and C* clusters in the namespace
@@ -108,28 +117,31 @@ function kube_event_exists() {
     return 1
 }
 
-function simulate_unresponsive_cassandra_process() {
-    local namespace=$1
-    local pod=$2
-    local container=$3
-    # Decommission causes cassandra to stop accepting CQL connections.
+function decommission_cassandra_node() {
+    local namespace="${1}"
+    local pod="${2}"
     kubectl \
         --namespace="${namespace}" \
-        exec "${pod}" --container="${container}" -- \
-        nodetool decommission
+        exec "${pod}" -- \
+        /bin/sh -c 'JVM_OPTS="" exec nodetool decommission'
 }
 
 function signal_cassandra_process() {
-    local namespace=$1
-    local pod=$2
-    local container=$3
-    local signal=$4
+    local namespace="${1}"
+    local pod="${2}"
+    local signal="${3}"
 
     # Send STOP signal to all the cassandra user's processes
     kubectl \
         --namespace="${namespace}" \
-        exec "${pod}" --container="${container}" -- \
+        exec "${pod}" -- \
         bash -c "kill -${signal}"' -- $(ps -u cassandra -o pid=) && ps faux'
+}
+
+function simulate_unresponsive_cassandra_process() {
+    local namespace="${1}"
+    local pod="${2}"
+    signal_cassandra_process "${namespace}" "${pod}" "SIGSTOP"
 }
 
 function stdout_equals() {
@@ -168,25 +180,18 @@ function stdout_gt() {
 }
 
 function dump_debug_logs() {
-    local namespace="${1}"
-    local output_dir="$(pwd)/_artifacts/${namespace}"
-
+    local output_dir="${1}"
     echo "Dumping cluster state to ${output_dir}"
     mkdir -p "${output_dir}"
     kubectl cluster-info dump \
-            --namespaces "${namespace}" \
+            --all-namespaces \
             --output-directory "${output_dir}" || true
-}
 
-function fail_and_exit() {
-    local namespace="${1}"
-
-    kubectl api-versions
-    kubectl get apiservice -o yaml
-
-    dump_debug_logs "${namespace}"
-
-    exit 1
+    # Some other resources which aren't included in cluster-info dump
+    for kind in apiservice cassandraclusters elasticsearchclusters pilots; do
+        kubectl get "${kind}" --all-namespaces --output json > "${output_dir}/${kind}.json" || true
+    done
+    kubectl api-versions > "${output_dir}/api-versions.txt" || true
 }
 
 function cql_connect() {
@@ -197,19 +202,28 @@ function cql_connect() {
     # XXX: This uses the standard Cassandra Docker image rather than the
     # gcr.io/google-samples/cassandra image used in the Cassandra chart, becasue
     # cqlsh is missing some dependencies in that image.
+    in_cluster_command "${namespace}" "cassandra:latest" /usr/bin/cqlsh "$@"
+}
+
+function in_cluster_command() {
+    local namespace="${1}"
+    shift
+    local image="${1}"
+    shift
     kubectl \
         run \
-        "cql-connect-${RANDOM}" \
+        "in-cluster-cmd-${RANDOM}" \
         --namespace="${namespace}" \
-        --command=true \
-        --image=cassandra:latest \
+        --image="${image}" \
         --restart=Never \
         --rm \
         --stdin=true \
         --attach=true \
         --quiet \
+        --limits="cpu=100m,memory=500Mi" \
+        --requests="cpu=100m,memory=500Mi" \
         -- \
-        /usr/bin/cqlsh "$@"
+        "${@}"
 }
 
 function kill_cassandra_process() {

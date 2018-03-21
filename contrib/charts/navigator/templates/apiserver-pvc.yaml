@@ -1,0 +1,18 @@
+{{- if .Values.apiserver.persistence.enabled }}
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: {{ template "fullname" . }}-apiserver
+  annotations:
+  {{- if .Values.apiserver.persistence.storageClass }}
+    volume.beta.kubernetes.io/storage-class: {{ .Values.apiserver.persistence.storageClass | quote }}
+  {{- else }}
+    volume.alpha.kubernetes.io/storage-class: default
+  {{- end }}
+spec:
+  accessModes:
+    - {{ .Values.apiserver.persistence.accessMode | quote }}
+  resources:
+    requests:
+      storage: {{ .Values.apiserver.persistence.size | quote }}
+{{- end }}

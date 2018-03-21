@@ -5,6 +5,8 @@ import (
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/jetstack/navigator/pkg/cassandra/version"
 )
 
 const (
@@ -31,18 +33,47 @@ type CassandraClusterSpec struct {
 	NavigatorClusterConfig `json:",inline"`
 
 	NodePools []CassandraClusterNodePool `json:"nodePools"`
-	Image     ImageSpec                  `json:"image"`
-	CqlPort   int32                      `json:"cqlPort"`
+
+	// Image describes the database image to use
+	Image *ImageSpec `json:"image"`
+
+	// The version of the database to be used for nodes in the cluster.
+	Version version.Version `json:"version"`
 }
 
 // CassandraClusterNodePool describes a node pool within a CassandraCluster.
 type CassandraClusterNodePool struct {
 	Name     string `json:"name"`
-	Replicas int64  `json:"replicas"`
+	Replicas int32  `json:"replicas"`
 
 	// Persistence specifies the configuration for persistent data for this
 	// node.
 	Persistence PersistenceConfig `json:"persistence,omitempty"`
+
+	// NodeSelector should be specified to force nodes in this pool to run on
+	// nodes matching the given selector.
+	// +optional
+	NodeSelector map[string]string `json:"nodeSelector"`
+
+	// Rack specifies the cassandra rack with which to label nodes in this
+	// nodepool. If this is not set, a default will be selected.
+	// +optional
+	Rack string `json:"rack"`
+
+	// Datacenter specifies the cassandra datacenter with which to label nodes
+	// in this nodepool. If this is not set, a default will be selected.
+	// +optional
+	Datacenter string `json:"datacenter"`
+
+	// Resources specifies the resource requirements to be used for nodes that
+	// are part of the pool.
+	// +optional
+	Resources v1.ResourceRequirements `json:"resources,omitempty"`
+
+	// If specified, the pod will be dispatched by specified scheduler.
+	// If not specified, the pod will be dispatched by default scheduler.
+	// +optional
+	SchedulerName string `json:"schedulerName,omitempty"`
 }
 
 type CassandraClusterStatus struct {
@@ -50,7 +81,7 @@ type CassandraClusterStatus struct {
 }
 
 type CassandraClusterNodePoolStatus struct {
-	ReadyReplicas int64 `json:"readyReplicas"`
+	ReadyReplicas int32 `json:"readyReplicas"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -162,6 +193,11 @@ type ElasticsearchClusterNodePool struct {
 	// should only be using for testing purposes.
 	// +optional
 	Persistence PersistenceConfig `json:"persistence,omitempty"`
+
+	// If specified, the pod will be dispatched by specified scheduler.
+	// If not specified, the pod will be dispatched by default scheduler.
+	// +optional
+	SchedulerName string `json:"schedulerName,omitempty"`
 }
 
 // ElasticsearchClusterRole is a node role in an ElasticsearchCluster.
@@ -207,10 +243,6 @@ type NavigatorClusterConfig struct {
 
 	// Security related options that are common to all cluster kinds
 	SecurityContext NavigatorSecurityContext `json:"securityContext,omitempty"`
-
-	// Sysctl can be used to specify a list of sysctl values to set on start-up
-	// This can be used to set for example the vm.max_map_count parameter.
-	Sysctls []string `json:"sysctls"`
 }
 
 type NavigatorSecurityContext struct {
@@ -267,6 +299,8 @@ type PilotStatus struct {
 	Conditions         []PilotCondition `json:"conditions"`
 	// Contains status information specific to Elasticsearch Pilots
 	Elasticsearch *ElasticsearchPilotStatus `json:"elasticsearch,omitempty"`
+	// Contains status information specific to Cassandra Pilots
+	Cassandra *CassandraPilotStatus `json:"cassandra,omitempty"`
 }
 
 type ElasticsearchPilotStatus struct {
@@ -276,6 +310,12 @@ type ElasticsearchPilotStatus struct {
 	Documents *int64 `json:"documents,omitempty"`
 	// Version as reported by the Elasticsearch process
 	Version semver.Version `json:"version,omitempty"`
+}
+
+type CassandraPilotStatus struct {
+	// Version as reported by the Cassandra process.
+	// `nil` indicates that the version is not yet known / not yet reported.
+	Version *version.Version `json:"version,omitempty"`
 }
 
 // PilotCondition contains condition information for a Pilot.

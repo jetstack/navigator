@@ -10,8 +10,7 @@ import (
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/pilot"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/role"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/rolebinding"
-	servicecql "github.com/jetstack/navigator/pkg/controllers/cassandra/service/cql"
-	serviceseedprovider "github.com/jetstack/navigator/pkg/controllers/cassandra/service/seedprovider"
+	"github.com/jetstack/navigator/pkg/controllers/cassandra/seedlabeller"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/serviceaccount"
 )
 
@@ -27,6 +26,7 @@ const (
 	MessageErrorSyncService        = "Error syncing service: %s"
 	MessageErrorSyncNodePools      = "Error syncing node pools: %s"
 	MessageErrorSyncPilots         = "Error syncing pilots: %s"
+	MessageErrorSyncSeedLabels     = "Error syncing seed labels: %s"
 	MessageSuccessSync             = "Successfully synced CassandraCluster"
 )
 
@@ -37,34 +37,37 @@ type ControlInterface interface {
 var _ ControlInterface = &defaultCassandraClusterControl{}
 
 type defaultCassandraClusterControl struct {
-	seedProviderServiceControl serviceseedprovider.Interface
-	cqlServiceControl          servicecql.Interface
+	seedProviderServiceControl ControlInterface
+	nodesServiceControl        ControlInterface
 	nodepoolControl            nodepool.Interface
 	pilotControl               pilot.Interface
 	serviceAccountControl      serviceaccount.Interface
 	roleControl                role.Interface
 	roleBindingControl         rolebinding.Interface
+	seedLabellerControl        seedlabeller.Interface
 	recorder                   record.EventRecorder
 }
 
 func NewControl(
-	seedProviderServiceControl serviceseedprovider.Interface,
-	cqlServiceControl servicecql.Interface,
+	seedProviderServiceControl ControlInterface,
+	nodesServiceControl ControlInterface,
 	nodepoolControl nodepool.Interface,
 	pilotControl pilot.Interface,
 	serviceAccountControl serviceaccount.Interface,
 	roleControl role.Interface,
 	roleBindingControl rolebinding.Interface,
+	seedlabellerControl seedlabeller.Interface,
 	recorder record.EventRecorder,
 ) ControlInterface {
 	return &defaultCassandraClusterControl{
 		seedProviderServiceControl: seedProviderServiceControl,
-		cqlServiceControl:          cqlServiceControl,
+		nodesServiceControl:        nodesServiceControl,
 		nodepoolControl:            nodepoolControl,
 		pilotControl:               pilotControl,
 		serviceAccountControl:      serviceAccountControl,
 		roleControl:                roleControl,
 		roleBindingControl:         roleBindingControl,
+		seedLabellerControl:        seedlabellerControl,
 		recorder:                   recorder,
 	}
 }
@@ -82,7 +85,7 @@ func (e *defaultCassandraClusterControl) Sync(c *v1alpha1.CassandraCluster) erro
 		)
 		return err
 	}
-	err = e.cqlServiceControl.Sync(c)
+	err = e.nodesServiceControl.Sync(c)
 	if err != nil {
 		e.recorder.Eventf(
 			c,
@@ -144,6 +147,17 @@ func (e *defaultCassandraClusterControl) Sync(c *v1alpha1.CassandraCluster) erro
 			apiv1.EventTypeWarning,
 			ErrorSync,
 			MessageErrorSyncRoleBinding,
+			err,
+		)
+		return err
+	}
+	err = e.seedLabellerControl.Sync(c)
+	if err != nil {
+		e.recorder.Eventf(
+			c,
+			apiv1.EventTypeWarning,
+			ErrorSync,
+			MessageErrorSyncSeedLabels,
 			err,
 		)
 		return err

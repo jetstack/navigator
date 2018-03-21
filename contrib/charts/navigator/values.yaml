@@ -25,6 +25,15 @@ apiserver:
     tag: latest
     pullPolicy: Always
   logLevel: 2
+
+  persistence:
+    enabled: false
+    size: 10Gi
+    accessMode: ReadWriteOnce
+    ## If defined, volume.beta.kubernetes.io/storage-class: <storageClass>
+    ##
+    # storageClass: ""
+
 controller:
   ## Optional: namespace to watch for resources in. This can be used when RBAC
   ## restricts you to a single namespace.
@@ -36,7 +45,11 @@ controller:
     tag: latest
     pullPolicy: Always
   logLevel: 2
+
 resources:
   requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
     cpu: 50m
     memory: 64Mi

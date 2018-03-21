@@ -36,8 +36,8 @@ spec:
           - navigator-controller
 {{- if .Values.controller.namespace }}
           - --namespace={{ .Values.controller.namespace }}
-          - --leader-election-namespace={{ .Values.controller.namespace }}
 {{- end }}
+          - --leader-election-namespace={{ .Release.Namespace }}
           - --v={{ .Values.controller.logLevel }}
           imagePullPolicy: {{ .Values.controller.image.pullPolicy }}
           resources:

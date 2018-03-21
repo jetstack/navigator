@@ -7,9 +7,6 @@ spec:
 
   version: 5.6.2
 
-  sysctls:
-  - vm.max_map_count=262144
-
   securityContext:
     runAsUser: 1000
 
@@ -29,8 +26,11 @@ spec:
 
     resources:
       requests:
-        cpu: '500m'
-        memory: 2Gi
+        cpu: "500m"
+        memory: "2Gi"
+      limits:
+        cpu: "500m"
+        memory: "2Gi"
 
     persistence:
       enabled: false

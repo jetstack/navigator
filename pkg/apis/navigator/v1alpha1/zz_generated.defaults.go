@@ -28,5 +28,21 @@ import (
 // Public to allow building arbitrary schemes.
 // All generated defaulters are covering - they call all nested defaulters.
 func RegisterDefaults(scheme *runtime.Scheme) error {
+	scheme.AddTypeDefaultingFunc(&CassandraCluster{}, func(obj interface{}) { SetObjectDefaults_CassandraCluster(obj.(*CassandraCluster)) })
+	scheme.AddTypeDefaultingFunc(&CassandraClusterList{}, func(obj interface{}) { SetObjectDefaults_CassandraClusterList(obj.(*CassandraClusterList)) })
 	return nil
+}
+
+func SetObjectDefaults_CassandraCluster(in *CassandraCluster) {
+	for i := range in.Spec.NodePools {
+		a := &in.Spec.NodePools[i]
+		SetDefaults_CassandraClusterNodePool(a)
+	}
+}
+
+func SetObjectDefaults_CassandraClusterList(in *CassandraClusterList) {
+	for i := range in.Items {
+		a := &in.Items[i]
+		SetObjectDefaults_CassandraCluster(a)
+	}
 }

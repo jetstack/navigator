@@ -68,6 +68,10 @@ verify: .hack_verify dep_verify go_verify helm_verify
 	@echo Running generated client checker:
 	@${HACK_DIR}/verify-client-gen.sh
 
+doc_verify:
+	make -C docs html
+	make -C docs check
+
 dep_verify:
 	${HACK_DIR}/verify-deps.sh
 

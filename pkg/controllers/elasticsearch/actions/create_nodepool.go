@@ -164,6 +164,7 @@ func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.Elasticsear
 			TerminationGracePeriodSeconds: util.Int64Ptr(1800),
 			ServiceAccountName:            util.ServiceAccountName(c),
 			NodeSelector:                  np.NodeSelector,
+			SchedulerName:                 np.SchedulerName,
 			SecurityContext: &apiv1.PodSecurityContext{
 				FSGroup: c.Spec.NavigatorClusterConfig.SecurityContext.RunAsUser,
 			},
@@ -290,44 +291,29 @@ func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.Elasticsear
 }
 
 func buildInitContainers(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.ElasticsearchClusterNodePool) []apiv1.Container {
-	containers := make([]apiv1.Container, len(c.Spec.Sysctls)+1)
-	containers[0] = apiv1.Container{
-		Name:            "install-pilot",
-		Image:           fmt.Sprintf("%s:%s", c.Spec.PilotImage.Repository, c.Spec.PilotImage.Tag),
-		ImagePullPolicy: apiv1.PullPolicy(c.Spec.PilotImage.PullPolicy),
-		Command:         []string{"cp", "/pilot", fmt.Sprintf("%s/pilot", sharedVolumeMountPath)},
-		VolumeMounts: []apiv1.VolumeMount{
-			{
-				Name:      sharedVolumeName,
-				MountPath: sharedVolumeMountPath,
-				ReadOnly:  false,
-			},
-		},
-		Resources: apiv1.ResourceRequirements{
-			Requests: apiv1.ResourceList{
-				apiv1.ResourceCPU:    resource.MustParse("10m"),
-				apiv1.ResourceMemory: resource.MustParse("8Mi"),
-			},
-		},
-	}
-	for i, sysctl := range c.Spec.Sysctls {
-		containers[i+1] = apiv1.Container{
-			Name:            fmt.Sprintf("tune-sysctl-%d", i),
-			Image:           "busybox:latest",
-			ImagePullPolicy: apiv1.PullIfNotPresent,
-			SecurityContext: &apiv1.SecurityContext{
-				Privileged: util.BoolPtr(true),
-			},
-			Command: []string{
-				"sysctl", "-w", sysctl,
+	return []apiv1.Container{
+		{
+			Name:            "install-pilot",
+			Image:           fmt.Sprintf("%s:%s", c.Spec.PilotImage.Repository, c.Spec.PilotImage.Tag),
+			ImagePullPolicy: apiv1.PullPolicy(c.Spec.PilotImage.PullPolicy),
+			Command:         []string{"cp", "/pilot", fmt.Sprintf("%s/pilot", sharedVolumeMountPath)},
+			VolumeMounts: []apiv1.VolumeMount{
+				{
+					Name:      sharedVolumeName,
+					MountPath: sharedVolumeMountPath,
+					ReadOnly:  false,
+				},
 			},
 			Resources: apiv1.ResourceRequirements{
 				Requests: apiv1.ResourceList{
 					apiv1.ResourceCPU:    resource.MustParse("10m"),
 					apiv1.ResourceMemory: resource.MustParse("8Mi"),
 				},
+				Limits: apiv1.ResourceList{
+					apiv1.ResourceCPU:    resource.MustParse("10m"),
+					apiv1.ResourceMemory: resource.MustParse("8Mi"),
+				},
 			},
-		}
+		},
 	}
-	return containers
 }
