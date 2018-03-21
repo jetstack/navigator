@@ -42,8 +42,6 @@ helm init --service-account=tiller
 echo "Waiting for tiller to be ready..."
 retry TIMEOUT=60 helm version
 
-helm delete --purge "${RELEASE_NAME}" || true
-
 function debug_navigator_start() {
     kubectl api-versions
     kubectl get pods --all-namespaces
@@ -54,7 +52,6 @@ function debug_navigator_start() {
 function navigator_install() {
     echo "Installing navigator..."
     helm delete --purge "${RELEASE_NAME}" || true
-    kube_delete_namespace_and_wait "${NAVIGATOR_NAMESPACE}"
     kube_create_namespace_with_quota "${NAVIGATOR_NAMESPACE}"
     if helm --debug install \
             --namespace "${NAVIGATOR_NAMESPACE}" \

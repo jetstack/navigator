@@ -43,7 +43,7 @@ function retry() {
 
 function kube_create_namespace_with_quota() {
     local namespace=$1
-    kubectl create namespace "${namespace}"
+    kubectl create namespace "${namespace}" || true
     kubectl create quota \
             --namespace "${namespace}" \
             --hard=cpu=16,requests.cpu=16,limits.cpu=16,memory=32G,requests.memory=32G,limits.memory=32G \
