@@ -44,7 +44,6 @@ var _ = Describe("Scale tests", func() {
 				Version:   "5.6.2",
 				ClusterConfig: v1alpha1.NavigatorClusterConfig{
 					PilotImage: framework.DefaultElasticsearchPilotImageSpec(),
-					Sysctls:    framework.DefaultElasticsearchSysctls(),
 				},
 				NodePools: []v1alpha1.ElasticsearchClusterNodePool{
 					{
