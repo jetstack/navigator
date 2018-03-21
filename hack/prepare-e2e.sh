@@ -8,6 +8,9 @@ source "${SCRIPT_DIR}/libe2e.sh"
 
 NAVIGATOR_NAMESPACE="navigator"
 RELEASE_NAME="nav-e2e"
+# Override these variables in order change the repository and pull policy from
+# if you've published test images to your own repository.
+: ${CHART_VALUES:="${SCRIPT_DIR}/testdata/values.yaml"}
 
 echo "Installing helm..."
 cat <<EOF | kubectl apply -f -

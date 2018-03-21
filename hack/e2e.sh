@@ -21,9 +21,6 @@ mkdir -p $TEST_DIR
 
 source "${SCRIPT_DIR}/libe2e.sh"
 
-# Override these variables in order change the repository and pull policy from
-# if you've published test images to your own repository.
-: ${CHART_VALUES:="${SCRIPT_DIR}/testdata/values.yaml"}
 : ${NAVIGATOR_IMAGE_REPOSITORY:="jetstackexperimental"}
 : ${NAVIGATOR_IMAGE_TAG:="build"}
 : ${NAVIGATOR_IMAGE_PULLPOLICY:="Never"}
@@ -32,10 +29,6 @@ export \
     NAVIGATOR_IMAGE_REPOSITORY \
     NAVIGATOR_IMAGE_TAG \
     NAVIGATOR_IMAGE_PULLPOLICY
-
-# Override these variables in order change the repository and pull policy from
-# if you've published test images to your own repository.
-: ${CHART_VALUES_CASSANDRA:="${SCRIPT_DIR}/testdata/values_cassandra.yaml"}
 
 # Save the cluster logs when the script exits (success or failure)
 trap "dump_debug_logs ${PWD}/_artifacts/dump_debug_logs" EXIT
