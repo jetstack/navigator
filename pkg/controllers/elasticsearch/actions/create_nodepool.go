@@ -13,6 +13,7 @@ import (
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers"
 	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/util"
+	"github.com/jetstack/navigator/pkg/util/ptr"
 )
 
 const (
@@ -70,7 +71,7 @@ func nodePoolStatefulSet(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.Elastics
 			},
 		},
 		Spec: apps.StatefulSetSpec{
-			Replicas:    util.Int32Ptr(int32(np.Replicas)),
+			Replicas:    ptr.Int32(np.Replicas),
 			ServiceName: statefulSetName,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: util.NodePoolLabels(c, np.Name),
@@ -161,7 +162,7 @@ func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.Elasticsear
 			Annotations: map[string]string{},
 		},
 		Spec: apiv1.PodSpec{
-			TerminationGracePeriodSeconds: util.Int64Ptr(1800),
+			TerminationGracePeriodSeconds: ptr.Int64(1800),
 			ServiceAccountName:            util.ServiceAccountName(c),
 			NodeSelector:                  np.NodeSelector,
 			SchedulerName:                 np.SchedulerName,

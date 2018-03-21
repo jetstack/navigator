@@ -15,6 +15,7 @@ import (
 	testutil "github.com/jetstack/navigator/internal/test/util"
 	"github.com/jetstack/navigator/internal/test/util/generate"
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
+	"github.com/jetstack/navigator/pkg/util/ptr"
 )
 
 func TestScale(t *testing.T) {
@@ -31,57 +32,57 @@ func TestScale(t *testing.T) {
 	tests := map[string]testT{
 		"should not scale statefulset if documents still remain": {
 			kubeObjects: []runtime.Object{
-				generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test-data", Replicas: int32Ptr(3)}),
+				generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test-data", Replicas: ptr.Int32(3)}),
 			},
 			navObjects: []runtime.Object{
-				generate.Pilot(generate.PilotConfig{Name: "es-test-data-0", Cluster: "test", NodePool: "data", Documents: int64Ptr(0)}),
-				generate.Pilot(generate.PilotConfig{Name: "es-test-data-1", Cluster: "test", NodePool: "data", Documents: int64Ptr(0)}),
-				generate.Pilot(generate.PilotConfig{Name: "es-test-data-2", Cluster: "test", NodePool: "data", Documents: int64Ptr(2)}),
+				generate.Pilot(generate.PilotConfig{Name: "es-test-data-0", Cluster: "test", NodePool: "data", Documents: ptr.Int64(0)}),
+				generate.Pilot(generate.PilotConfig{Name: "es-test-data-1", Cluster: "test", NodePool: "data", Documents: ptr.Int64(0)}),
+				generate.Pilot(generate.PilotConfig{Name: "es-test-data-2", Cluster: "test", NodePool: "data", Documents: ptr.Int64(2)}),
 			},
 			cluster:             clusterWithNodePools("test", nodePoolWithNameReplicasRoles("data", 2, v1alpha1.ElasticsearchRoleData)),
 			nodePool:            nodePoolPtrWithNameReplicasRoles("data", 2, v1alpha1.ElasticsearchRoleData),
 			replicas:            2,
 			shouldUpdate:        false,
-			expectedStatefulSet: generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test-data", Replicas: int32Ptr(3)}),
+			expectedStatefulSet: generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test-data", Replicas: ptr.Int32(3)}),
 			err:                 false,
 		},
 		"should scale statefulset if no documents remain": {
 			kubeObjects: []runtime.Object{
-				generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test-data", Replicas: int32Ptr(3)}),
+				generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test-data", Replicas: ptr.Int32(3)}),
 			},
 			navObjects: []runtime.Object{
-				generate.Pilot(generate.PilotConfig{Name: "es-test-data-0", Cluster: "test", NodePool: "data", Documents: int64Ptr(1)}),
-				generate.Pilot(generate.PilotConfig{Name: "es-test-data-1", Cluster: "test", NodePool: "data", Documents: int64Ptr(1)}),
-				generate.Pilot(generate.PilotConfig{Name: "es-test-data-2", Cluster: "test", NodePool: "data", Documents: int64Ptr(0)}),
+				generate.Pilot(generate.PilotConfig{Name: "es-test-data-0", Cluster: "test", NodePool: "data", Documents: ptr.Int64(1)}),
+				generate.Pilot(generate.PilotConfig{Name: "es-test-data-1", Cluster: "test", NodePool: "data", Documents: ptr.Int64(1)}),
+				generate.Pilot(generate.PilotConfig{Name: "es-test-data-2", Cluster: "test", NodePool: "data", Documents: ptr.Int64(0)}),
 			},
 			cluster:             clusterWithNodePools("test", nodePoolWithNameReplicasRoles("data", 2, v1alpha1.ElasticsearchRoleData)),
 			nodePool:            nodePoolPtrWithNameReplicasRoles("data", 2, v1alpha1.ElasticsearchRoleData),
 			replicas:            2,
 			shouldUpdate:        true,
-			expectedStatefulSet: generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test-data", Replicas: int32Ptr(2)}),
+			expectedStatefulSet: generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test-data", Replicas: ptr.Int32(2)}),
 			err:                 false,
 		},
 		"should not scale statefulset if a pilot that should exist is missing": {
 			kubeObjects: []runtime.Object{
-				generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test-data", Replicas: int32Ptr(3)}),
+				generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test-data", Replicas: ptr.Int32(3)}),
 			},
 			navObjects: []runtime.Object{
-				generate.Pilot(generate.PilotConfig{Name: "es-test-data-0", Cluster: "test", NodePool: "data", Documents: int64Ptr(0)}),
-				generate.Pilot(generate.PilotConfig{Name: "es-test-data-2", Cluster: "test", NodePool: "data", Documents: int64Ptr(0)}),
+				generate.Pilot(generate.PilotConfig{Name: "es-test-data-0", Cluster: "test", NodePool: "data", Documents: ptr.Int64(0)}),
+				generate.Pilot(generate.PilotConfig{Name: "es-test-data-2", Cluster: "test", NodePool: "data", Documents: ptr.Int64(0)}),
 			},
 			cluster:             clusterWithNodePools("test", nodePoolWithNameReplicasRoles("data", 2, v1alpha1.ElasticsearchRoleData)),
 			nodePool:            nodePoolPtrWithNameReplicasRoles("data", 2, v1alpha1.ElasticsearchRoleData),
 			replicas:            2,
 			shouldUpdate:        false,
-			expectedStatefulSet: generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test-data", Replicas: int32Ptr(3)}),
+			expectedStatefulSet: generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test-data", Replicas: ptr.Int32(3)}),
 			err:                 false,
 		},
 		"should not error if statefulset doesn't exist": {
 			kubeObjects: []runtime.Object{},
 			navObjects: []runtime.Object{
-				generate.Pilot(generate.PilotConfig{Name: "es-test-data-0", Cluster: "test", NodePool: "data", Documents: int64Ptr(0)}),
-				generate.Pilot(generate.PilotConfig{Name: "es-test-data-1", Cluster: "test", NodePool: "data", Documents: int64Ptr(0)}),
-				generate.Pilot(generate.PilotConfig{Name: "es-test-data-2", Cluster: "test", NodePool: "data", Documents: int64Ptr(0)}),
+				generate.Pilot(generate.PilotConfig{Name: "es-test-data-0", Cluster: "test", NodePool: "data", Documents: ptr.Int64(0)}),
+				generate.Pilot(generate.PilotConfig{Name: "es-test-data-1", Cluster: "test", NodePool: "data", Documents: ptr.Int64(0)}),
+				generate.Pilot(generate.PilotConfig{Name: "es-test-data-2", Cluster: "test", NodePool: "data", Documents: ptr.Int64(0)}),
 			},
 			cluster:             clusterWithNodePools("test", nodePoolWithNameReplicasRoles("data", 2, v1alpha1.ElasticsearchRoleData)),
 			nodePool:            nodePoolPtrWithNameReplicasRoles("data", 2, v1alpha1.ElasticsearchRoleData),
@@ -92,18 +93,18 @@ func TestScale(t *testing.T) {
 		},
 		"should not update if replica difference is zero": {
 			kubeObjects: []runtime.Object{
-				generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test-data", Replicas: int32Ptr(3)}),
+				generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test-data", Replicas: ptr.Int32(3)}),
 			},
 			navObjects: []runtime.Object{
-				generate.Pilot(generate.PilotConfig{Name: "es-test-data-0", Cluster: "test", NodePool: "data", Documents: int64Ptr(0)}),
-				generate.Pilot(generate.PilotConfig{Name: "es-test-data-1", Cluster: "test", NodePool: "data", Documents: int64Ptr(0)}),
-				generate.Pilot(generate.PilotConfig{Name: "es-test-data-2", Cluster: "test", NodePool: "data", Documents: int64Ptr(0)}),
+				generate.Pilot(generate.PilotConfig{Name: "es-test-data-0", Cluster: "test", NodePool: "data", Documents: ptr.Int64(0)}),
+				generate.Pilot(generate.PilotConfig{Name: "es-test-data-1", Cluster: "test", NodePool: "data", Documents: ptr.Int64(0)}),
+				generate.Pilot(generate.PilotConfig{Name: "es-test-data-2", Cluster: "test", NodePool: "data", Documents: ptr.Int64(0)}),
 			},
 			cluster:             clusterWithNodePools("test", nodePoolWithNameReplicasRoles("data", 3, v1alpha1.ElasticsearchRoleData)),
 			nodePool:            nodePoolPtrWithNameReplicasRoles("data", 3, v1alpha1.ElasticsearchRoleData),
 			replicas:            3,
 			shouldUpdate:        false,
-			expectedStatefulSet: generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test-data", Replicas: int32Ptr(3)}),
+			expectedStatefulSet: generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test-data", Replicas: ptr.Int32(3)}),
 			err:                 false,
 		},
 	}
@@ -174,7 +175,7 @@ func TestPilotsForStatefulSet(t *testing.T) {
 			},
 			cluster:     clusterWithNodePools("test", nodePoolWithNameReplicasRoles("data", 2, v1alpha1.ElasticsearchRoleData)),
 			nodePool:    nodePoolPtrWithNameReplicasRoles("data", 2, v1alpha1.ElasticsearchRoleData),
-			statefulSet: generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test-data", Replicas: int32Ptr(3)}),
+			statefulSet: generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test-data", Replicas: ptr.Int32(3)}),
 			expectedPilots: []*v1alpha1.Pilot{
 				pilotWithNameDocuments("es-test-data-0", "test", "data", 10),
 				pilotWithNameDocuments("es-test-data-1", "test", "data", 10),
@@ -188,7 +189,7 @@ func TestPilotsForStatefulSet(t *testing.T) {
 			},
 			cluster:     clusterWithNodePools("test", nodePoolWithNameReplicasRoles("data", 2, v1alpha1.ElasticsearchRoleData)),
 			nodePool:    nodePoolPtrWithNameReplicasRoles("data", 2, v1alpha1.ElasticsearchRoleData),
-			statefulSet: generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test-data", Replicas: int32Ptr(3)}),
+			statefulSet: generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test-data", Replicas: ptr.Int32(3)}),
 			err:         true,
 		},
 		{
@@ -202,7 +203,7 @@ func TestPilotsForStatefulSet(t *testing.T) {
 			},
 			cluster:     clusterWithNodePools("test", nodePoolWithNameReplicasRoles("data", 2, v1alpha1.ElasticsearchRoleData), nodePoolWithNameReplicasRoles("master", 3, v1alpha1.ElasticsearchRoleMaster)),
 			nodePool:    nodePoolPtrWithNameReplicasRoles("data", 2, v1alpha1.ElasticsearchRoleData),
-			statefulSet: generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test-data", Replicas: int32Ptr(3)}),
+			statefulSet: generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test-data", Replicas: ptr.Int32(3)}),
 			expectedPilots: []*v1alpha1.Pilot{
 				pilotWithNameDocuments("es-test-data-0", "test", "data", 0),
 				pilotWithNameDocuments("es-test-data-1", "test", "data", 1),
@@ -255,7 +256,7 @@ func TestCanScaleNodePool(t *testing.T) {
 			},
 			cluster:     clusterWithNodePools("test", nodePoolWithNameReplicasRoles("data", 2, v1alpha1.ElasticsearchRoleData)),
 			nodePool:    nodePoolPtrWithNameReplicasRoles("data", 2, v1alpha1.ElasticsearchRoleData),
-			statefulSet: generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test-data", Replicas: int32Ptr(3)}),
+			statefulSet: generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test-data", Replicas: ptr.Int32(3)}),
 			replicaDiff: -1,
 			canScale:    true,
 		},
@@ -267,7 +268,7 @@ func TestCanScaleNodePool(t *testing.T) {
 			},
 			cluster:     clusterWithNodePools("test", nodePoolWithNameReplicasRoles("data", 2, v1alpha1.ElasticsearchRoleData)),
 			nodePool:    nodePoolPtrWithNameReplicasRoles("data", 2, v1alpha1.ElasticsearchRoleData),
-			statefulSet: generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test-data", Replicas: int32Ptr(3)}),
+			statefulSet: generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test-data", Replicas: ptr.Int32(3)}),
 			replicaDiff: -1,
 			err:         false,
 			canScale:    false,
@@ -280,7 +281,7 @@ func TestCanScaleNodePool(t *testing.T) {
 			},
 			cluster:     clusterWithNodePools("test", nodePoolWithNameReplicasRoles("data", 2, v1alpha1.ElasticsearchRoleData)),
 			nodePool:    nodePoolPtrWithNameReplicasRoles("data", 2, v1alpha1.ElasticsearchRoleData),
-			statefulSet: generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test-data", Replicas: int32Ptr(3)}),
+			statefulSet: generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test-data", Replicas: ptr.Int32(3)}),
 			replicaDiff: -1,
 			err:         false,
 			canScale:    false,
@@ -293,7 +294,7 @@ func TestCanScaleNodePool(t *testing.T) {
 			},
 			cluster:     clusterWithNodePools("test", nodePoolWithNameReplicasRoles("data", 4, v1alpha1.ElasticsearchRoleData)),
 			nodePool:    nodePoolPtrWithNameReplicasRoles("data", 4, v1alpha1.ElasticsearchRoleData),
-			statefulSet: generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test-data", Replicas: int32Ptr(3)}),
+			statefulSet: generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test-data", Replicas: ptr.Int32(3)}),
 			replicaDiff: 1,
 			canScale:    true,
 		},
@@ -347,33 +348,33 @@ func TestDeterminePilotsToBeRemoved(t *testing.T) {
 	tests := map[string]testT{
 		"should only remove highest ordinal pilot in 'test' set": {
 			inputList:      []*v1alpha1.Pilot{pilotWithName("es-test-0"), pilotWithName("es-test-1"), pilotWithName("es-test-2")},
-			statefulSet:    generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test", Replicas: int32Ptr(3)}),
+			statefulSet:    generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test", Replicas: ptr.Int32(3)}),
 			replicaDiff:    -1,
 			expectedOutput: []*v1alpha1.Pilot{pilotWithName("es-test-2")},
 			err:            false,
 		},
 		"should not remove pilot that is not a member of the specified statefulset": {
 			inputList:      []*v1alpha1.Pilot{pilotWithName("es-test-0"), pilotWithName("es-mixed-1"), pilotWithName("es-test-1")},
-			statefulSet:    generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test", Replicas: int32Ptr(2)}),
+			statefulSet:    generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test", Replicas: ptr.Int32(2)}),
 			replicaDiff:    -1,
 			expectedOutput: []*v1alpha1.Pilot{pilotWithName("es-test-1")},
 			err:            false,
 		},
 		"should not remove any pilots if replicaDiff is 0 and highest ordinal pilot is missing": {
 			inputList:   []*v1alpha1.Pilot{pilotWithName("es-test-0")},
-			statefulSet: generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test", Replicas: int32Ptr(2)}),
+			statefulSet: generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test", Replicas: ptr.Int32(2)}),
 			replicaDiff: 0,
 			err:         false,
 		},
 		"should not remove any pilots if replica diff is 0": {
 			inputList:   []*v1alpha1.Pilot{pilotWithName("es-test-0")},
-			statefulSet: generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test", Replicas: int32Ptr(1)}),
+			statefulSet: generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test", Replicas: ptr.Int32(1)}),
 			replicaDiff: 0,
 			err:         false,
 		},
 		"should not remove any pilots of replicaDiff is positive": {
 			inputList:   []*v1alpha1.Pilot{pilotWithName("es-test-0"), pilotWithName("es-test-1")},
-			statefulSet: generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test", Replicas: int32Ptr(2)}),
+			statefulSet: generate.StatefulSet(generate.StatefulSetConfig{Name: "es-test", Replicas: ptr.Int32(2)}),
 			replicaDiff: 1,
 			err:         false,
 		},

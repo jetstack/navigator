@@ -77,10 +77,6 @@ func NodePoolLabels(
 	return labels
 }
 
-func Int32Ptr(i int32) *int32 {
-	return &i
-}
-
 func OwnerCheck(
 	obj metav1.Object,
 	owner metav1.Object,

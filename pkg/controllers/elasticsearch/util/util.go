@@ -15,18 +15,6 @@ const (
 	kindName = "ElasticsearchCluster"
 )
 
-func Int32Ptr(i int32) *int32 {
-	return &i
-}
-
-func Int64Ptr(i int64) *int64 {
-	return &i
-}
-
-func BoolPtr(b bool) *bool {
-	return &b
-}
-
 func NewControllerRef(c *v1alpha1.ElasticsearchCluster) metav1.OwnerReference {
 	return *metav1.NewControllerRef(c, schema.GroupVersionKind{
 		Group:   navigator.GroupName,
