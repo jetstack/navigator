@@ -17,6 +17,12 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+/*
+ * Parts of this code is taken from the upstream
+ * k8s.io/kubernetes/test/e2e/framework package.
+ *
+ */
+
 const (
 	// Poll interval for StatefulSet tests
 	StatefulSetPoll = 10 * time.Second

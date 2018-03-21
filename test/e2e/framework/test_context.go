@@ -15,6 +15,12 @@ import (
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
+/*
+ * Parts of this code is taken from the upstream
+ * k8s.io/kubernetes/test/e2e/framework package.
+ *
+ */
+
 const (
 	RecommendedConfigPathEnvVar = "NAVIGATORCONFIG"
 )

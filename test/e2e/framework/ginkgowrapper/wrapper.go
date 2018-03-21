@@ -29,6 +29,12 @@ import (
 	"github.com/onsi/ginkgo"
 )
 
+/*
+ * Parts of this code is taken from the upstream
+ * k8s.io/kubernetes/test/e2e/framework package.
+ *
+ */
+
 // FailurePanic is the value that will be panicked from Fail.
 type FailurePanic struct {
 	Message        string // The failure message passed to Fail

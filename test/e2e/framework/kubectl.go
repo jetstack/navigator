@@ -20,6 +20,12 @@ import (
 	uexec "k8s.io/utils/exec"
 )
 
+/*
+ * Parts of this code is taken from the upstream
+ * k8s.io/kubernetes/test/e2e/framework package.
+ *
+ */
+
 // KubectlCmd runs the kubectl executable through the wrapper script.
 func KubectlCmd(args ...string) *exec.Cmd {
 	defaultArgs := []string{}

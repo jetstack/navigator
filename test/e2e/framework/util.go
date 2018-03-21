@@ -43,6 +43,12 @@ import (
 	clientset "github.com/jetstack/navigator/pkg/client/clientset/versioned"
 )
 
+/*
+ * Parts of this code is taken from the upstream
+ * k8s.io/kubernetes/test/e2e/framework package.
+ *
+ */
+
 const (
 	// How often to poll for conditions
 	Poll = 2 * time.Second
