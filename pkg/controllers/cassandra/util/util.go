@@ -2,6 +2,7 @@ package util
 
 import (
 	"fmt"
+	"strings"
 
 	"k8s.io/api/apps/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,6 +36,27 @@ func ResourceBaseName(c *v1alpha1.CassandraCluster) string {
 
 func NodePoolResourceName(c *v1alpha1.CassandraCluster, np *v1alpha1.CassandraClusterNodePool) string {
 	return fmt.Sprintf("%s-%s", ResourceBaseName(c), np.Name)
+}
+
+func ParseNodePoolResourceName(name string) (string, string, error) {
+	err := fmt.Errorf(
+		"not a NodePool statefulset name. "+
+			"Expected 'cass-<clustername>-<nodepoolname>'. "+
+			"Got %q.",
+		name,
+	)
+	parts := strings.Split(name, "-")
+	partsCount := len(parts)
+	if partsCount < 3 {
+		return "", "", err
+	}
+	if parts[0] != typeName {
+		return "", "", err
+	}
+	clusterName := strings.Join(parts[1:len(parts)-1], "-")
+	nodePoolName := parts[len(parts)-1]
+
+	return clusterName, nodePoolName, nil
 }
 
 func SeedsServiceName(c *v1alpha1.CassandraCluster) string {

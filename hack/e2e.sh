@@ -347,9 +347,9 @@ function test_cassandracluster() {
 
     if ! retry TIMEOUT=300 stdout_equals 2 kubectl \
          --namespace "${namespace}" \
-         get statefulsets \
-         "cass-${CASS_NAME}-ringnodes" \
-         "-o=go-template={{.status.readyReplicas}}"
+         get cassandracluster \
+         "${CASS_NAME}" \
+         "-o=jsonpath={ .status.nodePools['ringnodes'].readyReplicas }"
     then
         fail_test "Second cassandra node did not become ready"
     fi

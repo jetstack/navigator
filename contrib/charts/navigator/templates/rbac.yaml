@@ -87,7 +87,7 @@ items:
     name: "{{ template "fullname" . }}:controller"
   rules:
   - apiGroups: ["navigator.jetstack.io"]
-    resources: ["elasticsearchclusters", "pilots", "elasticsearchclusters/status", "pilots/status", "cassandraclusters"]
+    resources: ["elasticsearchclusters", "pilots", "elasticsearchclusters/status", "pilots/status", "cassandraclusters", "cassandraclusters/status"]
     verbs:     ["*"]
   - apiGroups: [""]
     resources: ["services", "configmaps", "serviceaccounts", "pods"]
