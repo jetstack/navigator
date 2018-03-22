@@ -15,7 +15,14 @@ import (
 
 func TestNodePoolControlSync(t *testing.T) {
 	cluster1 := casstesting.ClusterForTest()
-	set1 := nodepool.StatefulSetForCluster(cluster1, &cluster1.Spec.NodePools[0])
+	cluster1.Status.NodePools = map[string]v1alpha1.CassandraClusterNodePoolStatus{
+		"orphan-nodepool-status": {
+			ReadyReplicas: 3,
+		},
+	}
+	np1 := &cluster1.Spec.NodePools[0]
+	set1 := nodepool.StatefulSetForCluster(cluster1, np1)
+	set1.Status.ReadyReplicas = np1.Replicas
 
 	type testT struct {
 		kubeObjects        []runtime.Object
@@ -27,8 +34,8 @@ func TestNodePoolControlSync(t *testing.T) {
 	}
 
 	tests := map[string]testT{
-		"create if not exists": {
-			cluster: cluster1,
+		"create object if not exists": {
+			cluster: cluster1.DeepCopy(),
 			assertions: func(t *testing.T, state *controllers.State, test testT) {
 				expectedObject := set1
 				_, err := state.Clientset.AppsV1beta1().
@@ -40,17 +47,47 @@ func TestNodePoolControlSync(t *testing.T) {
 			},
 		},
 
-		"service exists": {
+		"no error if object already exists": {
 			kubeObjects: []runtime.Object{set1},
-			cluster:     cluster1,
+			cluster:     cluster1.DeepCopy(),
 		},
-		"not yet listed": {
+		"no error if object not yet listed": {
 			kubeObjects: []runtime.Object{},
-			cluster:     cluster1,
+			cluster:     cluster1.DeepCopy(),
 			fixtureManipulator: func(t *testing.T, fixture *framework.StateFixture) {
 				_, err := fixture.KubeClient().AppsV1beta1().StatefulSets(set1.Namespace).Create(set1)
 				if err != nil {
 					t.Fatal(err)
+				}
+			},
+		},
+		"add nodepool status if a matching statefulset exists": {
+			kubeObjects: []runtime.Object{set1},
+			cluster:     cluster1.DeepCopy(),
+			assertions: func(t *testing.T, state *controllers.State, test testT) {
+				np := test.cluster.Spec.NodePools[0]
+				nps, found := test.cluster.Status.NodePools[np.Name]
+				if !found {
+					t.Log(test.cluster.Status)
+					t.Errorf("Nodepool status not found for: %s", np.Name)
+				}
+				if set1.Status.ReadyReplicas != nps.ReadyReplicas {
+					t.Errorf(
+						"Unexpected ReadyReplicas for %s: "+
+							"Expected %d != %d",
+						np.Name, set1.Status.ReadyReplicas, nps.ReadyReplicas,
+					)
+				}
+			},
+		},
+		"remove nodepool status if statefulset missing": {
+			kubeObjects: []runtime.Object{},
+			cluster:     cluster1.DeepCopy(),
+			assertions: func(t *testing.T, state *controllers.State, test testT) {
+				nodepoolStatusCount := len(test.cluster.Status.NodePools)
+				if nodepoolStatusCount > 0 {
+					t.Log(test.cluster.Status)
+					t.Errorf("Oprhaned Nodepool status was not deleted")
 				}
 			},
 		},

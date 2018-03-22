@@ -8,6 +8,7 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	appsinformers "k8s.io/client-go/informers/apps/v1beta1"
@@ -40,6 +41,7 @@ import (
 // It accepts a list of informers that are then used to monitor the state of the
 // target cluster.
 type CassandraController struct {
+	navigatorClient             navigatorclientset.Interface
 	control                     ControlInterface
 	cassLister                  listersv1alpha1.CassandraClusterLister
 	statefulSetLister           appslisters.StatefulSetLister
@@ -74,8 +76,9 @@ func NewCassandra(
 	)
 
 	cc := &CassandraController{
-		queue:    queue,
-		recorder: recorder,
+		navigatorClient: naviClient,
+		queue:           queue,
+		recorder:        recorder,
 	}
 	cassClusters.Informer().AddEventHandler(
 		&controllers.QueuingEventHandler{Queue: queue},
@@ -84,6 +87,12 @@ func NewCassandra(
 	pods.Informer().AddEventHandler(
 		&controllers.BlockingEventHandler{
 			WorkFunc: cc.handlePodObject,
+		},
+	)
+	// Sync when statefulsets change
+	statefulSets.Informer().AddEventHandler(
+		&controllers.BlockingEventHandler{
+			WorkFunc: cc.handleObject,
 		},
 	)
 	cc.cassLister = cassClusters.Lister()
@@ -236,7 +245,11 @@ func (e *CassandraController) sync(key string) (err error) {
 		)
 		return err
 	}
-	return e.control.Sync(cass.DeepCopy())
+	cass = cass.DeepCopy()
+	syncErr := e.control.Sync(cass)
+	_, updateErr := e.navigatorClient.
+		NavigatorV1alpha1().CassandraClusters(cass.Namespace).UpdateStatus(cass)
+	return utilerrors.NewAggregate([]error{syncErr, updateErr})
 }
 
 func (e *CassandraController) enqueueCassandraCluster(obj interface{}) {
