@@ -12,7 +12,7 @@ spec:
     runAsUser: 1000
 
   pilotImage:
-    repository: jetstackexperimental/navigator-pilot-elasticsearch
+    repository: quay.io/jetstack/navigator-pilot-elasticsearch
     tag: latest
     pullPolicy: Always
 

@@ -5,7 +5,7 @@ NAVIGATOR_PKG = github.com/jetstack/navigator
 
 TYPES_FILES      = $(shell find pkg/apis -name types.go)
 
-REGISTRY := jetstackexperimental
+REGISTRY := quay.io/jetstack
 IMAGE_NAME := navigator
 BUILD_TAG := build
 IMAGE_TAGS := canary

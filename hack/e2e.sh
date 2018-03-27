@@ -10,7 +10,7 @@ exec 0<&-
 
 : ${TEST_PREFIX:=""}
 
-: ${NAVIGATOR_IMAGE_REPOSITORY:="jetstackexperimental"}
+: ${NAVIGATOR_IMAGE_REPOSITORY:="quay.io/jetstack"}
 : ${NAVIGATOR_IMAGE_TAG:="build"}
 : ${NAVIGATOR_IMAGE_PULLPOLICY:="Never"}
 
