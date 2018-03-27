@@ -26,5 +26,5 @@ spec:
     tag: "3"
     pullPolicy: "IfNotPresent"
   pilotImage:
-    repository: "jetstackexperimental/navigator-pilot-cassandra"
+    repository: "quay.io/jetstack/navigator-pilot-cassandra"
     tag: "canary"

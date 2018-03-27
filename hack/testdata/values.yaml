@@ -17,7 +17,7 @@ apiserver:
   ## Optional: if not set, a service account will be automatically created
   # serviceAccount: "apiserver-svc-acct"
   image:
-    repository: jetstackexperimental/navigator-apiserver
+    repository: quay.io/jetstack/navigator-apiserver
     tag: build
     pullPolicy: Never
 
@@ -28,6 +28,6 @@ controller:
   ## Optional: if not set, a service account will be automatically created
   # serviceAccount: "controller-svc-acct"
   image:
-    repository: jetstackexperimental/navigator-controller
+    repository: quay.io/jetstack/navigator-controller
     tag: build
     pullPolicy: Never
