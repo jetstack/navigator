@@ -6,6 +6,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1beta1"
 
 	navinformers "github.com/jetstack/navigator/pkg/client/informers/externalversions"
+	"github.com/jetstack/navigator/pkg/controllers"
 
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra"
@@ -178,6 +179,11 @@ func (f *Fixture) setupAndSync() error {
 		f.RoleBindingControl,
 		f.SeedLabellerControl,
 		recorder,
+		&controllers.State{
+			Clientset:         f.k8sClient,
+			StatefulSetLister: statefulSets,
+			Recorder:          recorder,
+		},
 	)
 	stopCh := make(chan struct{})
 	defer close(stopCh)

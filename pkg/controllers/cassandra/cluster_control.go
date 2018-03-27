@@ -6,6 +6,8 @@ import (
 	"k8s.io/client-go/tools/record"
 
 	v1alpha1 "github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
+	"github.com/jetstack/navigator/pkg/controllers"
+	"github.com/jetstack/navigator/pkg/controllers/cassandra/actions"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/nodepool"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/pilot"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/role"
@@ -28,6 +30,7 @@ const (
 	MessageErrorSyncNodePools      = "Error syncing node pools: %s"
 	MessageErrorSyncPilots         = "Error syncing pilots: %s"
 	MessageErrorSyncSeedLabels     = "Error syncing seed labels: %s"
+	MessageErrorSync               = "Error syncing: %s"
 	MessageSuccessSync             = "Successfully synced CassandraCluster"
 )
 
@@ -47,6 +50,7 @@ type defaultCassandraClusterControl struct {
 	roleBindingControl         rolebinding.Interface
 	seedLabellerControl        seedlabeller.Interface
 	recorder                   record.EventRecorder
+	state                      *controllers.State
 }
 
 func NewControl(
@@ -59,6 +63,7 @@ func NewControl(
 	roleBindingControl rolebinding.Interface,
 	seedlabellerControl seedlabeller.Interface,
 	recorder record.EventRecorder,
+	state *controllers.State,
 ) ControlInterface {
 	return &defaultCassandraClusterControl{
 		seedProviderServiceControl: seedProviderServiceControl,
@@ -70,6 +75,7 @@ func NewControl(
 		roleBindingControl:         roleBindingControl,
 		seedLabellerControl:        seedlabellerControl,
 		recorder:                   recorder,
+		state:                      state,
 	}
 }
 
@@ -163,11 +169,49 @@ func (e *defaultCassandraClusterControl) Sync(c *v1alpha1.CassandraCluster) erro
 		)
 		return err
 	}
+
+	a := NextAction(c)
+	if a != nil {
+		err = a.Execute(e.state)
+		if err != nil {
+			e.recorder.Eventf(
+				c,
+				apiv1.EventTypeWarning,
+				ErrorSync,
+				MessageErrorSync,
+				err,
+			)
+			return err
+		}
+	}
+
 	e.recorder.Event(
 		c,
 		apiv1.EventTypeNormal,
 		SuccessSync,
 		MessageSuccessSync,
 	)
+	return nil
+}
+
+func NextAction(c *v1alpha1.CassandraCluster) controllers.Action {
+	for _, np := range c.Spec.NodePools {
+		_, found := c.Status.NodePools[np.Name]
+		if !found {
+			return &actions.CreateNodePool{
+				Cluster:  c,
+				NodePool: &np,
+			}
+		}
+	}
+	for _, np := range c.Spec.NodePools {
+		nps := c.Status.NodePools[np.Name]
+		if np.Replicas > nps.ReadyReplicas {
+			return &actions.ScaleOut{
+				Cluster:  c,
+				NodePool: &np,
+			}
+		}
+	}
 	return nil
 }

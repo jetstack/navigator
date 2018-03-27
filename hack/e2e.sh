@@ -249,7 +249,12 @@ function test_cassandracluster() {
         fail_test "Failed to create cassandracluster"
     fi
 
-    kubectl get cassandraclusters -n "${namespace}" -o yaml
+    # A NodePool is created
+    if ! retry TIMEOUT=300 kube_event_exists "${namespace}" \
+         "navigator-controller:CassandraCluster:Normal:CreateNodePool"
+    then
+        fail_test "A CreateNodePool event was not recorded"
+    fi
 
     # A Pilot is elected leader
     if ! retry TIMEOUT=300 kube_event_exists "${namespace}" \
@@ -344,6 +349,13 @@ function test_cassandracluster() {
         <(envsubst \
               '$NAVIGATOR_IMAGE_REPOSITORY:$NAVIGATOR_IMAGE_TAG:$NAVIGATOR_IMAGE_PULLPOLICY:$CASS_NAME:$CASS_REPLICAS:$CASS_VERSION' \
               < "${SCRIPT_DIR}/testdata/cass-cluster-test.template.yaml")
+
+    # The NodePool is scaled out
+    if ! retry TIMEOUT=300 kube_event_exists "${namespace}" \
+         "navigator-controller:CassandraCluster:Normal:ScaleOut"
+    then
+        fail_test "A ScaleOut event was not recorded"
+    fi
 
     if ! retry TIMEOUT=300 stdout_equals 2 kubectl \
          --namespace "${namespace}" \

@@ -3,7 +3,6 @@ package nodepool_test
 import (
 	"testing"
 
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/jetstack/navigator/internal/test/unit/framework"
@@ -34,33 +33,6 @@ func TestNodePoolControlSync(t *testing.T) {
 	}
 
 	tests := map[string]testT{
-		"create object if not exists": {
-			cluster: cluster1.DeepCopy(),
-			assertions: func(t *testing.T, state *controllers.State, test testT) {
-				expectedObject := set1
-				_, err := state.Clientset.AppsV1beta1().
-					StatefulSets(expectedObject.Namespace).
-					Get(expectedObject.Name, v1.GetOptions{})
-				if err != nil {
-					t.Error(err)
-				}
-			},
-		},
-
-		"no error if object already exists": {
-			kubeObjects: []runtime.Object{set1},
-			cluster:     cluster1.DeepCopy(),
-		},
-		"no error if object not yet listed": {
-			kubeObjects: []runtime.Object{},
-			cluster:     cluster1.DeepCopy(),
-			fixtureManipulator: func(t *testing.T, fixture *framework.StateFixture) {
-				_, err := fixture.KubeClient().AppsV1beta1().StatefulSets(set1.Namespace).Create(set1)
-				if err != nil {
-					t.Fatal(err)
-				}
-			},
-		},
 		"add nodepool status if a matching statefulset exists": {
 			kubeObjects: []runtime.Object{set1},
 			cluster:     cluster1.DeepCopy(),
