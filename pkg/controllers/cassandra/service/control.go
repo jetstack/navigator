@@ -5,7 +5,6 @@ import (
 
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 
-	"github.com/golang/glog"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -48,20 +47,14 @@ func NewControl(
 
 func (c *control) Sync(cluster *v1alpha1.CassandraCluster) error {
 	service := c.serviceFactory(cluster)
-	_, err := c.serviceLister.Services(service.Namespace).Get(service.Name)
+	existingService, err := c.serviceLister.Services(service.Namespace).Get(service.Name)
 	if err == nil {
-		glog.V(4).Infof("Service already exists: %s", service.Name)
-		return nil
+		return util.OwnerCheck(existingService, cluster)
 	}
 	if !k8sErrors.IsNotFound(err) {
 		return err
 	}
-	glog.V(4).Infof("Creating service: %s", service.Name)
 	_, err = c.kubeClient.CoreV1().Services(service.Namespace).Create(service)
-	if k8sErrors.IsAlreadyExists(err) {
-		glog.V(4).Infof("Service exists: %s", service.Name)
-		return nil
-	}
 	return err
 }
 

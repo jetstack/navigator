@@ -41,12 +41,16 @@ func NewControl(
 func (c *control) Sync(cluster *v1alpha1.CassandraCluster) error {
 	newRole := RoleForCluster(cluster)
 	client := c.kubeClient.RbacV1beta1().Roles(newRole.Namespace)
-	_, err := c.roleLister.
+	existingRole, err := c.roleLister.
 		Roles(newRole.Namespace).
 		Get(newRole.Name)
-	if k8sErrors.IsNotFound(err) {
-		_, err = client.Create(newRole)
+	if err == nil {
+		return util.OwnerCheck(existingRole, cluster)
 	}
+	if !k8sErrors.IsNotFound(err) {
+		return err
+	}
+	_, err = client.Create(newRole)
 	return err
 }
 

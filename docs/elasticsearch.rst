@@ -25,6 +25,8 @@ and in Navigator, these groups of nodes are called ``nodepools``.
 
 .. include:: managing-compute-resources.rst
 
+.. include:: supplementary-resources.rst
+
 .. _system-configuration-elastic-search:
 
 System Configuration for Elasticsearch Nodes

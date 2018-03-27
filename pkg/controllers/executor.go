@@ -4,6 +4,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	appslisters "k8s.io/client-go/listers/apps/v1beta1"
 	corelisters "k8s.io/client-go/listers/core/v1"
+	rbaclisters "k8s.io/client-go/listers/rbac/v1beta1"
 	"k8s.io/client-go/tools/record"
 
 	clientset "github.com/jetstack/navigator/pkg/client/clientset/versioned"
@@ -19,11 +20,14 @@ type State struct {
 	NavigatorClientset clientset.Interface
 	Recorder           record.EventRecorder
 
-	StatefulSetLister appslisters.StatefulSetLister
-	ConfigMapLister   corelisters.ConfigMapLister
-	PilotLister       listers.PilotLister
-	PodLister         corelisters.PodLister
-	ServiceLister     corelisters.ServiceLister
+	StatefulSetLister    appslisters.StatefulSetLister
+	ConfigMapLister      corelisters.ConfigMapLister
+	PilotLister          listers.PilotLister
+	PodLister            corelisters.PodLister
+	ServiceLister        corelisters.ServiceLister
+	ServiceAccountLister corelisters.ServiceAccountLister
+	RoleBindingLister    rbaclisters.RoleBindingLister
+	RoleLister           rbaclisters.RoleLister
 }
 
 type Action interface {

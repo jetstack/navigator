@@ -39,12 +39,16 @@ func NewControl(
 func (c *control) Sync(cluster *v1alpha1.CassandraCluster) error {
 	newAccount := ServiceAccountForCluster(cluster)
 	client := c.kubeClient.CoreV1().ServiceAccounts(newAccount.Namespace)
-	_, err := c.serviceAccountLister.
+	existingAccount, err := c.serviceAccountLister.
 		ServiceAccounts(newAccount.Namespace).
 		Get(newAccount.Name)
-	if k8sErrors.IsNotFound(err) {
-		_, err = client.Create(newAccount)
+	if err == nil {
+		return util.OwnerCheck(existingAccount, cluster)
 	}
+	if !k8sErrors.IsNotFound(err) {
+		return err
+	}
+	_, err = client.Create(newAccount)
 	return err
 }
 
