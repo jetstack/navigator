@@ -16,6 +16,7 @@ import (
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/seedlabeller"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/service"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/serviceaccount"
+	"github.com/jetstack/navigator/pkg/util"
 
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,6 +38,7 @@ func ClusterForTest() *v1alpha1.CassandraCluster {
 				v1alpha1.CassandraClusterNodePool{
 					Name:     "RingNodes",
 					Replicas: 3,
+					Seeds:    util.Int64Ptr(2),
 				},
 			},
 		},

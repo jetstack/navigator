@@ -74,6 +74,11 @@ type CassandraClusterNodePool struct {
 	// If not specified, the pod will be dispatched by default scheduler.
 	// +optional
 	SchedulerName string `json:"schedulerName,omitempty"`
+
+	// Seeds specifies the number of seed nodes to allocate in this nodepool. By
+	// default, 1 is selected.
+	// +optional
+	Seeds *int32 `json:"seeds,omitempty"`
 }
 
 type CassandraClusterStatus struct {

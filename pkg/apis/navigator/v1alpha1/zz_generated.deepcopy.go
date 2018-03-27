@@ -100,6 +100,15 @@ func (in *CassandraClusterNodePool) DeepCopyInto(out *CassandraClusterNodePool) 
 		}
 	}
 	in.Resources.DeepCopyInto(&out.Resources)
+	if in.Seeds != nil {
+		in, out := &in.Seeds, &out.Seeds
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(int32)
+			**out = **in
+		}
+	}
 	return
 }
 

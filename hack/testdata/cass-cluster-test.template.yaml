@@ -9,6 +9,7 @@ spec:
     replicas: ${CASS_REPLICAS}
     datacenter: "${CASS_NAME}-datacenter"
     rack: "{CASS_NAME}-rack"
+    seeds: ${CASS_SEEDS}
     persistence:
       enabled: true
       size: "5Gi"
