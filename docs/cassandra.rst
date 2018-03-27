@@ -174,3 +174,5 @@ For example, you could use the `Datastax Python driver <http://datastax.github.i
 .. note::
    The IP address to which the driver makes the initial connection
    depends on the DNS server and operating system configuration.
+
+.. include:: supplementary-resources.rst

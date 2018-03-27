@@ -18,14 +18,14 @@ func TestSync(t *testing.T) {
 	cluster1 := casstesting.ClusterForTest()
 	service1 := service.NodesServiceForCluster(cluster1)
 	serviceFactory := service.NodesServiceForCluster
+	foreignService1 := service1.DeepCopy()
+	foreignService1.SetOwnerReferences([]v1.OwnerReference{})
 
 	type testT struct {
-		kubeObjects        []runtime.Object
-		navObjects         []runtime.Object
-		cluster            *v1alpha1.CassandraCluster
-		fixtureManipulator func(*testing.T, *framework.StateFixture)
-		assertions         func(*testing.T, *controllers.State, testT)
-		expectErr          bool
+		kubeObjects []runtime.Object
+		cluster     *v1alpha1.CassandraCluster
+		assertions  func(*testing.T, *controllers.State, testT)
+		expectErr   bool
 	}
 
 	tests := map[string]testT{
@@ -47,15 +47,10 @@ func TestSync(t *testing.T) {
 			kubeObjects: []runtime.Object{service1},
 			cluster:     cluster1,
 		},
-		"not yet listed": {
-			kubeObjects: []runtime.Object{},
+		"error if foreign owned": {
+			kubeObjects: []runtime.Object{foreignService1},
 			cluster:     cluster1,
-			fixtureManipulator: func(t *testing.T, fixture *framework.StateFixture) {
-				_, err := fixture.KubeClient().CoreV1().Services(service1.Namespace).Create(service1)
-				if err != nil {
-					t.Fatal(err)
-				}
-			},
+			expectErr:   true,
 		},
 	}
 
@@ -64,15 +59,11 @@ func TestSync(t *testing.T) {
 			title,
 			func(t *testing.T) {
 				fixture := &framework.StateFixture{
-					T:                t,
-					KubeObjects:      test.kubeObjects,
-					NavigatorObjects: test.navObjects,
+					T:           t,
+					KubeObjects: test.kubeObjects,
 				}
 				fixture.Start()
 				defer fixture.Stop()
-				if test.fixtureManipulator != nil {
-					test.fixtureManipulator(t, fixture)
-				}
 				state := fixture.State()
 				c := service.NewControl(
 					state.Clientset,

@@ -40,12 +40,16 @@ func NewControl(
 func (c *control) Sync(cluster *v1alpha1.CassandraCluster) error {
 	newRoleBinding := RoleBindingForCluster(cluster)
 	client := c.kubeClient.RbacV1beta1().RoleBindings(newRoleBinding.Namespace)
-	_, err := c.roleBindingLister.
+	existingRoleBinding, err := c.roleBindingLister.
 		RoleBindings(newRoleBinding.Namespace).
 		Get(newRoleBinding.Name)
-	if k8sErrors.IsNotFound(err) {
-		_, err = client.Create(newRoleBinding)
+	if err == nil {
+		return util.OwnerCheck(existingRoleBinding, cluster)
 	}
+	if !k8sErrors.IsNotFound(err) {
+		return err
+	}
+	_, err = client.Create(newRoleBinding)
 	return err
 }
 

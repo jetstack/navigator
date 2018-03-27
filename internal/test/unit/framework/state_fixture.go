@@ -53,14 +53,17 @@ func (s *StateFixture) Start() {
 	s.kubeSharedInformerFactory = kubeinformers.NewSharedInformerFactory(s.kubeClient, informerResyncPeriod)
 	s.navigatorSharedInformerFactory = informers.NewSharedInformerFactory(s.navigatorClient, informerResyncPeriod)
 	s.state = &controllers.State{
-		Clientset:          s.kubeClient,
-		NavigatorClientset: s.navigatorClient,
-		Recorder:           record.NewFakeRecorder(5),
-		StatefulSetLister:  s.kubeSharedInformerFactory.Apps().V1beta1().StatefulSets().Lister(),
-		ConfigMapLister:    s.kubeSharedInformerFactory.Core().V1().ConfigMaps().Lister(),
-		PilotLister:        s.navigatorSharedInformerFactory.Navigator().V1alpha1().Pilots().Lister(),
-		PodLister:          s.kubeSharedInformerFactory.Core().V1().Pods().Lister(),
-		ServiceLister:      s.kubeSharedInformerFactory.Core().V1().Services().Lister(),
+		Clientset:            s.kubeClient,
+		NavigatorClientset:   s.navigatorClient,
+		Recorder:             record.NewFakeRecorder(5),
+		StatefulSetLister:    s.kubeSharedInformerFactory.Apps().V1beta1().StatefulSets().Lister(),
+		ConfigMapLister:      s.kubeSharedInformerFactory.Core().V1().ConfigMaps().Lister(),
+		PilotLister:          s.navigatorSharedInformerFactory.Navigator().V1alpha1().Pilots().Lister(),
+		PodLister:            s.kubeSharedInformerFactory.Core().V1().Pods().Lister(),
+		ServiceLister:        s.kubeSharedInformerFactory.Core().V1().Services().Lister(),
+		ServiceAccountLister: s.kubeSharedInformerFactory.Core().V1().ServiceAccounts().Lister(),
+		RoleBindingLister:    s.kubeSharedInformerFactory.Rbac().V1beta1().RoleBindings().Lister(),
+		RoleLister:           s.kubeSharedInformerFactory.Rbac().V1beta1().Roles().Lister(),
 	}
 	s.stopCh = make(chan struct{})
 	s.kubeSharedInformerFactory.Start(s.stopCh)
