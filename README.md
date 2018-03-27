@@ -1,4 +1,4 @@
-# Navigator - self managed DBaaS on Kubernetes [![Build Status Widget]][Build Status]
+# Navigator - self managed DBaaS on Kubernetes
 
 Navigator is a Kubernetes extension for managing common stateful services on
 Kubernetes. It is implemented as a custom apiserver that operates behind
@@ -36,6 +36,3 @@ planning.
 ## Credits
 
 An open-source project by [Jetstack.io](https://www.jetstack.io/).
-
-[Build Status Widget]: https://travis-ci.org/jetstack/navigator.svg?branch=master
-[Build Status]: https://travis-ci.org/jetstack/navigator
