@@ -54,6 +54,9 @@ type CassandraClusterSpec struct {
 	// The version of the database to be used for nodes in the cluster.
 	// This field must be a valid Cassandra version, e.g. '3.11.2'.
 	Version version.Version `json:"version"`
+
+	// If set to true, no actions will take place on this cluster.
+	Paused *bool `json:"paused"`
 }
 
 // CassandraClusterNodePool describes a node pool within a CassandraCluster.
@@ -212,6 +215,9 @@ type ElasticsearchClusterSpec struct {
 	// nodes.
 	// +optional
 	MinimumMasters *int32 `json:"minimumMasters,omitempty"`
+
+	// If set to true, no actions will take place on this cluster.
+	Paused *bool `json:"paused"`
 }
 
 // ElasticsearchClusterNodePool describes a node pool within an ElasticsearchCluster.

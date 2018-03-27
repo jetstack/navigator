@@ -32,6 +32,7 @@ type CassandraClusterSpec struct {
 	NodePools []CassandraClusterNodePool
 	Version   version.Version
 	Image     *ImageSpec
+	Paused    *bool
 }
 
 type CassandraClusterNodePool struct {
@@ -115,6 +116,7 @@ type ElasticsearchClusterSpec struct {
 	Plugins        []string
 	NodePools      []ElasticsearchClusterNodePool
 	MinimumMasters *int32
+	Paused         *bool
 }
 
 type ElasticsearchClusterNodePool struct {
