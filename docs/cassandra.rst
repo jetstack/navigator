@@ -175,6 +175,8 @@ For example, you could use the `Datastax Python driver <http://datastax.github.i
    The IP address to which the driver makes the initial connection
    depends on the DNS server and operating system configuration.
 
+.. include:: paused-clusters.rst
+
 .. include:: supplementary-resources.rst
 
 The Life Cycle of a Navigator Cassandra Cluster
