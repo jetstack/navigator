@@ -11,7 +11,3 @@ func CalculateQuorum(num int32) int32 {
 	}
 	return (num / 2) + 1
 }
-
-func Int64Ptr(i int64) *int64 {
-	return &i
-}

@@ -47,7 +47,7 @@ func (c *defaultSeedLabeller) labelSeedNodes(
 	np *v1alpha1.CassandraClusterNodePool,
 	set *appsv1beta1.StatefulSet,
 ) error {
-	for i := int64(0); i < np.Replicas; i++ {
+	for i := int32(0); i < np.Replicas; i++ {
 		pod, err := c.pods.Pods(cluster.Namespace).Get(fmt.Sprintf("%s-%d", set.Name, i))
 		if err != nil {
 			glog.Warningf("Couldn't get stateful set pod: %v", err)
@@ -59,11 +59,11 @@ func (c *defaultSeedLabeller) labelSeedNodes(
 
 		desiredLabel := ""
 		if isSeed {
-			desiredLabel = seedprovider.SeedLabelValue
+			desiredLabel = service.SeedLabelValue
 		}
 
 		labels := pod.Labels
-		value := labels[seedprovider.SeedLabelKey]
+		value := labels[service.SeedLabelKey]
 		if value == desiredLabel {
 			continue
 		}
@@ -72,9 +72,9 @@ func (c *defaultSeedLabeller) labelSeedNodes(
 		}
 
 		if isSeed {
-			labels[seedprovider.SeedLabelKey] = desiredLabel
+			labels[service.SeedLabelKey] = desiredLabel
 		} else {
-			delete(labels, seedprovider.SeedLabelKey)
+			delete(labels, service.SeedLabelKey)
 		}
 
 		podCopy := pod.DeepCopy()

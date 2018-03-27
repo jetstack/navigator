@@ -78,7 +78,7 @@ type CassandraClusterNodePool struct {
 	// Seeds specifies the number of seed nodes to allocate in this nodepool. By
 	// default, 1 is selected.
 	// +optional
-	Seeds *int64 `json:"seeds,omitempty"`
+	Seeds *int32 `json:"seeds,omitempty"`
 }
 
 type CassandraClusterStatus struct {

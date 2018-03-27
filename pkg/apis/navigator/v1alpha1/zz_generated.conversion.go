@@ -173,7 +173,7 @@ func autoConvert_v1alpha1_CassandraClusterNodePool_To_navigator_CassandraCluster
 	out.Datacenter = in.Datacenter
 	out.Resources = in.Resources
 	out.SchedulerName = in.SchedulerName
-	out.Seeds = (*int64)(unsafe.Pointer(in.Seeds))
+	out.Seeds = (*int32)(unsafe.Pointer(in.Seeds))
 	return nil
 }
 
@@ -193,7 +193,7 @@ func autoConvert_navigator_CassandraClusterNodePool_To_v1alpha1_CassandraCluster
 	out.Datacenter = in.Datacenter
 	out.Resources = in.Resources
 	out.SchedulerName = in.SchedulerName
-	out.Seeds = (*int64)(unsafe.Pointer(in.Seeds))
+	out.Seeds = (*int32)(unsafe.Pointer(in.Seeds))
 	return nil
 }
 
