@@ -1,10 +1,6 @@
 package pilot
 
 import (
-	"fmt"
-	"hash/fnv"
-	"reflect"
-
 	"k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,7 +14,6 @@ import (
 	navlisters "github.com/jetstack/navigator/pkg/client/listers/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/util"
-	hashutil "github.com/jetstack/navigator/pkg/util/hash"
 )
 
 const (
@@ -79,29 +74,20 @@ func (c *pilotControl) clusterPods(cluster *v1alpha1.CassandraCluster) ([]*v1.Po
 	return clusterPods, nil
 }
 
-func (c *pilotControl) createOrUpdatePilot(cluster *v1alpha1.CassandraCluster, pod *v1.Pod) error {
+func (c *pilotControl) createPilot(cluster *v1alpha1.CassandraCluster, pod *v1.Pod) error {
 	desiredPilot := PilotForCluster(cluster, pod)
 	client := c.naviClient.NavigatorV1alpha1().Pilots(desiredPilot.GetNamespace())
 	lister := c.pilots.Pilots(desiredPilot.GetNamespace())
 	existingPilot, err := lister.Get(desiredPilot.GetName())
-	if k8sErrors.IsNotFound(err) {
-		_, err = client.Create(desiredPilot)
+	// Pilot already exists
+	if err == nil {
+		return util.OwnerCheck(existingPilot, cluster)
+	}
+	// The only error we expect is that the pilot does not exist.
+	if !k8sErrors.IsNotFound(err) {
 		return err
 	}
-	if err != nil {
-		return err
-	}
-	err = util.OwnerCheck(existingPilot, cluster)
-	if err != nil {
-		return err
-	}
-	existingPilot = existingPilot.DeepCopy()
-	existingPilot.Status = v1alpha1.PilotStatus{}
-	desiredPilot = existingPilot.DeepCopy()
-	desiredPilot = updatePilotForCluster(cluster, pod, desiredPilot)
-	if !reflect.DeepEqual(desiredPilot, existingPilot) {
-		_, err = client.Update(desiredPilot)
-	}
+	_, err = client.Create(desiredPilot)
 	return err
 }
 
@@ -111,7 +97,7 @@ func (c *pilotControl) syncPilots(cluster *v1alpha1.CassandraCluster) error {
 		return err
 	}
 	for _, pod := range pods {
-		err = c.createOrUpdatePilot(cluster, pod)
+		err = c.createPilot(cluster, pod)
 		if err != nil {
 			return err
 		}
@@ -129,55 +115,12 @@ func (c *pilotControl) Sync(cluster *v1alpha1.CassandraCluster) error {
 }
 
 func PilotForCluster(cluster *v1alpha1.CassandraCluster, pod *v1.Pod) *v1alpha1.Pilot {
-	pilot := &v1alpha1.Pilot{}
-	pilot.SetOwnerReferences(
-		[]metav1.OwnerReference{
-			util.NewControllerRef(cluster),
+	return &v1alpha1.Pilot{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            pod.Name,
+			Namespace:       pod.Namespace,
+			Labels:          util.ClusterLabels(cluster),
+			OwnerReferences: []metav1.OwnerReference{util.NewControllerRef(cluster)},
 		},
-	)
-	return updatePilotForCluster(cluster, pod, pilot)
-}
-
-func updatePilotForCluster(
-	cluster *v1alpha1.CassandraCluster,
-	pod *v1.Pod,
-	pilot *v1alpha1.Pilot,
-) *v1alpha1.Pilot {
-	pilot.SetName(pod.GetName())
-	pilot.SetNamespace(cluster.GetNamespace())
-	labels := pilot.GetLabels()
-	if labels == nil {
-		labels = map[string]string{}
 	}
-	for key, val := range util.ClusterLabels(cluster) {
-		labels[key] = val
-	}
-	pilot.SetLabels(labels)
-	ComputeHashAndUpdateAnnotation(pilot)
-	return pilot
-}
-
-func ComputeHash(p *v1alpha1.Pilot) uint32 {
-	hashVar := []interface{}{
-		p.Spec,
-		p.ObjectMeta,
-		p.Labels,
-	}
-	hasher := fnv.New32()
-	hashutil.DeepHashObject(hasher, hashVar)
-	return hasher.Sum32()
-}
-
-func UpdateHashAnnotation(p *v1alpha1.Pilot, hash uint32) {
-	annotations := p.GetAnnotations()
-	if annotations == nil {
-		annotations = map[string]string{}
-	}
-	annotations[HashAnnotationKey] = fmt.Sprintf("%d", hash)
-	p.SetAnnotations(annotations)
-}
-
-func ComputeHashAndUpdateAnnotation(p *v1alpha1.Pilot) {
-	hash := ComputeHash(p)
-	UpdateHashAnnotation(p, hash)
 }

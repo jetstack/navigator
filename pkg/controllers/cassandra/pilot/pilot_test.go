@@ -6,8 +6,11 @@ import (
 	"k8s.io/api/core/v1"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 
+	"github.com/jetstack/navigator/internal/test/unit/framework"
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
+	"github.com/jetstack/navigator/pkg/controllers"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/pilot"
 	casstesting "github.com/jetstack/navigator/pkg/controllers/cassandra/testing"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/util"
@@ -25,121 +28,114 @@ func clusterPod(cluster *v1alpha1.CassandraCluster, name string) *v1.Pod {
 	return pod
 }
 
-func nonClusterPod(cluster *v1alpha1.CassandraCluster, name string) *v1.Pod {
-	p := clusterPod(cluster, name)
-	p.SetOwnerReferences([]metav1.OwnerReference{})
-	return p
-}
-
 func TestPilotSync(t *testing.T) {
-	t.Run(
-		"each cluster pod gets a pilot",
-		func(t *testing.T) {
-			f := casstesting.NewFixture(t)
-			f.AddObjectK(clusterPod(f.Cluster, "foo"))
-			f.AddObjectK(clusterPod(f.Cluster, "bar"))
-			f.Run()
-			f.AssertPilotsLength(2)
+	cluster1 := casstesting.ClusterForTest()
+	cluster1pod1 := clusterPod(cluster1, "c1p1")
+	cluster1pod2 := clusterPod(cluster1, "c1p2")
+	cluster1pilot1 := pilot.PilotForCluster(cluster1, cluster1pod1)
+	cluster1pilot1foreign := cluster1pilot1.DeepCopy()
+	cluster1pilot1foreign.SetOwnerReferences([]metav1.OwnerReference{})
+
+	cluster2 := casstesting.ClusterForTest()
+	cluster2.SetName("cluster2")
+	cluster2.SetUID("uid2")
+	cluster2pod1 := clusterPod(cluster2, "c2p1")
+
+	type testT struct {
+		kubeObjects []runtime.Object
+		navObjects  []runtime.Object
+		cluster     *v1alpha1.CassandraCluster
+		assertions  func(*testing.T, *controllers.State)
+		expectErr   bool
+	}
+
+	tests := map[string]testT{
+		"each cluster pod gets a pilot": {
+			kubeObjects: []runtime.Object{
+				cluster1pod1,
+				cluster1pod2,
+				cluster2pod1,
+			},
+			cluster: cluster1,
+			assertions: func(t *testing.T, state *controllers.State) {
+				pilots, err := state.NavigatorClientset.
+					Navigator().Pilots(cluster1.Namespace).List(metav1.ListOptions{})
+				if err != nil {
+					t.Fatal(err)
+				}
+				expectedPilotCount := 2
+				pilotCount := len(pilots.Items)
+				if pilotCount != expectedPilotCount {
+					t.Log(pilots.Items)
+					t.Errorf("Unexpected pilot count: %d != %d", expectedPilotCount, pilotCount)
+				}
+			},
 		},
-	)
-	t.Run(
-		"non-cluster pods are ignored",
-		func(t *testing.T) {
-			f := casstesting.NewFixture(t)
-			f.AddObjectK(clusterPod(f.Cluster, "foo"))
-			f.AddObjectK(nonClusterPod(f.Cluster, "bar"))
-			f.Run()
-			f.AssertPilotsLength(1)
+		"non-cluster pods are ignored": {
+			kubeObjects: []runtime.Object{
+				cluster1pod1,
+				cluster2pod1,
+			},
+			cluster: cluster1,
+			assertions: func(t *testing.T, state *controllers.State) {
+				pilots, err := state.NavigatorClientset.
+					Navigator().Pilots(cluster1.Namespace).List(metav1.ListOptions{})
+				if err != nil {
+					t.Fatal(err)
+				}
+				expectedPilotCount := 1
+				pilotCount := len(pilots.Items)
+				if pilotCount != expectedPilotCount {
+					t.Log(pilots.Items)
+					t.Errorf("Unexpected pilot count: %d != %d", expectedPilotCount, pilotCount)
+				}
+			},
 		},
-	)
-	t.Run(
-		"pilot exists",
-		func(t *testing.T) {
-			f := casstesting.NewFixture(t)
-			pod := clusterPod(f.Cluster, "foo")
-			pilot := pilot.PilotForCluster(f.Cluster, pod)
-			f.AddObjectK(pod)
-			f.AddObjectN(pilot)
-			f.Run()
-			f.AssertPilotsLength(1)
+		"no error if pilot exists": {
+			kubeObjects: []runtime.Object{cluster1pod1},
+			navObjects:  []runtime.Object{cluster1pilot1},
+			cluster:     cluster1,
 		},
-	)
-	t.Run(
-		"foreign owned pilot",
-		func(t *testing.T) {
-			f := casstesting.NewFixture(t)
-			pod := clusterPod(f.Cluster, "foo")
-			pilot := pilot.PilotForCluster(f.Cluster, pod)
-			pilot.SetOwnerReferences([]metav1.OwnerReference{})
-			f.AddObjectK(pod)
-			f.AddObjectN(pilot)
-			f.RunExpectError()
-			f.AssertPilotsLength(1)
+		"error if foreign owned": {
+			kubeObjects: []runtime.Object{cluster1pod1},
+			navObjects:  []runtime.Object{cluster1pilot1foreign},
+			cluster:     cluster1,
+			expectErr:   true,
 		},
-	)
-	t.Run(
-		"pilot sync when hash changes",
-		func(t *testing.T) {
-			f := casstesting.NewFixture(t)
-			pod := clusterPod(f.Cluster, "foo")
-			unsyncedPilot := pilot.PilotForCluster(f.Cluster, pod)
-			pilot.UpdateHashAnnotation(unsyncedPilot, 0)
-			f.AddObjectK(pod)
-			f.AddObjectN(unsyncedPilot)
-			f.Run()
-			f.AssertPilotsLength(1)
-			updatedPilot := f.Pilots().Items[0]
-			updatedPilotAnnotations := updatedPilot.GetAnnotations()
-			hash, ok := updatedPilotAnnotations[pilot.HashAnnotationKey]
-			if !ok {
-				t.Log(updatedPilotAnnotations)
-				t.Error("pilot hash annotation not found")
-			}
-			if hash == "0" {
-				t.Log(updatedPilot)
-				t.Error("Pilot was not updated")
-			}
-		},
-	)
-	t.Run(
-		"pilot no sync if hash matches",
-		func(t *testing.T) {
-			f := casstesting.NewFixture(t)
-			pod := clusterPod(f.Cluster, "foo")
-			// Remove the labels
-			unsyncedPilot := pilot.PilotForCluster(f.Cluster, pod)
-			unsyncedPilot.SetLabels(map[string]string{})
-			pilot.ComputeHashAndUpdateAnnotation(unsyncedPilot)
-			f.AddObjectK(pod)
-			f.AddObjectN(unsyncedPilot)
-			f.Run()
-			f.AssertPilotsLength(1)
-			updatedPilot := f.Pilots().Items[0]
-			updatedLabels := updatedPilot.GetLabels()
-			if len(updatedLabels) == 0 {
-				t.Log(updatedPilot)
-				t.Error("pilot was not updated")
-			}
-		},
-	)
-	t.Run(
-		"don't clobber custom labels",
-		func(t *testing.T) {
-			f := casstesting.NewFixture(t)
-			pod := clusterPod(f.Cluster, "foo")
-			// Remove the labels
-			unsyncedPilot := pilot.PilotForCluster(f.Cluster, pod)
-			unsyncedPilot.Labels["foo"] = "bar"
-			f.AddObjectK(pod)
-			f.AddObjectN(unsyncedPilot)
-			f.Run()
-			f.AssertPilotsLength(1)
-			updatedPilot := f.Pilots().Items[0]
-			updatedLabels := updatedPilot.GetLabels()
-			if updatedLabels["foo"] != "bar" {
-				t.Log(updatedLabels)
-				t.Error("custom labels were altered")
-			}
-		},
-	)
+	}
+	for title, test := range tests {
+		t.Run(
+			title,
+			func(t *testing.T) {
+				fixture := &framework.StateFixture{
+					T:                t,
+					KubeObjects:      test.kubeObjects,
+					NavigatorObjects: test.navObjects,
+				}
+				fixture.Start()
+				defer fixture.Stop()
+				state := fixture.State()
+				c := pilot.NewControl(
+					state.NavigatorClientset,
+					state.PilotLister,
+					state.PodLister,
+					state.StatefulSetLister,
+					state.Recorder,
+				)
+				err := c.Sync(test.cluster)
+				if err != nil {
+					if !test.expectErr {
+						t.Errorf("Unexpected error: %s", err)
+					}
+				} else {
+					if test.expectErr {
+						t.Error("Missing error")
+					}
+				}
+				if test.assertions != nil {
+					test.assertions(t, state)
+				}
+			},
+		)
+	}
 }
