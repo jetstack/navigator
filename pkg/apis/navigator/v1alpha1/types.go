@@ -56,7 +56,7 @@ type CassandraClusterSpec struct {
 	Version version.Version `json:"version"`
 
 	// If set to true, no actions will take place on this cluster.
-	Paused *bool `json:"paused"`
+	Paused *bool `json:"paused,omitempty"`
 }
 
 // CassandraClusterNodePool describes a node pool within a CassandraCluster.
@@ -217,7 +217,7 @@ type ElasticsearchClusterSpec struct {
 	MinimumMasters *int32 `json:"minimumMasters,omitempty"`
 
 	// If set to true, no actions will take place on this cluster.
-	Paused *bool `json:"paused"`
+	Paused *bool `json:"paused,omitempty"`
 }
 
 // ElasticsearchClusterNodePool describes a node pool within an ElasticsearchCluster.
