@@ -46,6 +46,6 @@ func NewREST(scheme *runtime.Scheme, optsGetter generic.RESTOptionsGetter) (*reg
 
 	return &registry.REST{
 		Store:              &store,
-		ResourceShortNames: []string{"esc"},
+		ResourceShortNames: []string{"esc", "elasticsearch"},
 	}, &registry.REST{Store: &statusStore}, nil
 }

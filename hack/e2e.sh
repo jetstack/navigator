@@ -239,6 +239,12 @@ function test_cassandracluster() {
         fail_test "Failed to get cassandraclusters"
     fi
 
+    if ! kubectl get \
+         --namespace "${namespace}" \
+         cassandra; then
+         fail_test "Failed to get cassandraclusters short name (cassandra)"
+    fi
+
     if ! kubectl apply \
         --namespace "${namespace}" \
         --filename \
