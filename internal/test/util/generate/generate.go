@@ -118,3 +118,28 @@ func StatefulSet(c StatefulSetConfig) *apps.StatefulSet {
 		},
 	}
 }
+
+type CassandraClusterConfig struct {
+	Name, Namespace string
+}
+
+func CassandraCluster(c CassandraClusterConfig) *v1alpha1.CassandraCluster {
+	return &v1alpha1.CassandraCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      c.Name,
+			Namespace: c.Namespace,
+		},
+	}
+}
+
+type CassandraClusterNodePoolConfig struct {
+	Name     string
+	Replicas int32
+}
+
+func CassandraClusterNodePool(c CassandraClusterNodePoolConfig) *v1alpha1.CassandraClusterNodePool {
+	return &v1alpha1.CassandraClusterNodePool{
+		Name:     c.Name,
+		Replicas: c.Replicas,
+	}
+}

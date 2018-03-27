@@ -176,3 +176,55 @@ For example, you could use the `Datastax Python driver <http://datastax.github.i
    depends on the DNS server and operating system configuration.
 
 .. include:: supplementary-resources.rst
+
+The Life Cycle of a Navigator Cassandra Cluster
+-----------------------------------------------
+
+Changes to the configuration of an established Cassandra cluster must be carefully sequenced in order to maintain the health of the cluster.
+So Navigator is conservative about the configuration changes that it supports.
+
+Here are the configuration changes that are supported and the configuration changes which are not yet supported.
+
+Supported Configuration Changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Navigator supports the following changes to a Cassandra cluster:
+
+ * :ref:`create-cluster-cassandra`: Add all initially configured node pools and nodes.
+ * :ref:`scale-out-cassandra`: Increase ``CassandraCluster.Spec.NodePools[0].Replicas`` to add more C* nodes to a ``nodepool``.
+
+Navigator does not currently support any other changes to the Cassandra cluster configuration.
+
+Unsupported Configuration Changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The following configuration changes are not currently supported but will be supported in the near future:
+
+ * Minor Upgrade: Trigger a rolling Cassandra upgrade by increasing the minor and / or patch components of ``CassandraCluster.Spec.Version``.
+ * Scale In: Decrease ``CassandraCluster.Spec.NodePools[0].Replicas`` to remove C* nodes from a ``nodepool``.
+
+The following configuration changes are not currently supported:
+ * Add Rack: Add a ``nodepool`` for a new rack.
+ * Remove Rack: Remove a ``nodepool``.
+ * Add Data Center: Add a ``nodepool`` for a new data center.
+ * Remove Data Center: Remove all the ``nodepools`` in a data center.
+ * Major Upgrade: Upgrade to a new major Cassandra version.
+
+.. _create-cluster-cassandra:
+
+Create Cluster
+~~~~~~~~~~~~~~
+
+When you first create a ``CassandraCluster`` resource, Navigator will add nodes, one at a time,
+in order of ``NodePool`` and according to the process described in :ref:`scale-out-cassandra` (below).
+The order of node creation is determined by the order of the entries in the ``CassandraCluster.Spec.NodePools`` list.
+You can look at ``CassandraCluster.Status.NodePools`` to see the current state.
+
+.. _scale-out-cassandra:
+
+Scale Out
+~~~~~~~~~
+
+When you first create a cluster or when you increment the ``CassandraCluster.Spec.NodePools[i].ReplicaCount``,
+Navigator will add C* nodes, one at a time, until the desired number of nodes is reached.
+You can look at ``CassandraCluster.Status.NodePools[<nodepoolname>].ReadyReplicas`` to see the current number of healthy C* nodes in each ``nodepool``.

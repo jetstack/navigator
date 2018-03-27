@@ -1,7 +1,6 @@
 package nodepool
 
 import (
-	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/kubernetes"
 	appslisters "k8s.io/client-go/listers/apps/v1beta1"
 	"k8s.io/client-go/tools/record"
@@ -36,42 +35,7 @@ func NewControl(
 	}
 }
 
-func (e *defaultCassandraClusterNodepoolControl) createStatefulSet(
-	cluster *v1alpha1.CassandraCluster,
-	nodePool *v1alpha1.CassandraClusterNodePool,
-) error {
-	desiredSet := StatefulSetForCluster(cluster, nodePool)
-	client := e.kubeClient.AppsV1beta1().StatefulSets(cluster.Namespace)
-	lister := e.statefulSetLister.StatefulSets(desiredSet.Namespace)
-	existingSet, err := lister.Get(desiredSet.Name)
-	// StatefulSet already exists
-	if err == nil {
-		// XXX Temporary hack to enable scale out until we implement ScaleOut action.
-		if *existingSet.Spec.Replicas < *desiredSet.Spec.Replicas {
-			existingSet = existingSet.DeepCopy()
-			existingSet.Spec.Replicas = desiredSet.Spec.Replicas
-			_, err = client.Update(existingSet)
-			return err
-		}
-		return nil
-	}
-	if !k8sErrors.IsNotFound(err) {
-		return err
-	}
-	_, err = client.Create(desiredSet)
-	if k8sErrors.IsAlreadyExists(err) {
-		return nil
-	}
-	return err
-}
-
 func (e *defaultCassandraClusterNodepoolControl) Sync(cluster *v1alpha1.CassandraCluster) error {
-	for _, pool := range cluster.Spec.NodePools {
-		err := e.createStatefulSet(cluster, &pool)
-		if err != nil {
-			return err
-		}
-	}
 	return e.updateStatus(cluster)
 }
 
