@@ -29,6 +29,8 @@ import (
 const (
 	errorSync = "ErrSync"
 
+	pauseField = "spec.paused"
+
 	messageErrorSyncServiceAccount = "Error syncing service account: %s"
 	messageErrorSyncConfigMap      = "Error syncing config map: %s"
 	messageErrorSyncService        = "Error syncing service: %s"
@@ -36,6 +38,7 @@ const (
 	messageErrorSyncRoles          = "Error syncing RBAC roles: %s"
 	messageErrorSyncRoleBindings   = "Error syncing RBAC role bindings: %s"
 	messageSuccessExecuteAction    = "Successfully executed action"
+	messageClusterPaused           = "Cluster paused, not syncing"
 )
 
 type ControlInterface interface {
@@ -104,9 +107,9 @@ func (e *defaultElasticsearchClusterControl) Sync(c *v1alpha1.ElasticsearchClust
 	c = c.DeepCopy()
 	var err error
 
-	if c.Spec.Paused != nil && *c.Spec.Paused == true {
+	if c.Spec.Paused == true {
 		glog.V(4).Infof("defaultElasticsearchClusterControl.Sync skipped, since cluster is paused")
-		e.recorder.Eventf(c, apiv1.EventTypeNormal, "spec.paused", "Cluster paused, not syncing")
+		e.recorder.Eventf(c, apiv1.EventTypeNormal, pauseField, messageClusterPaused)
 		return c.Status, nil
 	}
 

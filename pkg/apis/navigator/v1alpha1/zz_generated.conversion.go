@@ -222,7 +222,6 @@ func autoConvert_v1alpha1_CassandraClusterSpec_To_navigator_CassandraClusterSpec
 	out.NodePools = *(*[]navigator.CassandraClusterNodePool)(unsafe.Pointer(&in.NodePools))
 	out.Image = (*navigator.ImageSpec)(unsafe.Pointer(in.Image))
 	out.Version = in.Version
-	out.Paused = (*bool)(unsafe.Pointer(in.Paused))
 	return nil
 }
 
@@ -238,7 +237,6 @@ func autoConvert_navigator_CassandraClusterSpec_To_v1alpha1_CassandraClusterSpec
 	out.NodePools = *(*[]CassandraClusterNodePool)(unsafe.Pointer(&in.NodePools))
 	out.Version = in.Version
 	out.Image = (*ImageSpec)(unsafe.Pointer(in.Image))
-	out.Paused = (*bool)(unsafe.Pointer(in.Paused))
 	return nil
 }
 
@@ -422,7 +420,6 @@ func autoConvert_v1alpha1_ElasticsearchClusterSpec_To_navigator_ElasticsearchClu
 	out.NodePools = *(*[]navigator.ElasticsearchClusterNodePool)(unsafe.Pointer(&in.NodePools))
 	out.Image = (*navigator.ImageSpec)(unsafe.Pointer(in.Image))
 	out.MinimumMasters = (*int32)(unsafe.Pointer(in.MinimumMasters))
-	out.Paused = (*bool)(unsafe.Pointer(in.Paused))
 	return nil
 }
 
@@ -440,7 +437,6 @@ func autoConvert_navigator_ElasticsearchClusterSpec_To_v1alpha1_ElasticsearchClu
 	out.Plugins = *(*[]string)(unsafe.Pointer(&in.Plugins))
 	out.NodePools = *(*[]ElasticsearchClusterNodePool)(unsafe.Pointer(&in.NodePools))
 	out.MinimumMasters = (*int32)(unsafe.Pointer(in.MinimumMasters))
-	out.Paused = (*bool)(unsafe.Pointer(in.Paused))
 	return nil
 }
 
@@ -524,6 +520,7 @@ func autoConvert_v1alpha1_NavigatorClusterConfig_To_navigator_NavigatorClusterCo
 	if err := Convert_v1alpha1_NavigatorSecurityContext_To_navigator_NavigatorSecurityContext(&in.SecurityContext, &out.SecurityContext, s); err != nil {
 		return err
 	}
+	out.Paused = in.Paused
 	return nil
 }
 
@@ -539,6 +536,7 @@ func autoConvert_navigator_NavigatorClusterConfig_To_v1alpha1_NavigatorClusterCo
 	if err := Convert_navigator_NavigatorSecurityContext_To_v1alpha1_NavigatorSecurityContext(&in.SecurityContext, &out.SecurityContext, s); err != nil {
 		return err
 	}
+	out.Paused = in.Paused
 	return nil
 }
 

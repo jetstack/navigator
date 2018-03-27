@@ -186,15 +186,6 @@ func (in *CassandraClusterSpec) DeepCopyInto(out *CassandraClusterSpec) {
 			**out = **in
 		}
 	}
-	if in.Paused != nil {
-		in, out := &in.Paused, &out.Paused
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(bool)
-			**out = **in
-		}
-	}
 	return
 }
 
@@ -414,15 +405,6 @@ func (in *ElasticsearchClusterSpec) DeepCopyInto(out *ElasticsearchClusterSpec) 
 			*out = nil
 		} else {
 			*out = new(int32)
-			**out = **in
-		}
-	}
-	if in.Paused != nil {
-		in, out := &in.Paused, &out.Paused
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(bool)
 			**out = **in
 		}
 	}

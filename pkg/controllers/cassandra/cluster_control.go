@@ -18,9 +18,10 @@ import (
 )
 
 const (
-	ErrorSync = "ErrSync"
-
+	ErrorSync   = "ErrSync"
 	SuccessSync = "SuccessSync"
+
+	PauseField = "spec.paused"
 
 	MessageErrorSyncServiceAccount = "Error syncing service account: %s"
 	MessageErrorSyncRole           = "Error syncing role: %s"
@@ -32,6 +33,7 @@ const (
 	MessageErrorSyncSeedLabels     = "Error syncing seed labels: %s"
 	MessageErrorSync               = "Error syncing: %s"
 	MessageSuccessSync             = "Successfully synced CassandraCluster"
+	MessageClusterPaused           = "Cluster paused, not syncing"
 )
 
 type ControlInterface interface {
@@ -80,9 +82,14 @@ func NewControl(
 }
 
 func (e *defaultCassandraClusterControl) Sync(c *v1alpha1.CassandraCluster) error {
-	if c.Spec.Paused != nil && *c.Spec.Paused == true {
+	if c.Spec.Paused == true {
 		glog.V(4).Infof("defaultCassandraClusterControl.Sync skipped, since cluster is paused")
-		e.recorder.Eventf(c, apiv1.EventTypeNormal, "spec.paused", "Cluster paused, not syncing")
+		e.recorder.Eventf(
+			c,
+			apiv1.EventTypeNormal,
+			PauseField,
+			MessageClusterPaused,
+		)
 		return nil
 	}
 
