@@ -38,7 +38,7 @@ or otherwise update the Navigator API with details of the failure so that naviga
    quick-start
    elasticsearch
    cassandra
-   developing
+   devel/index
 
 
 Indices and tables

@@ -1,8 +1,14 @@
-Development guide
-=================
+===============
+Getting started
+===============
 
-Setting up
-----------
+This guide runs you through getting started developing Navigator using minikube.
+
+It sets up a local minikube cluster, and explains how to build and deploy your
+custom built images for Navigator.
+
+Setting up minikube
+===================
 
 Install minikube and start a cluster with RBAC enabled::
 
@@ -47,7 +53,7 @@ and set the ``pullPolicy`` to ``Never``, then create the cluster::
 
 
 Developing
-----------
+==========
 
 Edit code, then build::
 
