@@ -181,21 +181,11 @@ type PilotSpec struct {
 	Elasticsearch *PilotElasticsearchSpec
 }
 
-type PilotPhase string
-
-const (
-	PilotPhasePreStart  PilotPhase = "PreStart"
-	PilotPhasePostStart PilotPhase = "PostStart"
-	PilotPhasePreStop   PilotPhase = "PreStop"
-	PilotPhasePostStop  PilotPhase = "PostStop"
-)
-
 type PilotElasticsearchSpec struct {
 }
 
 type PilotStatus struct {
-	LastCompletedPhase PilotPhase
-	Conditions         []PilotCondition
+	Conditions []PilotCondition
 	// Contains status information specific to Elasticsearch Pilots
 	Elasticsearch *ElasticsearchPilotStatus
 	// Contains status information specific to Cassandra Pilots
@@ -207,7 +197,7 @@ type ElasticsearchPilotStatus struct {
 	// an unknown number of documents, whereas 0 indicates that the node is
 	// empty
 	Documents *int64
-	Version   semver.Version
+	Version   *semver.Version
 }
 
 type CassandraPilotStatus struct {

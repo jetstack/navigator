@@ -32,38 +32,58 @@ type CassandraCluster struct {
 type CassandraClusterSpec struct {
 	NavigatorClusterConfig `json:",inline"`
 
-	NodePools []CassandraClusterNodePool `json:"nodePools"`
+	// List of node pools belonging to this CassandraCluster.
+	// NodePools cannot currently be removed.
+	// A cluster with 0 node pools will not function correctly.
+	NodePools []CassandraClusterNodePool `json:"nodePools,omitempty"`
 
-	// Image describes the database image to use
-	Image *ImageSpec `json:"image"`
+	// Image describes the Cassandra database image to use.
+	// This should only be set if version auto-detection is not desired.
+	// If set, the image tag used must correspond to the version specified
+	// in 'spec.version'.
+	Image *ImageSpec `json:"image,omitempty"`
 
 	// The version of the database to be used for nodes in the cluster.
+	// This field must be a valid Cassandra version, e.g. '3.11.2'.
 	Version version.Version `json:"version"`
 }
 
 // CassandraClusterNodePool describes a node pool within a CassandraCluster.
 type CassandraClusterNodePool struct {
-	Name     string `json:"name"`
-	Replicas int32  `json:"replicas"`
+	// Name of the node pool specified as a DNS_LABEL.
+	// Each node pool must specify a name.
+	Name string `json:"name"`
 
-	// Persistence specifies the configuration for persistent data for this
-	// node.
+	// The number of desired replicas in this node pool.
+	// This value will correspond to the number of replicas in the created
+	// StatefulSet.
+	// If not set, a default of 1 will be used.
+	Replicas *int32 `json:"replicas,omitempty"`
+
+	// Persistence specifies the persistent volume configuration for this node.
+	// Disabling persistence can cause issues when a node restarts.
+	// Cannot be updated.
+	// +optional
 	Persistence PersistenceConfig `json:"persistence,omitempty"`
 
 	// NodeSelector should be specified to force nodes in this pool to run on
 	// nodes matching the given selector.
+	// In future this may be superceded by an 'affinity' field.
 	// +optional
-	NodeSelector map[string]string `json:"nodeSelector"`
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 
 	// Rack specifies the cassandra rack with which to label nodes in this
-	// nodepool. If this is not set, a default will be selected.
+	// nodepool.
+	// If this is not set, the name of the node pool will be used.
 	// +optional
-	Rack string `json:"rack"`
+	Rack string `json:"rack,omitempty"`
 
 	// Datacenter specifies the cassandra datacenter with which to label nodes
 	// in this nodepool. If this is not set, a default will be selected.
+	// If this is not set, the default of 'navigator-default-datacenter' will
+	// be used.
 	// +optional
-	Datacenter string `json:"datacenter"`
+	Datacenter string `json:"datacenter,omitempty"`
 
 	// Resources specifies the resource requirements to be used for nodes that
 	// are part of the pool.
@@ -77,10 +97,13 @@ type CassandraClusterNodePool struct {
 }
 
 type CassandraClusterStatus struct {
-	NodePools map[string]CassandraClusterNodePoolStatus `json:"nodePools"`
+	// The status of each node pool in the CassandraCluster.
+	// This will be periodically updated by Navigator.
+	NodePools map[string]CassandraClusterNodePoolStatus `json:"nodePools,omitempty"`
 }
 
 type CassandraClusterNodePoolStatus struct {
+	// The number of replicas in the node pool that are currently 'Ready'.
 	ReadyReplicas int32 `json:"readyReplicas"`
 }
 
@@ -111,8 +134,12 @@ type ElasticsearchCluster struct {
 // ElasticsearchClusterStatus specifies the overall status of an
 // ElasticsearchCluster.
 type ElasticsearchClusterStatus struct {
-	NodePools map[string]ElasticsearchClusterNodePoolStatus `json:"nodePools"`
-	Health    ElasticsearchClusterHealth                    `json:"health"`
+	// The status of each node pool in the ElasticsearchCluster.
+	// This will be periodically updated by Navigator.
+	NodePools map[string]ElasticsearchClusterNodePoolStatus `json:"nodePools,omitempty"`
+	// The health of the ElasticsearchCluster.
+	// This will be one of Red, Yellow or Green.
+	Health ElasticsearchClusterHealth `json:"health,omitempty"`
 }
 
 // ElasticsearchClusterNodePoolStatus specifies the status of a single node
@@ -146,51 +173,66 @@ type ElasticsearchClusterList struct {
 type ElasticsearchClusterSpec struct {
 	NavigatorClusterConfig `json:",inline"`
 
-	// The version of Elasticsearch to be used for nodes in the cluster.
+	// The version of the database to be used for nodes in the cluster.
+	// This field must be a valid Elasticsearch version, e.g. '6.1.1'.
 	Version semver.Version `json:"version"`
 
-	// A list of plugins to install on nodes in the cluster.
-	Plugins []string `json:"plugins"`
+	// List of plugins to install on nodes in the cluster.
+	// pilot-elasticsearch will install these plugins when each node is started.
+	// +optional
+	Plugins []string `json:"plugins,omitempty"`
 
-	// NodePools specify the various pools of nodes that make up this cluster.
-	// There must be at least one master node specified.
-	NodePools []ElasticsearchClusterNodePool `json:"nodePools"`
+	// List of node pools belonging to this ElasticsearchCluster.
+	// NodePools cannot currently be removed.
+	// There must be at least one master node to form a valid cluster.
+	NodePools []ElasticsearchClusterNodePool `json:"nodePools,omitempty"`
 
-	// Image describes the Elasticsearch image to use
-	Image *ImageSpec `json:"image"`
+	// Image describes the Elasticsearch database image to use.
+	// This should only be set if version auto-detection is not desired.
+	// If set, the image tag used must correspond to the version specified
+	// in 'spec.version'.
+	// +optional
+	Image *ImageSpec `json:"image,omitempty"`
 
 	// The minimum number of masters required to form a quorum in the cluster.
 	// If omitted, this will be set to a quorum of the master nodes in the
-	// cluster. If set, the value *must* be greater than or equal to a quorum
-	// of master nodes.
+	// cluster.
+	// If set, the value *must* be greater than or equal to a quorum of master
+	// nodes.
 	MinimumMasters int32 `json:"minimumMasters,omitempty"`
 }
 
 // ElasticsearchClusterNodePool describes a node pool within an ElasticsearchCluster.
 // The nodes in this pool will be configured to be of the specified roles
 type ElasticsearchClusterNodePool struct {
-	// Name of the node pool.
+	// Name of the node pool specified as a DNS_LABEL.
+	// Each node pool must specify a name.
 	Name string `json:"name"`
 
-	// Number of replicas in the pool.
-	Replicas int32 `json:"replicas"`
+	// The number of desired replicas in this node pool.
+	// This value will correspond to the number of replicas in the created
+	// StatefulSet.
+	// If not set, a default of 1 will be used.
+	Replicas *int32 `json:"replicas,omitempty"`
 
 	// Roles that nodes in this pool should perform within the cluster.
-	Roles []ElasticsearchClusterRole `json:"roles"`
+	// At least one role must be specified.
+	Roles []ElasticsearchClusterRole `json:"roles,omitempty"`
 
 	// NodeSelector should be specified to force nodes in this pool to run on
 	// nodes matching the given selector.
+	// In future this may be superceded by an 'affinity' field.
 	// +optional
-	NodeSelector map[string]string `json:"nodeSelector"`
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 
 	// Resources specifies the resource requirements to be used for nodes that
 	// are part of the pool.
 	// +optional
 	Resources v1.ResourceRequirements `json:"resources,omitempty"`
 
-	// Persistence specifies the configuration for persistent data for this
-	// node. Disabling persistence can cause issues when nodes restart, so
-	// should only be using for testing purposes.
+	// Persistence specifies the persistent volume configuration for this node.
+	// Disabling persistence can cause issues when a node restarts.
+	// Cannot be updated.
 	// +optional
 	Persistence PersistenceConfig `json:"persistence,omitempty"`
 
@@ -221,7 +263,7 @@ type PersistenceConfig struct {
 
 	// StorageClass to use for the persistent volume claim. If not set, the
 	// default cluster storage class will be used.
-	StorageClass string `json:"storageClass"`
+	StorageClass string `json:"storageClass,omitempty"`
 }
 
 // ImageSpec specifies a docker image to be used.
@@ -238,16 +280,20 @@ type ImageSpec struct {
 }
 
 type NavigatorClusterConfig struct {
-	// Pilot describes the pilot image to use
+	// Pilot describes the pilot image to use.
+	// This field is currently required.
 	PilotImage ImageSpec `json:"pilotImage"`
 
-	// Security related options that are common to all cluster kinds
+	// Security related options to be applied to the cluster pods.
 	SecurityContext NavigatorSecurityContext `json:"securityContext,omitempty"`
 }
 
 type NavigatorSecurityContext struct {
-	// Optional user to run the pilot process as. This will also be used as the
-	// FSGroup parameter for created pods.
+	// Optional user to run the pilot process as.
+	// This will also be used as the FSGroup parameter for created pods.
+	// Should correspond to the value set as part of the Dockerfile when
+	// a manual image override has been specified.
+	// +optional
 	RunAsUser *int64 `json:"runAsUser,omitempty"`
 }
 
@@ -272,49 +318,43 @@ type PilotList struct {
 }
 
 type PilotSpec struct {
-	Elasticsearch *PilotElasticsearchSpec `json:"elasticsearch"`
+	Elasticsearch *PilotElasticsearchSpec `json:"elasticsearch,omitempty"`
 }
-
-type PilotPhase string
-
-const (
-	// PreStart occurs before the Pilot's subprocess has been started.
-	PilotPhasePreStart PilotPhase = "PreStart"
-	// PostStart occurs immediately after the Pilot's subprocess has been
-	// started.
-	PilotPhasePostStart PilotPhase = "PostStart"
-	// PreStop occurs just before the Pilot's subprocess is sent a graceful
-	// termination signal. These hooks will block termination of the process.
-	PilotPhasePreStop PilotPhase = "PreStop"
-	// PostStop occurs after the Pilot's has stopped. These can be used to
-	// clean up, or whatever other action that may need to be performed.
-	PilotPhasePostStop PilotPhase = "PostStop"
-)
 
 type PilotElasticsearchSpec struct {
 }
 
 type PilotStatus struct {
-	LastCompletedPhase PilotPhase       `json:"lastCompletedPhase"`
-	Conditions         []PilotCondition `json:"conditions"`
-	// Contains status information specific to Elasticsearch Pilots
+	// Conditions representing the current state of the Pilot.
+	// +optional
+	Conditions []PilotCondition `json:"conditions,omitempty"`
+
+	// Status information specific to Elasticsearch Pilots.
+	// +optional
 	Elasticsearch *ElasticsearchPilotStatus `json:"elasticsearch,omitempty"`
-	// Contains status information specific to Cassandra Pilots
+
+	// Status information specific to Cassandra Pilots.
+	// +optional
 	Cassandra *CassandraPilotStatus `json:"cassandra,omitempty"`
 }
 
 type ElasticsearchPilotStatus struct {
-	// Documents is the current number of documents on this node. nil indicates
-	// an unknown number of documents, whereas 0 indicates that the node is
-	// empty
+	// Documents is the current number of documents on this node.
+	// A nil value indicates an unknown number of documents.
+	// Zero documents indicates the node is empty.
+	// +optional
 	Documents *int64 `json:"documents,omitempty"`
+
 	// Version as reported by the Elasticsearch process
-	Version semver.Version `json:"version,omitempty"`
+	// This field may be nil if the version number is not currently known.
+	// +optional
+	Version *semver.Version `json:"version,omitempty"`
 }
 
 type CassandraPilotStatus struct {
-	// Version as reported by the Cassandra process.
-	// `nil` indicates that the version is not yet known / not yet reported.
+	// Version as reported by the Elasticsearch process
+	// This field may be nil if the version number is not currently known.
+	// +optional
 	Version *version.Version `json:"version,omitempty"`
 }
 
