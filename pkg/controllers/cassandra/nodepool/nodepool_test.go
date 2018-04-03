@@ -21,7 +21,7 @@ func TestNodePoolControlSync(t *testing.T) {
 	}
 	np1 := &cluster1.Spec.NodePools[0]
 	set1 := nodepool.StatefulSetForCluster(cluster1, np1)
-	set1.Status.ReadyReplicas = np1.Replicas
+	set1.Status.ReadyReplicas = *np1.Replicas
 
 	type testT struct {
 		kubeObjects        []runtime.Object

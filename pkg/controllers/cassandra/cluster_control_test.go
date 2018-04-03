@@ -68,7 +68,7 @@ func TestNextAction(t *testing.T) {
 				t.Errorf("Unexpected attempt to scale up a nodepool without a status")
 				return false
 			}
-			if action.NodePool.Replicas <= nps.ReadyReplicas {
+			if *action.NodePool.Replicas <= nps.ReadyReplicas {
 				t.Errorf("Unexpected attempt to scale up a nodepool with >= ready replicas")
 				return false
 			}

@@ -110,11 +110,11 @@ func (h *Hooks) Transition(p Phase, pilot *v1alpha1.Pilot) error {
 	return nil
 }
 
-type Phase int
+type Phase string
 
 const (
-	PreStart Phase = iota
-	PostStart
-	PreStop
-	PostStop
+	PreStart  Phase = "PreStart"
+	PostStart Phase = "PostStart"
+	PreStop   Phase = "PreStop"
+	PostStop  Phase = "PostStop"
 )

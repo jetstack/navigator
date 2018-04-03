@@ -23,9 +23,9 @@ func Pilot(c PilotConfig) *v1alpha1.Pilot {
 	labels := map[string]string{}
 	labels[v1alpha1.ElasticsearchClusterNameLabel] = c.Cluster
 	labels[v1alpha1.ElasticsearchNodePoolNameLabel] = c.NodePool
-	var version semver.Version
+	var version *semver.Version
 	if c.Version != "" {
-		version = *semver.New(c.Version)
+		version = semver.New(c.Version)
 	}
 	return &v1alpha1.Pilot{
 		ObjectMeta: metav1.ObjectMeta{
@@ -140,6 +140,6 @@ type CassandraClusterNodePoolConfig struct {
 func CassandraClusterNodePool(c CassandraClusterNodePoolConfig) *v1alpha1.CassandraClusterNodePool {
 	return &v1alpha1.CassandraClusterNodePool{
 		Name:     c.Name,
-		Replicas: c.Replicas,
+		Replicas: &c.Replicas,
 	}
 }

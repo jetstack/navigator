@@ -321,7 +321,7 @@ func TestCanScaleNodePool(t *testing.T) {
 			scale := &Scale{
 				Cluster:  test.cluster,
 				NodePool: test.nodePool,
-				Replicas: int32(test.nodePool.Replicas) + test.replicaDiff,
+				Replicas: *test.nodePool.Replicas + test.replicaDiff,
 			}
 			canScale, err := scale.canScaleNodePool(state, test.statefulSet, test.replicaDiff)
 			if err != nil && !test.err {
@@ -465,7 +465,7 @@ func clusterWithNodePools(name string, pools ...v1alpha1.ElasticsearchClusterNod
 func nodePoolWithNameReplicasRoles(name string, replicas int32, roles ...v1alpha1.ElasticsearchClusterRole) v1alpha1.ElasticsearchClusterNodePool {
 	return v1alpha1.ElasticsearchClusterNodePool{
 		Name:     name,
-		Replicas: replicas,
+		Replicas: &replicas,
 		Roles:    roles,
 	}
 }
