@@ -5,8 +5,6 @@ import (
 	appslisters "k8s.io/client-go/listers/apps/v1beta1"
 	"k8s.io/client-go/tools/record"
 
-	"github.com/golang/glog"
-
 	v1alpha1 "github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/util"
 )
@@ -46,14 +44,8 @@ func (e *defaultCassandraClusterNodepoolControl) updateStatus(cluster *v1alpha1.
 		return err
 	}
 	// Create a NodePoolStatus for each statefulset that is controlled by this cluster.
-	for ssName, ss := range sets {
-		clusterName, npName, err := util.ParseNodePoolResourceName(ssName)
-		if err != nil {
-			glog.Errorf("Error parsing statefulset name: %s", err)
-		}
-		if clusterName != cluster.Name {
-			glog.Errorf("statefulset name %q did not contain cluster name %q", ssName, cluster.Name)
-		}
+	for _, ss := range sets {
+		npName := ss.Labels[util.NodePoolNameLabelKey]
 		nps := cluster.Status.NodePools[npName]
 		nps.ReadyReplicas = ss.Status.ReadyReplicas
 		cluster.Status.NodePools[npName] = nps
