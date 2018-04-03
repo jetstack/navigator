@@ -27,3 +27,9 @@ func SetDefaults_CassandraClusterNodePool(np *CassandraClusterNodePool) {
 		np.Replicas = ptr.Int32(1)
 	}
 }
+
+func SetDefaults_ElasticsearchClusterNodePool(np *ElasticsearchClusterNodePool) {
+	if np.Replicas == nil {
+		np.Replicas = ptr.Int32(1)
+	}
+}

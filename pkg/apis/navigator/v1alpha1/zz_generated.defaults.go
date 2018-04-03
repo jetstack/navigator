@@ -30,6 +30,8 @@ import (
 func RegisterDefaults(scheme *runtime.Scheme) error {
 	scheme.AddTypeDefaultingFunc(&CassandraCluster{}, func(obj interface{}) { SetObjectDefaults_CassandraCluster(obj.(*CassandraCluster)) })
 	scheme.AddTypeDefaultingFunc(&CassandraClusterList{}, func(obj interface{}) { SetObjectDefaults_CassandraClusterList(obj.(*CassandraClusterList)) })
+	scheme.AddTypeDefaultingFunc(&ElasticsearchCluster{}, func(obj interface{}) { SetObjectDefaults_ElasticsearchCluster(obj.(*ElasticsearchCluster)) })
+	scheme.AddTypeDefaultingFunc(&ElasticsearchClusterList{}, func(obj interface{}) { SetObjectDefaults_ElasticsearchClusterList(obj.(*ElasticsearchClusterList)) })
 	return nil
 }
 
@@ -44,5 +46,19 @@ func SetObjectDefaults_CassandraClusterList(in *CassandraClusterList) {
 	for i := range in.Items {
 		a := &in.Items[i]
 		SetObjectDefaults_CassandraCluster(a)
+	}
+}
+
+func SetObjectDefaults_ElasticsearchCluster(in *ElasticsearchCluster) {
+	for i := range in.Spec.NodePools {
+		a := &in.Spec.NodePools[i]
+		SetDefaults_ElasticsearchClusterNodePool(a)
+	}
+}
+
+func SetObjectDefaults_ElasticsearchClusterList(in *ElasticsearchClusterList) {
+	for i := range in.Items {
+		a := &in.Items[i]
+		SetObjectDefaults_ElasticsearchCluster(a)
 	}
 }
