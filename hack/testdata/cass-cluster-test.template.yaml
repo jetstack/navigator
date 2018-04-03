@@ -5,10 +5,10 @@ metadata:
 spec:
   version: "${CASS_VERSION}"
   nodePools:
-  - name: "ringnodes"
+  - name: "region-1-zone-a"
     replicas: ${CASS_REPLICAS}
-    datacenter: "${CASS_NAME}-datacenter"
-    rack: "{CASS_NAME}-rack"
+    datacenter: "region-1"
+    rack: "zone-a"
     persistence:
       enabled: true
       size: "5Gi"
