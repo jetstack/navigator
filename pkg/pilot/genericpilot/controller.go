@@ -6,6 +6,7 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
+	"github.com/jetstack/navigator/pkg/pilot/genericpilot/hook"
 	"github.com/jetstack/navigator/pkg/pilot/genericpilot/processmanager"
 )
 
@@ -49,7 +50,7 @@ func (g *GenericPilot) syncPilot(pilot *v1alpha1.Pilot) (err error) {
 		return
 	}
 
-	err = g.Options.Hooks.Transition(v1alpha1.PilotPhasePreStart, pilot)
+	err = g.Options.Hooks.Transition(hook.PreStart, pilot)
 	if err != nil {
 		g.recorder.Eventf(pilot, corev1.EventTypeWarning, ErrExecHook, MessageErrExecHook, err)
 		return err
@@ -71,7 +72,7 @@ func (g *GenericPilot) syncPilot(pilot *v1alpha1.Pilot) (err error) {
 	}
 
 	// TODO: do we need to check if process is running here, or wait at all? What if the process is running and then exits quickly?
-	err = g.Options.Hooks.Transition(v1alpha1.PilotPhasePostStart, pilot)
+	err = g.Options.Hooks.Transition(hook.PostStart, pilot)
 	if err != nil {
 		g.recorder.Eventf(pilot, corev1.EventTypeWarning, ErrExecHook, MessageErrExecHook, err)
 		return err
@@ -89,7 +90,7 @@ func (g *GenericPilot) stop(pilot *v1alpha1.Pilot) error {
 		return nil
 	}
 
-	err := g.Options.Hooks.Transition(v1alpha1.PilotPhasePreStop, pilot)
+	err := g.Options.Hooks.Transition(hook.PreStop, pilot)
 	if err != nil {
 		g.recorder.Eventf(pilot, corev1.EventTypeWarning, ErrExecHook, MessageErrExecHook, err)
 		return err
@@ -101,7 +102,7 @@ func (g *GenericPilot) stop(pilot *v1alpha1.Pilot) error {
 		return err
 	}
 
-	err = g.Options.Hooks.Transition(v1alpha1.PilotPhasePostStop, pilot)
+	err = g.Options.Hooks.Transition(hook.PostStop, pilot)
 	if err != nil {
 		g.recorder.Eventf(pilot, corev1.EventTypeWarning, ErrExecHook, MessageErrExecHook, err)
 		return err
