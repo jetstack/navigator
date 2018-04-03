@@ -171,9 +171,8 @@ func (c *UpdateVersion) Execute(state *controllers.State) error {
 			if err != nil {
 				return err
 			}
-			if lastPilotUpdated.Status.Elasticsearch == nil ||
-				lastPilotUpdated.Status.Elasticsearch.Version == emptyVersion ||
-				!lastPilotUpdated.Status.Elasticsearch.Version.Equal(c.Cluster.Spec.Version) {
+			// Ensure the last pilot updated is up to date
+			if !pilotVersionUpToDate(c.Cluster.Spec, lastPilotUpdated.Status) {
 				err := fmt.Errorf("Pilot %q has not finished updating to version %q", lastPilotUpdated.Name, c.Cluster.Spec.Version.String())
 				state.Recorder.Event(c.Cluster, core.EventTypeWarning, "Err"+c.Name(), err.Error())
 				return nil
@@ -214,13 +213,22 @@ func (c *UpdateVersion) pilotsUpToDate(state *controllers.State, statefulSet *ap
 		return err
 	}
 	for _, p := range pilots {
-		if p.Status.Elasticsearch == nil ||
-			p.Status.Elasticsearch.Version == emptyVersion {
-			return fmt.Errorf("pilot %q version unknown", p.Name)
-		}
-		if !c.Cluster.Spec.Version.Equal(p.Status.Elasticsearch.Version) {
-			return fmt.Errorf("pilot %q is version %q", p.Name, p.Status.Elasticsearch.Version.String())
+		if !pilotVersionUpToDate(c.Cluster.Spec, p.Status) {
+			return fmt.Errorf("Pilot %q is not up to date", p.Name)
 		}
 	}
 	return nil
+}
+
+func pilotVersionUpToDate(c v1alpha1.ElasticsearchClusterSpec, p v1alpha1.PilotStatus) bool {
+	if p.Elasticsearch == nil {
+		return false
+	}
+	if p.Elasticsearch.Version == nil {
+		return false
+	}
+	if !p.Elasticsearch.Version.Equal(c.Version) {
+		return false
+	}
+	return true
 }

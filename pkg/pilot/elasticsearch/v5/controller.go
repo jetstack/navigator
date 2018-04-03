@@ -85,7 +85,7 @@ func (p *Pilot) updateNodeInfo(pilot *v1alpha1.Pilot) error {
 		if err != nil {
 			return err
 		}
-		pilot.Status.Elasticsearch.Version = *ver
+		pilot.Status.Elasticsearch.Version = ver
 	}
 	return nil
 }

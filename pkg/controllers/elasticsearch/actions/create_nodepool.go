@@ -71,7 +71,7 @@ func nodePoolStatefulSet(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.Elastics
 			},
 		},
 		Spec: apps.StatefulSetSpec{
-			Replicas:    ptr.Int32(np.Replicas),
+			Replicas:    np.Replicas,
 			ServiceName: statefulSetName,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: util.NodePoolLabels(c, np.Name),

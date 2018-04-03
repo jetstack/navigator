@@ -231,8 +231,8 @@ func (e *defaultElasticsearchClusterControl) nextActionForNodePool(c *v1alpha1.E
 	}
 	// if the current number of desired replicas on the statefulset does
 	// not equal the number on the node pool, we need to scale
-	if *currentDesiredReplicas != int32(np.Replicas) {
-		return &actions.Scale{c, np, int32(np.Replicas)}, nil
+	if *currentDesiredReplicas != *np.Replicas {
+		return &actions.Scale{c, np, *np.Replicas}, nil
 	}
 
 	return nil, nil
