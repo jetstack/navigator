@@ -227,6 +227,9 @@ function test_cassandracluster() {
     local namespace="${1}"
 
     export CASS_NAME="test"
+    export CASS_NODEPOOL1_DATACENTER="region-1"
+    export CASS_NODEPOOL1_RACK="zone-a"
+    export CASS_NODEPOOL1_NAME="np-${CASS_NODEPOOL1_DATACENTER}-${CASS_NODEPOOL1_RACK}"
     export CASS_REPLICAS=1
     export CASS_CQL_PORT=9042
     export CASS_VERSION="3.11.1"
@@ -249,7 +252,7 @@ function test_cassandracluster() {
         --namespace "${namespace}" \
         --filename \
         <(envsubst \
-              '$NAVIGATOR_IMAGE_REPOSITORY:$NAVIGATOR_IMAGE_TAG:$NAVIGATOR_IMAGE_PULLPOLICY:$CASS_NAME:$CASS_REPLICAS:$CASS_VERSION' \
+              '$NAVIGATOR_IMAGE_REPOSITORY:$NAVIGATOR_IMAGE_TAG:$NAVIGATOR_IMAGE_PULLPOLICY:$CASS_NAME:$CASS_NODEPOOL1_DATACENTER:$CASS_NODEPOOL1_RACK:$CASS_NODEPOOL1_NAME:$CASS_REPLICAS:$CASS_VERSION' \
               < "${SCRIPT_DIR}/testdata/cass-cluster-test.template.yaml")
     then
         fail_test "Failed to create cassandracluster"
@@ -313,7 +316,7 @@ function test_cassandracluster() {
     # Delete the Cassandra pod and wait for the CQL service to become
     # unavailable (readiness probe fails)
 
-    kubectl --namespace "${namespace}" delete pod "cass-${CASS_NAME}-ringnodes-0"
+    kubectl --namespace "${namespace}" delete pod "cass-${CASS_NAME}-${CASS_NODEPOOL1_NAME}-0"
     retry \
         not \
         cql_connect \
@@ -324,7 +327,7 @@ function test_cassandracluster() {
     # Kill the cassandra process gracefully which allows it to flush its data to disk.
     # kill_cassandra_process \
     #     "${namespace}" \
-    #     "cass-${CASS_NAME}-ringnodes-0" \
+    #     "cass-${CASS_NAME}-${CASS_NODEPOOL1_NAME}-0" \
     #     "cassandra" \
     #     "SIGTERM"
 
@@ -353,7 +356,7 @@ function test_cassandracluster() {
         --namespace "${namespace}" \
         --filename \
         <(envsubst \
-              '$NAVIGATOR_IMAGE_REPOSITORY:$NAVIGATOR_IMAGE_TAG:$NAVIGATOR_IMAGE_PULLPOLICY:$CASS_NAME:$CASS_REPLICAS:$CASS_VERSION' \
+              '$NAVIGATOR_IMAGE_REPOSITORY:$NAVIGATOR_IMAGE_TAG:$NAVIGATOR_IMAGE_PULLPOLICY:$CASS_NAME:$CASS_NODEPOOL1_DATACENTER:$CASS_NODEPOOL1_RACK:$CASS_NODEPOOL1_NAME:$CASS_REPLICAS:$CASS_VERSION' \
               < "${SCRIPT_DIR}/testdata/cass-cluster-test.template.yaml")
 
     # The NodePool is scaled out
@@ -367,7 +370,7 @@ function test_cassandracluster() {
          --namespace "${namespace}" \
          get cassandracluster \
          "${CASS_NAME}" \
-         "-o=jsonpath={ .status.nodePools['ringnodes'].readyReplicas }"
+         "-o=jsonpath={ .status.nodePools['${CASS_NODEPOOL1_NAME}'].readyReplicas }"
     then
         fail_test "Second cassandra node did not become ready"
     fi
@@ -375,7 +378,7 @@ function test_cassandracluster() {
     # TODO: A better test would be to query the endpoints and check that only
     # the `-0` pods are included. E.g.
     # kubectl -n test-cassandra-1519754828-19864 get ep cass-cassandra-1519754828-19864-cassandra-seeds -o "jsonpath={.subsets[*].addresses[*].hostname}"
-    if ! stdout_equals "cass-${CASS_NAME}-ringnodes-0" \
+    if ! stdout_equals "cass-${CASS_NAME}-${CASS_NODEPOOL1_NAME}-0" \
          kubectl get pods --namespace "${namespace}" \
          --selector=navigator.jetstack.io/cassandra-seed=true \
          --output 'jsonpath={.items[*].metadata.name}'
@@ -397,7 +400,7 @@ function test_cassandracluster() {
 
     simulate_unresponsive_cassandra_process \
         "${namespace}" \
-        "cass-${CASS_NAME}-ringnodes-0"
+        "cass-${CASS_NAME}-${CASS_NODEPOOL1_NAME}-0"
 
     if ! retry TIMEOUT=600 \
             stdout_matches "testvalue1" \
