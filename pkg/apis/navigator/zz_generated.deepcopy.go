@@ -21,6 +21,7 @@ limitations under the License.
 package navigator
 
 import (
+	semver "github.com/coreos/go-semver/semver"
 	version "github.com/jetstack/navigator/pkg/cassandra/version"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
@@ -394,7 +395,15 @@ func (in *ElasticsearchPilotStatus) DeepCopyInto(out *ElasticsearchPilotStatus) 
 			**out = **in
 		}
 	}
-	out.Version = in.Version
+	if in.Version != nil {
+		in, out := &in.Version, &out.Version
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(semver.Version)
+			**out = **in
+		}
+	}
 	return
 }
 
