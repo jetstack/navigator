@@ -154,7 +154,7 @@ func (c *pilotControl) Sync(cluster *v1alpha1.CassandraCluster) error {
 }
 
 func PilotForCluster(cluster *v1alpha1.CassandraCluster, pod *v1.Pod) *v1alpha1.Pilot {
-	return &v1alpha1.Pilot{
+	o := &v1alpha1.Pilot{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            pod.Name,
 			Namespace:       pod.Namespace,
@@ -162,6 +162,8 @@ func PilotForCluster(cluster *v1alpha1.CassandraCluster, pod *v1.Pod) *v1alpha1.
 			OwnerReferences: []metav1.OwnerReference{util.NewControllerRef(cluster)},
 		},
 	}
+	o.Labels[util.NodePoolNameLabelKey] = pod.Labels[util.NodePoolNameLabelKey]
+	return o
 }
 
 func UpdateLabels(
