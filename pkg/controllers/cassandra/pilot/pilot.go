@@ -122,11 +122,6 @@ func (c *pilotControl) updateDiscoveredVersions(cluster *v1alpha1.CassandraClust
 			glog.V(4).Infof("Skipping pilot with nil status: %s", pilot.Name)
 			continue
 		}
-		version := pilot.Status.Cassandra.Version
-		if version == nil {
-			glog.V(4).Infof("Skipping pilot with nil version: %s", pilot.Name)
-			continue
-		}
 		nodePoolNameForPilot, nodePoolNameFound := pilot.Labels[util.NodePoolNameLabelKey]
 		if !nodePoolNameFound {
 			glog.V(4).Infof("Skipping pilot without NodePoolNameLabelKey: %s", pilot.Name)
@@ -136,6 +131,7 @@ func (c *pilotControl) updateDiscoveredVersions(cluster *v1alpha1.CassandraClust
 			glog.V(4).Infof("Initialising Status.NodePools for: %s", cluster.Name)
 			cluster.Status.NodePools = map[string]v1alpha1.CassandraClusterNodePoolStatus{}
 		}
+		version := pilot.Status.Cassandra.Version
 		nodePoolStatus := cluster.Status.NodePools[nodePoolNameForPilot]
 		if nodePoolStatus.Version == nil || version.LessThan(nodePoolStatus.Version) {
 			glog.V(4).Infof("Found lower pilot version: %s, %s", nodePoolNameForPilot, version)

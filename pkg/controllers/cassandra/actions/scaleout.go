@@ -4,6 +4,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/golang/glog"
+	"github.com/pkg/errors"
 
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers"
@@ -27,7 +28,7 @@ func (a *ScaleOut) Execute(s *controllers.State) error {
 	existingSet, err := s.StatefulSetLister.
 		StatefulSets(baseSet.Namespace).Get(baseSet.Name)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "unable to get existing statefulset")
 	}
 	newSet := existingSet.DeepCopy()
 	if *existingSet.Spec.Replicas == a.NodePool.Replicas {
@@ -46,7 +47,7 @@ func (a *ScaleOut) Execute(s *controllers.State) error {
 	_, err = s.Clientset.AppsV1beta1().
 		StatefulSets(newSet.Namespace).Update(newSet)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "unable to update statefulset")
 	}
 	s.Recorder.Eventf(
 		a.Cluster,
