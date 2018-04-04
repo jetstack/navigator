@@ -319,6 +319,13 @@ function test_cassandracluster() {
                   '$NAVIGATOR_IMAGE_REPOSITORY:$NAVIGATOR_IMAGE_TAG:$NAVIGATOR_IMAGE_PULLPOLICY:$CASS_NAME:$CASS_REPLICAS:$CASS_CQL_PORT:$CASS_VERSION' \
                   < "${SCRIPT_DIR}/testdata/cass-cluster-test.template.yaml")
 
+    # The cluster is upgraded
+    if ! retry TIMEOUT=300 kube_event_exists "${namespace}" \
+         "navigator-controller:CassandraCluster:Normal:UpdateVersion"
+    then
+        fail_test "An UpdateVersion event was not recorded"
+    fi
+
     if ! retry TIMEOUT=300 \
          stdout_equals "${CASS_VERSION}" \
          kubectl --namespace "${namespace}" \
