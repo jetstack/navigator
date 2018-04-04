@@ -1,11 +1,12 @@
 package actions
 
 import (
+	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
+
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/nodepool"
-	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 )
 
 type UpdateVersion struct {
