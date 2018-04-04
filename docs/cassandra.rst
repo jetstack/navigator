@@ -191,6 +191,7 @@ Supported Configuration Changes
 Navigator supports the following changes to a Cassandra cluster:
 
  * :ref:`create-cluster-cassandra`: Add all initially configured node pools and nodes.
+ * :ref:`minor-upgrade-cassandra`: Trigger a rolling upgrade of Cassandra nodes by increasing the minor and / or patch components of ``CassandraCluster.Spec.Version``.
  * :ref:`scale-out-cassandra`: Increase ``CassandraCluster.Spec.NodePools[0].Replicas`` to add more C* nodes to a ``nodepool``.
 
 Navigator does not currently support any other changes to the Cassandra cluster configuration.
@@ -200,7 +201,6 @@ Unsupported Configuration Changes
 
 The following configuration changes are not currently supported but will be supported in the near future:
 
- * Minor Upgrade: Trigger a rolling Cassandra upgrade by increasing the minor and / or patch components of ``CassandraCluster.Spec.Version``.
  * Scale In: Decrease ``CassandraCluster.Spec.NodePools[0].Replicas`` to remove C* nodes from a ``nodepool``.
 
 The following configuration changes are not currently supported:
@@ -219,6 +219,19 @@ When you first create a ``CassandraCluster`` resource, Navigator will add nodes,
 in order of ``NodePool`` and according to the process described in :ref:`scale-out-cassandra` (below).
 The order of node creation is determined by the order of the entries in the ``CassandraCluster.Spec.NodePools`` list.
 You can look at ``CassandraCluster.Status.NodePools`` to see the current state.
+
+.. _minor-upgrade-cassandra:
+
+Minor Upgrade
+~~~~~~~~~~~~~
+
+If you increment the minor or patch number in ``CassandraCluster.Spec.Version``, Navigator will trigger a rolling update of the existing C* nodes.
+
+C* nodes are upgraded serially, in order of NodePool and Pod ordinal, starting with the pod with the highest ordinal in the first NodePool.
+
+`StatefulSet Rolling Updates <https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#rolling-updates>`_ describes the update process in more detail.
+
+.. note:: Major version upgrades are not yet supported.
 
 .. _scale-out-cassandra:
 
