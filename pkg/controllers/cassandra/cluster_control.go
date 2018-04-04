@@ -217,13 +217,20 @@ func NextAction(c *v1alpha1.CassandraCluster) controllers.Action {
 	}
 	for _, np := range c.Spec.NodePools {
 		nps := c.Status.NodePools[np.Name]
-		if nps.Version != nil {
-			if nps.Version.LessThan(&c.Spec.Version) {
-				return &actions.UpdateVersion{
-					Cluster:  c,
-					NodePool: &np,
-				}
+		if nps.Version == nil {
+			return nil
+		}
+		if nps.Version.LessThan(&c.Spec.Version) {
+			// if nps.Version.Major != c.Spec.Version.Major {
+			//	glog.Error("Major version upgrades are not supported")
+			//	return nil
+			// }
+			return &actions.UpdateVersion{
+				Cluster:  c,
+				NodePool: &np,
 			}
+		} else {
+			glog.Error("Version downgrades are not supported")
 		}
 	}
 	return nil

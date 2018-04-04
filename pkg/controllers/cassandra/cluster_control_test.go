@@ -29,7 +29,8 @@ func CassandraClusterSpecSummary(c *v1alpha1.CassandraCluster) string {
 		nodepools[i] = fmt.Sprintf("%s:%d", np.Name, np.Replicas)
 	}
 	return fmt.Sprintf(
-		"{nodepools: %s}",
+		"{version: %s, nodepools: %s}",
+		c.Spec.Version,
 		strings.Join(nodepools, ", "),
 	)
 }
@@ -38,7 +39,7 @@ func CassandraClusterStatusSummary(c *v1alpha1.CassandraCluster) string {
 	nodepools := make([]string, len(c.Status.NodePools))
 	i := 0
 	for title, nps := range c.Status.NodePools {
-		nodepools[i] = fmt.Sprintf("%s:%d", title, nps.ReadyReplicas)
+		nodepools[i] = fmt.Sprintf("%s:%d:%s", title, nps.ReadyReplicas, nps.Version)
 		i++
 	}
 	return fmt.Sprintf(
@@ -47,19 +48,32 @@ func CassandraClusterStatusSummary(c *v1alpha1.CassandraCluster) string {
 }
 
 func TestNextAction(t *testing.T) {
-	f := func(c *v1alpha1.CassandraCluster) bool {
-		t.Log(CassandraClusterSummary(c))
+	f := func(c *v1alpha1.CassandraCluster) (ret bool) {
+		defer func() {
+			if !ret {
+				t.Log(CassandraClusterSummary(c))
+			}
+		}()
 		a := cassandra.NextAction(c)
-		if a != nil {
-			t.Log("Action:", a.Name())
-		} else {
-			t.Log("No action")
-		}
 		switch action := a.(type) {
 		case *actions.CreateNodePool:
 			_, found := c.Status.NodePools[action.NodePool.Name]
 			if found {
 				t.Errorf("Unexpected attempt to create a nodepool when there's an existing status")
+				return false
+			}
+		case *actions.UpdateVersion:
+			nps, found := c.Status.NodePools[action.NodePool.Name]
+			if !found {
+				t.Errorf("Unexpected updateversion before status reported")
+				return false
+			}
+			if nps.Version == nil {
+				t.Errorf("Unexpected updateversion before version reported")
+				return false
+			}
+			if nps.Version.Major != c.Spec.Version.Major {
+				t.Errorf("Unexpected updateversion for major version change")
 				return false
 			}
 		case *actions.ScaleOut:
@@ -76,12 +90,12 @@ func TestNextAction(t *testing.T) {
 		return true
 	}
 	config := &quick.Config{
-		MaxCount: 100,
+		MaxCount: 1000,
 		Values: func(values []reflect.Value, rnd *rand.Rand) {
 			cluster := &v1alpha1.CassandraCluster{}
 			cluster.SetName("cluster1")
 			cluster.SetNamespace("ns1")
-			casstesting.FuzzCassandraClusterNodePools(cluster, rnd, 0)
+			casstesting.FuzzCassandraCluster(cluster, rnd, 0)
 			values[0] = reflect.ValueOf(cluster)
 		},
 	}

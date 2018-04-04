@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/coreos/go-semver/semver"
+	utilerror "k8s.io/apimachinery/pkg/util/errors"
 )
 
 // Version represents a Cassandra database server version.
@@ -26,6 +27,9 @@ import (
 type Version struct {
 	versionString string
 	semver        semver.Version
+	Major         int64
+	Minor         int64
+	Patch         int64
 }
 
 func New(s string) *Version {
@@ -56,35 +60,32 @@ func (v *Version) UnmarshalJSON(data []byte) error {
 
 func (v *Version) set(cassVersionString string) error {
 	var versionsTried []string
-	var errorsEncountered []string
+	var errs []error
 
-	errorWhileParsingOriginalVersion := v.semver.Set(cassVersionString)
-	if errorWhileParsingOriginalVersion == nil {
-		v.versionString = cassVersionString
-		return nil
-	}
+	err := v.semver.Set(cassVersionString)
+	if err != nil {
+		versionsTried = append(versionsTried, cassVersionString)
+		errs = append(errs, err)
 
-	versionsTried = append(versionsTried, cassVersionString)
-	errorsEncountered = append(errorsEncountered, errorWhileParsingOriginalVersion.Error())
-
-	semverString := maybeAddMissingPatchVersion(cassVersionString)
-	if semverString != cassVersionString {
-		errorWhileParsingSemverVersion := v.semver.Set(semverString)
-		if errorWhileParsingSemverVersion == nil {
-			v.versionString = cassVersionString
-			return nil
+		semverString := maybeAddMissingPatchVersion(cassVersionString)
+		if semverString != cassVersionString {
+			err = v.semver.Set(semverString)
+			versionsTried = append(versionsTried, semverString)
+			errs = append(errs, err)
 		}
-		versionsTried = append(versionsTried, semverString)
-		errorsEncountered = append(errorsEncountered, errorWhileParsingSemverVersion.Error())
 	}
-
-	return fmt.Errorf(
-		"unable to parse Cassandra version as semver. "+
-			"Versions tried: '%s'. "+
-			"Errors encountered: '%s'.",
-		strings.Join(versionsTried, "','"),
-		strings.Join(errorsEncountered, "','"),
-	)
+	if err != nil {
+		return fmt.Errorf(
+			"unable to parse Cassandra version as semver. Versions tried: '%s'. Errors: %s.",
+			strings.Join(versionsTried, "','"),
+			utilerror.NewAggregate(errs),
+		)
+	}
+	v.versionString = cassVersionString
+	v.Major = v.semver.Major
+	v.Minor = v.semver.Minor
+	v.Patch = v.semver.Patch
+	return nil
 }
 
 var _ json.Unmarshaler = &Version{}
@@ -104,12 +105,28 @@ func (v Version) String() string {
 	return v.versionString
 }
 
-func (v Version) MarshalJSON() ([]byte, error) {
+func (v *Version) MarshalJSON() ([]byte, error) {
 	return []byte(strconv.Quote(v.String())), nil
 }
 
 var _ json.Marshaler = &Version{}
 
-func (v Version) Semver() string {
+func (v *Version) Semver() string {
 	return v.semver.String()
+}
+
+func (v *Version) BumpPatch() *Version {
+	sv := semver.New(v.Semver())
+	sv.BumpPatch()
+	return New(sv.String())
+}
+func (v *Version) BumpMinor() *Version {
+	sv := semver.New(v.Semver())
+	sv.BumpMinor()
+	return New(sv.String())
+}
+func (v *Version) BumpMajor() *Version {
+	sv := semver.New(v.Semver())
+	sv.BumpMajor()
+	return New(sv.String())
 }
