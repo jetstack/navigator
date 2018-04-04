@@ -174,7 +174,7 @@ func (e *defaultCassandraClusterControl) Sync(c *v1alpha1.CassandraCluster) erro
 
 	a := NextAction(c)
 	if a != nil {
-		glog.V(4).Infof("Executing action: %#v")
+		glog.V(4).Infof("Executing action: %#v", a)
 		err = a.Execute(e.state)
 		if err != nil {
 			e.recorder.Eventf(
