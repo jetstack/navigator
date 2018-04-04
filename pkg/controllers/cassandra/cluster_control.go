@@ -221,17 +221,16 @@ func NextAction(c *v1alpha1.CassandraCluster) controllers.Action {
 			return nil
 		}
 		if nps.Version.LessThan(&c.Spec.Version) {
-			// if nps.Version.Major != c.Spec.Version.Major {
-			//	glog.Error("Major version upgrades are not supported")
-			//	return nil
-			// }
+			if nps.Version.Major != c.Spec.Version.Major {
+				glog.Error("Major version upgrades are not supported")
+				return nil
+			}
 			return &actions.UpdateVersion{
 				Cluster:  c,
 				NodePool: &np,
 			}
-		} else {
-			glog.Error("Version downgrades are not supported")
 		}
+		glog.Error("Version downgrades are not supported")
 	}
 	return nil
 }
