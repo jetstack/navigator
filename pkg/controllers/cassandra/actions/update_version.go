@@ -1,12 +1,11 @@
 package actions
 
 import (
-	"fmt"
-
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/nodepool"
-	"github.com/jetstack/navigator/pkg/controllers/cassandra/util"
+	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 )
 
 type UpdateVersion struct {
@@ -16,28 +15,33 @@ type UpdateVersion struct {
 
 var _ controllers.Action = &UpdateVersion{}
 
-func (c *UpdateVersion) Name() string {
+func (a *UpdateVersion) Name() string {
 	return "UpdateVersion"
 }
 
-func (c *UpdateVersion) Execute(state *controllers.State) error {
-	statefulSetName := util.NodePoolResourceName(c.Cluster, c.NodePool)
-	statefulSet, err := state.StatefulSetLister.StatefulSets(c.Cluster.Namespace).Get(statefulSetName)
+func (a *UpdateVersion) Execute(s *controllers.State) error {
+	baseSet := nodepool.StatefulSetForCluster(a.Cluster, a.NodePool)
+	existingSet, err := s.StatefulSetLister.StatefulSets(baseSet.Namespace).Get(baseSet.Name)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "unable to get statefulset")
 	}
-	statefulSet = statefulSet.DeepCopy()
-	newImage := nodepool.CassImageToUse(&c.Cluster.Spec)
-	newImageString := fmt.Sprintf(
-		"%s:%s",
-		newImage.Repository,
-		newImage.Tag,
-	)
-	oldImageString := statefulSet.Spec.Template.Spec.Containers[0].Image
-	if newImageString == oldImageString {
+	newImage := baseSet.Spec.Template.Spec.Containers[0].Image
+	oldImage := existingSet.Spec.Template.Spec.Containers[0].Image
+	if newImage == oldImage {
 		return nil
 	}
-	statefulSet.Spec.Template.Spec.Containers[0].Image = newImageString
-	_, err = state.Clientset.AppsV1beta1().StatefulSets(statefulSet.Namespace).Update(statefulSet)
-	return err
+	newSet := existingSet.DeepCopy()
+	newSet.Spec.Template.Spec.Containers[0].Image = newImage
+	_, err = s.Clientset.AppsV1beta1().StatefulSets(newSet.Namespace).Update(newSet)
+	if err != nil {
+		return errors.Wrap(err, "unable to update statefulset")
+	}
+	s.Recorder.Eventf(
+		a.Cluster,
+		corev1.EventTypeNormal,
+		a.Name(),
+		"UpdateVersion: NodePool=%q, Version=%q, Image=%q",
+		a.NodePool.Name, a.Cluster.Spec.Version, newImage,
+	)
+	return nil
 }

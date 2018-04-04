@@ -2,7 +2,9 @@ package cassandra
 
 import (
 	"github.com/golang/glog"
+	"github.com/pkg/errors"
 	apiv1 "k8s.io/api/core/v1"
+
 	"k8s.io/client-go/tools/record"
 
 	v1alpha1 "github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
@@ -172,6 +174,7 @@ func (e *defaultCassandraClusterControl) Sync(c *v1alpha1.CassandraCluster) erro
 
 	a := NextAction(c)
 	if a != nil {
+		glog.V(4).Infof("Executing action: %#v")
 		err = a.Execute(e.state)
 		if err != nil {
 			e.recorder.Eventf(
@@ -181,10 +184,9 @@ func (e *defaultCassandraClusterControl) Sync(c *v1alpha1.CassandraCluster) erro
 				MessageErrorSync,
 				err,
 			)
-			return err
+			return errors.Wrap(err, "failure while executing action")
 		}
 	}
-
 	e.recorder.Event(
 		c,
 		apiv1.EventTypeNormal,
