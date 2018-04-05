@@ -17,7 +17,7 @@ var (
 			Namespace: "bar",
 		},
 		Spec: navigator.CassandraClusterSpec{
-			Version: *version.New("5.6.2"),
+			Version: *version.New("3.11.2"),
 			Image:   &validImageSpec,
 			NavigatorClusterConfig: validNavigatorClusterConfig,
 			NodePools: []navigator.CassandraClusterNodePool{
