@@ -208,11 +208,20 @@ func NextAction(c *v1alpha1.CassandraCluster) controllers.Action {
 	}
 	for _, np := range c.Spec.NodePools {
 		nps := c.Status.NodePools[np.Name]
-		if np.Replicas > nps.ReadyReplicas {
+		switch {
+		case np.Replicas == nps.ReadyReplicas:
+			continue
+		case np.Replicas > nps.ReadyReplicas:
 			return &actions.ScaleOut{
 				Cluster:  c,
 				NodePool: &np,
 			}
+		default:
+			glog.Errorf(
+				"Unsupported scale change on NodePool %q from %d to %d",
+				np.Name, nps.ReadyReplicas, np.Replicas,
+			)
+			return nil
 		}
 	}
 	for _, np := range c.Spec.NodePools {
