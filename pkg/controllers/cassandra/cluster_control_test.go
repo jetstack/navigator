@@ -1,12 +1,12 @@
 package cassandra_test
 
 import (
-	"fmt"
 	"math/rand"
 	"reflect"
-	"strings"
 	"testing"
 	"testing/quick"
+
+	"github.com/kr/pretty"
 
 	v1alpha1 "github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra"
@@ -14,44 +14,11 @@ import (
 	casstesting "github.com/jetstack/navigator/pkg/controllers/cassandra/testing"
 )
 
-func CassandraClusterSummary(c *v1alpha1.CassandraCluster) string {
-	return fmt.Sprintf(
-		"%s/%s {Spec: %s, Status: %s}",
-		c.Namespace, c.Name,
-		CassandraClusterSpecSummary(c),
-		CassandraClusterStatusSummary(c),
-	)
-}
-
-func CassandraClusterSpecSummary(c *v1alpha1.CassandraCluster) string {
-	nodepools := make([]string, len(c.Spec.NodePools))
-	for i, np := range c.Spec.NodePools {
-		nodepools[i] = fmt.Sprintf("%s:%d", np.Name, np.Replicas)
-	}
-	return fmt.Sprintf(
-		"{version: %s, nodepools: %s}",
-		c.Spec.Version,
-		strings.Join(nodepools, ", "),
-	)
-}
-
-func CassandraClusterStatusSummary(c *v1alpha1.CassandraCluster) string {
-	nodepools := make([]string, len(c.Status.NodePools))
-	i := 0
-	for title, nps := range c.Status.NodePools {
-		nodepools[i] = fmt.Sprintf("%s:%d:%s", title, nps.ReadyReplicas, nps.Version)
-		i++
-	}
-	return fmt.Sprintf(
-		"{nodepools: %s}", strings.Join(nodepools, ", "),
-	)
-}
-
 func TestNextAction(t *testing.T) {
 	f := func(c *v1alpha1.CassandraCluster) (ret bool) {
 		defer func() {
 			if !ret {
-				t.Log(CassandraClusterSummary(c))
+				t.Logf(pretty.Sprint(c))
 			}
 		}()
 		a := cassandra.NextAction(c)
