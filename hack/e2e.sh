@@ -273,10 +273,21 @@ function test_cassandracluster() {
          stdout_equals "${CASS_VERSION}" \
          kubectl --namespace "${namespace}" \
          get pilots \
-         --output 'jsonpath={.items[0].status.cassandra.version}'
+         --selector "navigator.jetstack.io/cassandra-cluster-name=${CASS_NAME}" \
+         --output 'jsonpath={.items[*].status.cassandra.version}'
     then
         kubectl --namespace "${namespace}" get pilots -o yaml
         fail_test "Pilots failed to report the expected version"
+    fi
+
+    if ! retry TIMEOUT=300 \
+         stdout_equals "${CASS_VERSION}" \
+         kubectl --namespace "${namespace}" \
+         get cassandracluster "${CASS_NAME}" \
+         --output 'jsonpath={.status.nodePools[*].version}'
+    then
+        kubectl --namespace "${namespace}" get cassandracluster -o yaml
+        fail_test "NodePools failed to report the expected version"
     fi
 
     # Wait 5 minutes for cassandra to start and listen for CQL queries.
@@ -330,10 +341,21 @@ function test_cassandracluster() {
          stdout_equals "${CASS_VERSION}" \
          kubectl --namespace "${namespace}" \
          get pilots \
-         --output 'jsonpath={.items[0].status.cassandra.version}'
+         --selector "navigator.jetstack.io/cassandra-cluster-name=${CASS_NAME}" \
+         --output 'jsonpath={.items[*].status.cassandra.version}'
     then
         kubectl --namespace "${namespace}" get pilots -o yaml
         fail_test "Pilots failed to report the expected version"
+    fi
+
+    if ! retry TIMEOUT=300 \
+         stdout_equals "${CASS_VERSION}" \
+         kubectl --namespace "${namespace}" \
+         get cassandracluster "${CASS_NAME}" \
+         --output 'jsonpath={.status.nodePools[*].version}'
+    then
+        kubectl --namespace "${namespace}" get cassandracluster -o yaml
+        fail_test "NodePools failed to report the expected version"
     fi
 
     # Delete the Cassandra pod and wait for the CQL service to become
