@@ -38,9 +38,10 @@ func TestScaleOut(t *testing.T) {
 			kubeObjects: []runtime.Object{
 				generate.StatefulSet(
 					generate.StatefulSetConfig{
-						Name:      "cass-cluster1-pool1",
-						Namespace: "ns1",
-						Replicas:  ptr.Int32(122),
+						Name:          "cass-cluster1-pool1",
+						Namespace:     "ns1",
+						Replicas:      ptr.Int32(122),
+						ReadyReplicas: 122,
 					},
 				),
 			},
@@ -67,9 +68,10 @@ func TestScaleOut(t *testing.T) {
 			kubeObjects: []runtime.Object{
 				generate.StatefulSet(
 					generate.StatefulSetConfig{
-						Name:      "cass-cluster1-pool1",
-						Namespace: "ns1",
-						Replicas:  ptr.Int32(124),
+						Name:          "cass-cluster1-pool1",
+						Namespace:     "ns1",
+						Replicas:      ptr.Int32(124),
+						ReadyReplicas: 124,
 					},
 				),
 			},
@@ -88,13 +90,39 @@ func TestScaleOut(t *testing.T) {
 			},
 			expectedErr: false,
 		},
+		"No update until all existing pods are ready": {
+			kubeObjects: []runtime.Object{
+				generate.StatefulSet(
+					generate.StatefulSetConfig{
+						Name:          "cass-cluster1-pool1",
+						Namespace:     "ns1",
+						Replicas:      ptr.Int32(122),
+						ReadyReplicas: 121,
+					},
+				),
+			},
+			cluster: generate.CassandraClusterConfig{
+				Name:      "cluster1",
+				Namespace: "ns1",
+			},
+			nodePool: generate.CassandraClusterNodePoolConfig{
+				Name:     "pool1",
+				Replicas: 123,
+			},
+			expectedStatefulSet: &generate.StatefulSetConfig{
+				Name:      "cass-cluster1-pool1",
+				Namespace: "ns1",
+				Replicas:  ptr.Int32(122),
+			},
+		},
 		"Idempotent: No error if ReplicaCount already matches the actual ReplicaCount": {
 			kubeObjects: []runtime.Object{
 				generate.StatefulSet(
 					generate.StatefulSetConfig{
-						Name:      "cass-cluster1-pool1",
-						Namespace: "ns1",
-						Replicas:  ptr.Int32(124),
+						Name:          "cass-cluster1-pool1",
+						Namespace:     "ns1",
+						Replicas:      ptr.Int32(124),
+						ReadyReplicas: 124,
 					},
 				),
 			},
@@ -117,9 +145,10 @@ func TestScaleOut(t *testing.T) {
 			kubeObjects: []runtime.Object{
 				generate.StatefulSet(
 					generate.StatefulSetConfig{
-						Name:      "cass-cluster1-pool1",
-						Namespace: "ns1",
-						Replicas:  ptr.Int32(122),
+						Name:          "cass-cluster1-pool1",
+						Namespace:     "ns1",
+						Replicas:      ptr.Int32(122),
+						ReadyReplicas: 122,
 					},
 				),
 			},
@@ -141,9 +170,10 @@ func TestScaleOut(t *testing.T) {
 			kubeObjects: []runtime.Object{
 				generate.StatefulSet(
 					generate.StatefulSetConfig{
-						Name:      "cass-cluster1-pool1",
-						Namespace: "ns1",
-						Replicas:  ptr.Int32(2),
+						Name:          "cass-cluster1-pool1",
+						Namespace:     "ns1",
+						Replicas:      ptr.Int32(2),
+						ReadyReplicas: 2,
 					},
 				),
 			},
@@ -203,7 +233,7 @@ func TestScaleOut(t *testing.T) {
 					if *test.expectedStatefulSet.Replicas != *actualStatefulSet.Spec.Replicas {
 						t.Errorf(
 							"Unexpected replica count. Expected: %d. Actual: %d",
-							test.expectedStatefulSet.Replicas, actualStatefulSet.Spec.Replicas,
+							*test.expectedStatefulSet.Replicas, *actualStatefulSet.Spec.Replicas,
 						)
 					}
 				}
