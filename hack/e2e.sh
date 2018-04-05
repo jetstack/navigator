@@ -284,7 +284,7 @@ function test_cassandracluster() {
          stdout_equals "${CASS_VERSION}" \
          kubectl --namespace "${namespace}" \
          get cassandracluster "${CASS_NAME}" \
-         --output 'jsonpath={.status.nodePools[*].version}'
+         --output 'jsonpath={.status.nodePools.*.version}'
     then
         kubectl --namespace "${namespace}" get cassandracluster -o yaml
         fail_test "NodePools failed to report the expected version"
@@ -352,7 +352,7 @@ function test_cassandracluster() {
          stdout_equals "${CASS_VERSION}" \
          kubectl --namespace "${namespace}" \
          get cassandracluster "${CASS_NAME}" \
-         --output 'jsonpath={.status.nodePools[*].version}'
+         --output 'jsonpath={.status.nodePools.*.version}'
     then
         kubectl --namespace "${namespace}" get cassandracluster -o yaml
         fail_test "NodePools failed to report the expected version"
