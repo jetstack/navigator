@@ -1,6 +1,7 @@
 package actions
 
 import (
+	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 
@@ -29,8 +30,16 @@ func (a *UpdateVersion) Execute(s *controllers.State) error {
 	newImage := baseSet.Spec.Template.Spec.Containers[0].Image
 	oldImage := existingSet.Spec.Template.Spec.Containers[0].Image
 	if newImage == oldImage {
+		glog.V(4).Infof(
+			"StatefulSet %q already has the desired image %q",
+			existingSet.Name, newImage,
+		)
 		return nil
 	}
+	glog.V(4).Infof(
+		"Replacing StatefulSet %q image %q with %q",
+		existingSet.Name, oldImage, newImage,
+	)
 	newSet := existingSet.DeepCopy()
 	newSet.Spec.Template.Spec.Containers[0].Image = newImage
 	_, err = s.Clientset.AppsV1beta1().StatefulSets(newSet.Namespace).Update(newSet)
