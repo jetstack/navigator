@@ -81,8 +81,13 @@ type CassandraClusterStatus struct {
 }
 
 type CassandraClusterNodePoolStatus struct {
-	ReadyReplicas int32            `json:"readyReplicas"`
-	Version       *version.Version `json:"version"`
+	ReadyReplicas int32 `json:"readyReplicas"`
+	// The lowest version of Cassandra found to be running in this nodepool,
+	// as reported by the Cassandra process.
+	// nil or empty if the lowest version can not be determined,
+	// or if the lowest version has not yet been determined
+	// +optional
+	Version *version.Version `json:"version,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
