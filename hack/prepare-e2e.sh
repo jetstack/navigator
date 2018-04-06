@@ -37,7 +37,9 @@ EOF
 helm init --service-account=tiller
 
 echo "Waiting for tiller to be ready..."
-retry TIMEOUT=60 helm version
+# helm sometimes hangs so we wrap it with a timeout in addition to retrying
+# See https://github.com/jetstack/navigator/issues/314
+retry TIMEOUT=300 timeout 60 helm version
 
 echo "Applying Elasticsearch virtual memory configuration on all nodes..."
 # See https://www.elastic.co/guide/en/elasticsearch/reference/current/system-config.html
