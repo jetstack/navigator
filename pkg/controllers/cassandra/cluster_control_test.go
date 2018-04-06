@@ -29,20 +29,6 @@ func TestNextAction(t *testing.T) {
 				t.Errorf("Unexpected attempt to create a nodepool when there's an existing status")
 				return false
 			}
-		case *actions.UpdateVersion:
-			nps, found := c.Status.NodePools[action.NodePool.Name]
-			if !found {
-				t.Errorf("Unexpected updateversion before status reported")
-				return false
-			}
-			if nps.Version == nil {
-				t.Errorf("Unexpected updateversion before version reported")
-				return false
-			}
-			if nps.Version.Major != c.Spec.Version.Major {
-				t.Errorf("Unexpected updateversion for major version change")
-				return false
-			}
 		case *actions.ScaleOut:
 			nps, found := c.Status.NodePools[action.NodePool.Name]
 			if !found {
@@ -51,6 +37,28 @@ func TestNextAction(t *testing.T) {
 			}
 			if action.NodePool.Replicas <= nps.ReadyReplicas {
 				t.Errorf("Unexpected attempt to scale up a nodepool with >= ready replicas")
+				return false
+			}
+			if nps.Version == nil {
+				t.Errorf("unexpected scaleout before version is known")
+				return false
+			}
+		case *actions.UpdateVersion:
+			nps, found := c.Status.NodePools[action.NodePool.Name]
+			if !found {
+				t.Errorf("Unexpected UpdateVersion before status reported")
+				return false
+			}
+			if nps.Version == nil {
+				t.Errorf("Unexpected UpdateVersion before version reported")
+				return false
+			}
+			if nps.Version.Major != c.Spec.Version.Major {
+				t.Errorf("Unexpected UpdateVersion for major version change")
+				return false
+			}
+			if nps.ReadyReplicas != action.NodePool.Replicas {
+				t.Errorf("Unexpected UpdateVersion before scale")
 				return false
 			}
 		}

@@ -118,27 +118,35 @@ func (c *pilotControl) updateDiscoveredVersions(cluster *v1alpha1.CassandraClust
 		glog.V(4).Infof("No pilots found matching selector: %s", selector)
 	}
 	for _, pilot := range pilots {
-		if pilot.Status.Cassandra == nil {
-			glog.V(4).Infof("Skipping pilot with nil status: %s", pilot.Name)
-			continue
-		}
 		nodePoolNameForPilot, nodePoolNameFound := pilot.Labels[util.NodePoolNameLabelKey]
 		if !nodePoolNameFound {
-			glog.V(4).Infof("Skipping pilot without NodePoolNameLabelKey: %s", pilot.Name)
+			glog.Warningf("Skipping pilot without NodePoolNameLabelKey: %s", pilot.Name)
 			continue
 		}
-		if cluster.Status.NodePools == nil {
-			glog.V(4).Infof("Initialising Status.NodePools for: %s", cluster.Name)
-			cluster.Status.NodePools = map[string]v1alpha1.CassandraClusterNodePoolStatus{}
-		}
-		version := pilot.Status.Cassandra.Version
 		nodePoolStatus := cluster.Status.NodePools[nodePoolNameForPilot]
-		if nodePoolStatus.Version == nil || version.LessThan(nodePoolStatus.Version) {
-			glog.V(4).Infof("Found lower pilot version: %s, %s", nodePoolNameForPilot, version)
-			nodePoolStatus.Version = version
-			cluster.Status.NodePools[nodePoolNameForPilot] = nodePoolStatus
-			continue
+		switch {
+		case pilot.Status.Cassandra == nil:
+			glog.V(4).Infof(
+				"Pilot %s/%s has no status. Setting nodepool version to nil",
+				pilot.Namespace, pilot.Name,
+			)
+			nodePoolStatus.Version = nil
+		case pilot.Status.Cassandra.Version == nil:
+			glog.V(4).Infof(
+				"Pilot %s/%s has not reported its version. Setting nodepool version to nil",
+				pilot.Namespace, pilot.Name,
+			)
+			nodePoolStatus.Version = nil
+		case nodePoolStatus.Version == nil:
+			nodePoolStatus.Version = nil
+		case pilot.Status.Cassandra.Version.LessThan(nodePoolStatus.Version):
+			glog.V(4).Infof(
+				"Found lower pilot version: %s, %s",
+				nodePoolNameForPilot, pilotVersionStatus,
+			)
+			nodePoolStatus.Version = pilotVersionStatus
 		}
+		cluster.Status.NodePools[nodePoolNameForPilot] = nodePoolStatus
 	}
 	return nil
 }
