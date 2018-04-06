@@ -36,7 +36,7 @@ func ClusterForTest() *v1alpha1.CassandraCluster {
 		Spec: v1alpha1.CassandraClusterSpec{
 			NodePools: []v1alpha1.CassandraClusterNodePool{
 				v1alpha1.CassandraClusterNodePool{
-					Name:     "RingNodes",
+					Name:     "region-1-zone-a",
 					Replicas: 3,
 				},
 			},

@@ -43,7 +43,7 @@ func StatefulSetForCluster(
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            statefulSetName,
 			Namespace:       cluster.Namespace,
-			Labels:          util.ClusterLabels(cluster),
+			Labels:          nodePoolLabels,
 			Annotations:     make(map[string]string),
 			OwnerReferences: []metav1.OwnerReference{util.NewControllerRef(cluster)},
 		},

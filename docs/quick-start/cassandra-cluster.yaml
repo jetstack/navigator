@@ -5,10 +5,10 @@ metadata:
 spec:
   version: "3.11.1"
   nodePools:
-  - name: "ringnodes"
+  - name: "region-1-zone-a"
     replicas: 3
-    datacenter: "demo-datacenter"
-    rack: "demo-rack"
+    datacenter: "region-1"
+    rack: "zone-a"
     persistence:
       enabled: true
       size: "5Gi"

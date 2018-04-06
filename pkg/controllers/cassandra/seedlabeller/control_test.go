@@ -1,6 +1,7 @@
 package seedlabeller_test
 
 import (
+	"fmt"
 	"testing"
 
 	"k8s.io/api/core/v1"
@@ -35,7 +36,7 @@ func TestSeedLabellerSync(t *testing.T) {
 	ss0 := nodepool.StatefulSetForCluster(cluster, np0)
 	pod0 := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "cass-cassandra-1-RingNodes-0",
+			Name:      fmt.Sprintf("%s-0", ss0.Name),
 			Namespace: cluster.Namespace,
 		},
 	}
