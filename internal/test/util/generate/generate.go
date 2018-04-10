@@ -47,7 +47,7 @@ type ClusterConfig struct {
 	NodePools       []v1alpha1.ElasticsearchClusterNodePool
 	Version         string
 	ClusterConfig   v1alpha1.NavigatorClusterConfig
-	Health          v1alpha1.ElasticsearchClusterHealth
+	Health          *v1alpha1.ElasticsearchClusterHealth
 }
 
 func Cluster(c ClusterConfig) *v1alpha1.ElasticsearchCluster {

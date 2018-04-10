@@ -45,10 +45,11 @@ func esConfigConfigMap(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.Elasticsea
 
 func generateConfig(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.ElasticsearchClusterNodePool) string {
 	minimumMasters := c.Spec.MinimumMasters
-	if minimumMasters == 0 {
+	if minimumMasters == nil {
 		// auto-manage minimum master count
 		totalMasters := apiutil.CountElasticsearchMasters(c.Spec.NodePools)
-		minimumMasters = util.CalculateQuorum(totalMasters)
+		q := util.CalculateQuorum(totalMasters)
+		minimumMasters = &q
 	}
-	return fmt.Sprintf(configTemplate, minimumMasters)
+	return fmt.Sprintf(configTemplate, *minimumMasters)
 }

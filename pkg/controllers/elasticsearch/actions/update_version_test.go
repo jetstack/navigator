@@ -27,6 +27,8 @@ func TestUpdateVersion(t *testing.T) {
 		expectedStatefulSet *apps.StatefulSet
 		err                 bool
 	}
+	redHealth := v1alpha1.ElasticsearchClusterHealthRed
+	greenHealth := v1alpha1.ElasticsearchClusterHealthGreen
 	tests := map[string]testT{
 		"should update statefulset and set partition to update the highest ordinal pod": {
 			kubeObjects: []runtime.Object{
@@ -45,7 +47,14 @@ func TestUpdateVersion(t *testing.T) {
 				generate.Pilot(generate.PilotConfig{Name: "es-test-data-1", Cluster: "test", NodePool: "data", Version: "6.1.1"}),
 				generate.Pilot(generate.PilotConfig{Name: "es-test-data-2", Cluster: "test", NodePool: "data", Version: "6.1.1"}),
 			},
-			cluster:      clusterWithVersionNodePools("test", "6.1.2", nodePoolWithNameReplicasRoles("data", 3, v1alpha1.ElasticsearchRoleData)),
+			cluster: generate.Cluster(generate.ClusterConfig{
+				Name:    "test",
+				Version: "6.1.2",
+				Health:  &greenHealth,
+				NodePools: []v1alpha1.ElasticsearchClusterNodePool{
+					nodePoolWithNameReplicasRoles("data", 3, v1alpha1.ElasticsearchRoleData),
+				},
+			}),
 			nodePool:     nodePoolPtrWithNameReplicasRoles("data", 3, v1alpha1.ElasticsearchRoleData),
 			shouldUpdate: true,
 			expectedStatefulSet: generate.StatefulSet(generate.StatefulSetConfig{
@@ -82,6 +91,7 @@ func TestUpdateVersion(t *testing.T) {
 			cluster: generate.Cluster(generate.ClusterConfig{
 				Name:    "test",
 				Version: "6.1.2",
+				Health:  &greenHealth,
 				NodePools: []v1alpha1.ElasticsearchClusterNodePool{
 					nodePoolWithNameReplicasRoles("data", 3, v1alpha1.ElasticsearchRoleData),
 				},
@@ -123,7 +133,7 @@ func TestUpdateVersion(t *testing.T) {
 				NodePools: []v1alpha1.ElasticsearchClusterNodePool{
 					nodePoolWithNameReplicasRoles("data", 3, v1alpha1.ElasticsearchRoleData),
 				},
-				Health: v1alpha1.ElasticsearchClusterHealthRed,
+				Health: &redHealth,
 			}),
 			nodePool:     nodePoolPtrWithNameReplicasRoles("data", 3, v1alpha1.ElasticsearchRoleData),
 			shouldUpdate: false,
@@ -151,7 +161,7 @@ func TestUpdateVersion(t *testing.T) {
 				NodePools: []v1alpha1.ElasticsearchClusterNodePool{
 					nodePoolWithNameReplicasRoles("data", 3, v1alpha1.ElasticsearchRoleData),
 				},
-				Health: v1alpha1.ElasticsearchClusterHealthGreen,
+				Health: &greenHealth,
 			}),
 			nodePool:     nodePoolPtrWithNameReplicasRoles("data", 3, v1alpha1.ElasticsearchRoleData),
 			shouldUpdate: false,
@@ -182,6 +192,7 @@ func TestUpdateVersion(t *testing.T) {
 				NodePools: []v1alpha1.ElasticsearchClusterNodePool{
 					nodePoolWithNameReplicasRoles("data", 3, v1alpha1.ElasticsearchRoleData),
 				},
+				Health: &greenHealth,
 			}),
 			nodePool:     nodePoolPtrWithNameReplicasRoles("data", 3, v1alpha1.ElasticsearchRoleData),
 			shouldUpdate: true,
@@ -222,7 +233,7 @@ func TestUpdateVersion(t *testing.T) {
 				NodePools: []v1alpha1.ElasticsearchClusterNodePool{
 					nodePoolWithNameReplicasRoles("data", 3, v1alpha1.ElasticsearchRoleData),
 				},
-				Health: v1alpha1.ElasticsearchClusterHealthGreen,
+				Health: &greenHealth,
 			}),
 			nodePool:     nodePoolPtrWithNameReplicasRoles("data", 3, v1alpha1.ElasticsearchRoleData),
 			shouldUpdate: false,
@@ -240,11 +251,11 @@ func TestUpdateVersion(t *testing.T) {
 			defer fixture.Stop()
 
 			state := fixture.State()
-			scale := &UpdateVersion{
+			updateVersion := &UpdateVersion{
 				Cluster:  test.cluster,
 				NodePool: test.nodePool,
 			}
-			err := scale.Execute(state)
+			err := updateVersion.Execute(state)
 			if err != nil && !test.err {
 				t.Errorf("Expected no error but got: %v", err)
 			}

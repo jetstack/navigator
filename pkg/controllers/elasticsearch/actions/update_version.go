@@ -42,7 +42,11 @@ func (c *UpdateVersion) Execute(state *controllers.State) error {
 	}
 
 	// Check the health of the Cluster. If it is Red, we do not proceed.
-	if c.Cluster.Status.Health == v1alpha1.ElasticsearchClusterHealthRed {
+	if c.Cluster.Status.Health == nil {
+		return fmt.Errorf("Could not determine current health of Elasticsearch cluster")
+	}
+
+	if *c.Cluster.Status.Health == v1alpha1.ElasticsearchClusterHealthRed {
 		err = fmt.Errorf("Cluster is in a red state, refusing to upgrade node pool %q", c.NodePool.Name)
 		state.Recorder.Eventf(c.Cluster, core.EventTypeWarning, "Err"+c.Name(), err.Error())
 		return nil

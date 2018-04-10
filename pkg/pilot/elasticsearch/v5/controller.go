@@ -148,14 +148,17 @@ func (p *Pilot) updateElasticsearchClusterStatus(ctx context.Context, esc *v1alp
 	return nil
 }
 
-func parseHealth(s string) v1alpha1.ElasticsearchClusterHealth {
+func parseHealth(s string) *v1alpha1.ElasticsearchClusterHealth {
+	var health v1alpha1.ElasticsearchClusterHealth
 	switch strings.ToLower(s) {
 	case "green":
-		return v1alpha1.ElasticsearchClusterHealthGreen
+		health = v1alpha1.ElasticsearchClusterHealthGreen
 	case "yellow":
-		return v1alpha1.ElasticsearchClusterHealthYellow
+		health = v1alpha1.ElasticsearchClusterHealthYellow
 	case "red":
-		return v1alpha1.ElasticsearchClusterHealthRed
+		health = v1alpha1.ElasticsearchClusterHealthRed
+	default:
+		return nil
 	}
-	return v1alpha1.ElasticsearchClusterHealth(s)
+	return &health
 }

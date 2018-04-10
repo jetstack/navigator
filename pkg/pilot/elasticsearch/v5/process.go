@@ -9,10 +9,6 @@ import (
 )
 
 func (p *Pilot) CmdFunc(pilot *v1alpha1.Pilot) (*exec.Cmd, error) {
-	if pilot.Spec.Elasticsearch == nil {
-		return nil, fmt.Errorf("elasticsearch config not present")
-	}
-
 	cmd := exec.Command("elasticsearch")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

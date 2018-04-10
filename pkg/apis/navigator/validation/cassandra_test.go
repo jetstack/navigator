@@ -3,11 +3,13 @@ package validation_test
 import (
 	"testing"
 
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/jetstack/navigator/pkg/apis/navigator"
 	"github.com/jetstack/navigator/pkg/apis/navigator/validation"
 	"github.com/jetstack/navigator/pkg/cassandra/version"
+	"github.com/jetstack/navigator/pkg/util/ptr"
 )
 
 var (
@@ -22,9 +24,9 @@ var (
 			NavigatorClusterConfig: validNavigatorClusterConfig,
 			NodePools: []navigator.CassandraClusterNodePool{
 				navigator.CassandraClusterNodePool{
-					Datacenter:  "datacenter-1",
-					Rack:        "rack-1",
-					Persistence: validNodePoolPersistenceConfig,
+					Datacenter:  ptr.String("datacenter-1"),
+					Rack:        ptr.String("rack-1"),
+					Persistence: &validNodePoolPersistenceConfig,
 				},
 			},
 		},
@@ -103,7 +105,7 @@ func TestValidateCassandraClusterUpdate(t *testing.T) {
 
 	setPersistence := func(
 		c *navigator.CassandraCluster,
-		p navigator.PersistenceConfig,
+		p *navigator.PersistenceConfig,
 	) *navigator.CassandraCluster {
 		c = c.DeepCopy()
 		c.Spec.NodePools[0].Persistence = p
@@ -112,7 +114,7 @@ func TestValidateCassandraClusterUpdate(t *testing.T) {
 
 	setRack := func(
 		c *navigator.CassandraCluster,
-		rack string,
+		rack *string,
 	) *navigator.CassandraCluster {
 		c = c.DeepCopy()
 		c.Spec.NodePools[0].Rack = rack
@@ -121,10 +123,10 @@ func TestValidateCassandraClusterUpdate(t *testing.T) {
 
 	setDatacenter := func(
 		c *navigator.CassandraCluster,
-		rack string,
+		dc *string,
 	) *navigator.CassandraCluster {
 		c = c.DeepCopy()
-		c.Spec.NodePools[0].Datacenter = rack
+		c.Spec.NodePools[0].Datacenter = dc
 		return c
 	}
 
@@ -135,16 +137,16 @@ func TestValidateCassandraClusterUpdate(t *testing.T) {
 		},
 		"changed rack": {
 			old:           validCassCluster,
-			new:           setRack(validCassCluster, "toot"),
+			new:           setRack(validCassCluster, ptr.String("toot")),
 			errorExpected: true,
 		},
 		"changed datacenter": {
 			old:           validCassCluster,
-			new:           setDatacenter(validCassCluster, "doot"),
+			new:           setDatacenter(validCassCluster, ptr.String("doot")),
 			errorExpected: true,
 		},
 		"enable persistence config": {
-			old: setPersistence(validCassCluster, navigator.PersistenceConfig{Enabled: false}),
+			old: setPersistence(validCassCluster, &navigator.PersistenceConfig{Size: resource.MustParse("10Gi")}),
 			new: validCassCluster,
 		},
 	}
