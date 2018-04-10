@@ -35,12 +35,17 @@ type CassandraClusterSpec struct {
 	// List of node pools belonging to this CassandraCluster.
 	// NodePools cannot currently be removed.
 	// A cluster with 0 node pools will not function correctly.
+	// +optional
 	NodePools []CassandraClusterNodePool `json:"nodePools,omitempty"`
 
 	// Image describes the Cassandra database image to use.
 	// This should only be set if version auto-detection is not desired.
 	// If set, the image tag used must correspond to the version specified
 	// in 'spec.version'.
+	// This is an advanced feature and should be used with caution. It is
+	// the end user's repsonsibility to ensure the 'Image' here matches with
+	// the Version specified below.
+	// +optional
 	Image *ImageSpec `json:"image,omitempty"`
 
 	// The version of the database to be used for nodes in the cluster.
@@ -58,13 +63,14 @@ type CassandraClusterNodePool struct {
 	// This value will correspond to the number of replicas in the created
 	// StatefulSet.
 	// If not set, a default of 1 will be used.
+	// +optional
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// Persistence specifies the persistent volume configuration for this node.
 	// Disabling persistence can cause issues when a node restarts.
 	// Cannot be updated.
 	// +optional
-	Persistence PersistenceConfig `json:"persistence,omitempty"`
+	Persistence *PersistenceConfig `json:"persistence,omitempty"`
 
 	// NodeSelector should be specified to force nodes in this pool to run on
 	// nodes matching the given selector.
@@ -76,14 +82,14 @@ type CassandraClusterNodePool struct {
 	// nodepool.
 	// If this is not set, the name of the node pool will be used.
 	// +optional
-	Rack string `json:"rack,omitempty"`
+	Rack *string `json:"rack,omitempty"`
 
 	// Datacenter specifies the cassandra datacenter with which to label nodes
 	// in this nodepool. If this is not set, a default will be selected.
 	// If this is not set, the default of 'navigator-default-datacenter' will
 	// be used.
 	// +optional
-	Datacenter string `json:"datacenter,omitempty"`
+	Datacenter *string `json:"datacenter,omitempty"`
 
 	// Resources specifies the resource requirements to be used for nodes that
 	// are part of the pool.
@@ -139,7 +145,8 @@ type ElasticsearchClusterStatus struct {
 	NodePools map[string]ElasticsearchClusterNodePoolStatus `json:"nodePools,omitempty"`
 	// The health of the ElasticsearchCluster.
 	// This will be one of Red, Yellow or Green.
-	Health ElasticsearchClusterHealth `json:"health,omitempty"`
+	// +optional
+	Health *ElasticsearchClusterHealth `json:"health,omitempty"`
 }
 
 // ElasticsearchClusterNodePoolStatus specifies the status of a single node
@@ -185,6 +192,7 @@ type ElasticsearchClusterSpec struct {
 	// List of node pools belonging to this ElasticsearchCluster.
 	// NodePools cannot currently be removed.
 	// There must be at least one master node to form a valid cluster.
+	// +optional
 	NodePools []ElasticsearchClusterNodePool `json:"nodePools,omitempty"`
 
 	// Image describes the Elasticsearch database image to use.
@@ -199,7 +207,8 @@ type ElasticsearchClusterSpec struct {
 	// cluster.
 	// If set, the value *must* be greater than or equal to a quorum of master
 	// nodes.
-	MinimumMasters int32 `json:"minimumMasters,omitempty"`
+	// +optional
+	MinimumMasters *int32 `json:"minimumMasters,omitempty"`
 }
 
 // ElasticsearchClusterNodePool describes a node pool within an ElasticsearchCluster.
@@ -213,6 +222,7 @@ type ElasticsearchClusterNodePool struct {
 	// This value will correspond to the number of replicas in the created
 	// StatefulSet.
 	// If not set, a default of 1 will be used.
+	// +optional
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// Roles that nodes in this pool should perform within the cluster.
@@ -234,7 +244,7 @@ type ElasticsearchClusterNodePool struct {
 	// Disabling persistence can cause issues when a node restarts.
 	// Cannot be updated.
 	// +optional
-	Persistence PersistenceConfig `json:"persistence,omitempty"`
+	Persistence *PersistenceConfig `json:"persistence,omitempty"`
 
 	// If specified, the pod will be dispatched by specified scheduler.
 	// If not specified, the pod will be dispatched by default scheduler.
@@ -253,17 +263,14 @@ const (
 
 // PersistenceConfig contains persistent volume configuration.
 type PersistenceConfig struct {
-	// Toggle whether persistence should be enabled on this cluster. If false,
-	// an emptyDir will be provisioned to store data.
-	Enabled bool `json:"enabled"`
-
 	// Size of the persistent volume to provision (required if persistence is
 	// enabled).
 	Size resource.Quantity `json:"size"`
 
 	// StorageClass to use for the persistent volume claim. If not set, the
 	// default cluster storage class will be used.
-	StorageClass string `json:"storageClass,omitempty"`
+	// +optional
+	StorageClass *string `json:"storageClass,omitempty"`
 }
 
 // ImageSpec specifies a docker image to be used.
@@ -276,7 +283,8 @@ type ImageSpec struct {
 
 	// PullPolicy is the policy for pulling docker images. If not set, the
 	// cluster default will be used.
-	PullPolicy v1.PullPolicy `json:"pullPolicy"`
+	// +optional
+	PullPolicy v1.PullPolicy `json:"pullPolicy,omitempty"`
 }
 
 type NavigatorClusterConfig struct {
@@ -285,7 +293,7 @@ type NavigatorClusterConfig struct {
 	PilotImage ImageSpec `json:"pilotImage"`
 
 	// Security related options to be applied to the cluster pods.
-	SecurityContext NavigatorSecurityContext `json:"securityContext,omitempty"`
+	SecurityContext NavigatorSecurityContext `json:"securityContext"`
 }
 
 type NavigatorSecurityContext struct {
@@ -318,10 +326,6 @@ type PilotList struct {
 }
 
 type PilotSpec struct {
-	Elasticsearch *PilotElasticsearchSpec `json:"elasticsearch,omitempty"`
-}
-
-type PilotElasticsearchSpec struct {
 }
 
 type PilotStatus struct {

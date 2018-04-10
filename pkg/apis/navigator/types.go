@@ -36,11 +36,11 @@ type CassandraClusterSpec struct {
 
 type CassandraClusterNodePool struct {
 	Name          string
-	Replicas      int32
-	Persistence   PersistenceConfig
+	Replicas      *int32
+	Persistence   *PersistenceConfig
 	NodeSelector  map[string]string
-	Rack          string
-	Datacenter    string
+	Rack          *string
+	Datacenter    *string
 	Resources     v1.ResourceRequirements
 	SchedulerName string
 }
@@ -80,7 +80,7 @@ type ElasticsearchCluster struct {
 
 type ElasticsearchClusterStatus struct {
 	NodePools map[string]ElasticsearchClusterNodePoolStatus
-	Health    ElasticsearchClusterHealth
+	Health    *ElasticsearchClusterHealth
 }
 
 type ElasticsearchClusterNodePoolStatus struct {
@@ -114,16 +114,16 @@ type ElasticsearchClusterSpec struct {
 	Image          *ImageSpec
 	Plugins        []string
 	NodePools      []ElasticsearchClusterNodePool
-	MinimumMasters int32
+	MinimumMasters *int32
 }
 
 type ElasticsearchClusterNodePool struct {
 	Name          string
-	Replicas      int32
+	Replicas      *int32
 	Roles         []ElasticsearchClusterRole
 	NodeSelector  map[string]string
 	Resources     v1.ResourceRequirements
-	Persistence   PersistenceConfig
+	Persistence   *PersistenceConfig
 	SchedulerName string
 }
 
@@ -136,9 +136,8 @@ const (
 )
 
 type PersistenceConfig struct {
-	Enabled      bool
 	Size         resource.Quantity
-	StorageClass string
+	StorageClass *string
 }
 
 type ImageSpec struct {
@@ -178,10 +177,6 @@ type PilotList struct {
 }
 
 type PilotSpec struct {
-	Elasticsearch *PilotElasticsearchSpec
-}
-
-type PilotElasticsearchSpec struct {
 }
 
 type PilotStatus struct {
