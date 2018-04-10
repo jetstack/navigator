@@ -3,6 +3,9 @@ kind: "CassandraCluster"
 metadata:
   name: "demo"
 spec:
+  #  if set, navigator will not perform any actions on the cluster
+  # paused: true
+
   version: "3.11.1"
   nodePools:
   - name: "region-1-zone-a"
