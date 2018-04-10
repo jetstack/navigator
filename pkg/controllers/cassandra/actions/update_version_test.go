@@ -8,11 +8,11 @@ import (
 
 	"github.com/jetstack/navigator/internal/test/unit/framework"
 	"github.com/jetstack/navigator/internal/test/util/generate"
+	"github.com/jetstack/navigator/pkg/cassandra/version"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/actions"
-	"github.com/jetstack/navigator/pkg/util/ptr"
 )
 
-func TestScaleOut(t *testing.T) {
+func TestUpdateVersion(t *testing.T) {
 	type testT struct {
 		kubeObjects         []runtime.Object
 		navObjects          []runtime.Object
@@ -29,8 +29,7 @@ func TestScaleOut(t *testing.T) {
 				Namespace: "ns1",
 			},
 			nodePool: generate.CassandraClusterNodePoolConfig{
-				Name:     "pool1",
-				Replicas: 123,
+				Name: "pool1",
 			},
 			expectedErr: true,
 		},
@@ -38,10 +37,8 @@ func TestScaleOut(t *testing.T) {
 			kubeObjects: []runtime.Object{
 				generate.StatefulSet(
 					generate.StatefulSetConfig{
-						Name:          "cass-cluster1-pool1",
-						Namespace:     "ns1",
-						Replicas:      ptr.Int32(122),
-						ReadyReplicas: 122,
+						Name:      "cass-cluster1-pool1",
+						Namespace: "ns1",
 					},
 				),
 			},
@@ -50,8 +47,7 @@ func TestScaleOut(t *testing.T) {
 				Namespace: "ns1",
 			},
 			nodePool: generate.CassandraClusterNodePoolConfig{
-				Name:     "pool1",
-				Replicas: 123,
+				Name: "pool1",
 			},
 			expectedErr: true,
 			mutator: func(f *framework.StateFixture) {
@@ -64,131 +60,53 @@ func TestScaleOut(t *testing.T) {
 				}
 			},
 		},
-		"No update if desired ReplicaCount is lower than actual ReplicaCount": {
+		"Idempotent: No error if the image already matches the actual image": {
 			kubeObjects: []runtime.Object{
 				generate.StatefulSet(
 					generate.StatefulSetConfig{
-						Name:          "cass-cluster1-pool1",
-						Namespace:     "ns1",
-						Replicas:      ptr.Int32(124),
-						ReadyReplicas: 124,
+						Name:      "cass-cluster1-pool1",
+						Namespace: "ns1",
+						Image:     "docker.io/cassandra:3.11.2",
 					},
 				),
 			},
 			cluster: generate.CassandraClusterConfig{
 				Name:      "cluster1",
 				Namespace: "ns1",
+				Version:   *version.New("3.11.2"),
 			},
 			nodePool: generate.CassandraClusterNodePoolConfig{
-				Name:     "pool1",
-				Replicas: 123,
+				Name: "pool1",
 			},
 			expectedStatefulSet: &generate.StatefulSetConfig{
 				Name:      "cass-cluster1-pool1",
 				Namespace: "ns1",
-				Replicas:  ptr.Int32(124),
+				Image:     "docker.io/cassandra:3.11.2",
 			},
 			expectedErr: false,
 		},
-		"No update until all existing pods are ready": {
+		"The image is updated": {
 			kubeObjects: []runtime.Object{
 				generate.StatefulSet(
 					generate.StatefulSetConfig{
-						Name:          "cass-cluster1-pool1",
-						Namespace:     "ns1",
-						Replicas:      ptr.Int32(122),
-						ReadyReplicas: 121,
+						Name:      "cass-cluster1-pool1",
+						Namespace: "ns1",
+						Image:     "docker.io/cassandra:3.11.1",
 					},
 				),
 			},
 			cluster: generate.CassandraClusterConfig{
 				Name:      "cluster1",
 				Namespace: "ns1",
+				Version:   *version.New("3.11.2"),
 			},
 			nodePool: generate.CassandraClusterNodePoolConfig{
-				Name:     "pool1",
-				Replicas: 123,
+				Name: "pool1",
 			},
 			expectedStatefulSet: &generate.StatefulSetConfig{
 				Name:      "cass-cluster1-pool1",
 				Namespace: "ns1",
-				Replicas:  ptr.Int32(122),
-			},
-		},
-		"Idempotent: No error if ReplicaCount already matches the actual ReplicaCount": {
-			kubeObjects: []runtime.Object{
-				generate.StatefulSet(
-					generate.StatefulSetConfig{
-						Name:          "cass-cluster1-pool1",
-						Namespace:     "ns1",
-						Replicas:      ptr.Int32(124),
-						ReadyReplicas: 124,
-					},
-				),
-			},
-			cluster: generate.CassandraClusterConfig{
-				Name:      "cluster1",
-				Namespace: "ns1",
-			},
-			nodePool: generate.CassandraClusterNodePoolConfig{
-				Name:     "pool1",
-				Replicas: 124,
-			},
-			expectedStatefulSet: &generate.StatefulSetConfig{
-				Name:      "cass-cluster1-pool1",
-				Namespace: "ns1",
-				Replicas:  ptr.Int32(124),
-			},
-			expectedErr: false,
-		},
-		"The replicas count is incremented": {
-			kubeObjects: []runtime.Object{
-				generate.StatefulSet(
-					generate.StatefulSetConfig{
-						Name:          "cass-cluster1-pool1",
-						Namespace:     "ns1",
-						Replicas:      ptr.Int32(122),
-						ReadyReplicas: 122,
-					},
-				),
-			},
-			cluster: generate.CassandraClusterConfig{
-				Name:      "cluster1",
-				Namespace: "ns1",
-			},
-			nodePool: generate.CassandraClusterNodePoolConfig{
-				Name:     "pool1",
-				Replicas: 123,
-			},
-			expectedStatefulSet: &generate.StatefulSetConfig{
-				Name:      "cass-cluster1-pool1",
-				Namespace: "ns1",
-				Replicas:  ptr.Int32(123),
-			},
-		},
-		"The replicas count is only incremented by 1": {
-			kubeObjects: []runtime.Object{
-				generate.StatefulSet(
-					generate.StatefulSetConfig{
-						Name:          "cass-cluster1-pool1",
-						Namespace:     "ns1",
-						Replicas:      ptr.Int32(2),
-						ReadyReplicas: 2,
-					},
-				),
-			},
-			cluster: generate.CassandraClusterConfig{
-				Name:      "cluster1",
-				Namespace: "ns1",
-			},
-			nodePool: generate.CassandraClusterNodePoolConfig{
-				Name:     "pool1",
-				Replicas: 4,
-			},
-			expectedStatefulSet: &generate.StatefulSetConfig{
-				Name:      "cass-cluster1-pool1",
-				Namespace: "ns1",
-				Replicas:  ptr.Int32(3),
+				Image:     "docker.io/cassandra:3.11.2",
 			},
 		},
 	}
@@ -208,7 +126,7 @@ func TestScaleOut(t *testing.T) {
 				if test.mutator != nil {
 					test.mutator(fixture)
 				}
-				a := &actions.ScaleOut{
+				a := &actions.UpdateVersion{
 					Cluster:  generate.CassandraCluster(test.cluster),
 					NodePool: generate.CassandraClusterNodePool(test.nodePool),
 				}
@@ -230,10 +148,11 @@ func TestScaleOut(t *testing.T) {
 					if err != nil {
 						t.Fatalf("Unexpected error retrieving statefulset: %v", err)
 					}
-					if *test.expectedStatefulSet.Replicas != *actualStatefulSet.Spec.Replicas {
+					actualImage := actualStatefulSet.Spec.Template.Spec.Containers[0].Image
+					if test.expectedStatefulSet.Image != actualImage {
 						t.Errorf(
-							"Unexpected replica count. Expected: %d. Actual: %d",
-							*test.expectedStatefulSet.Replicas, *actualStatefulSet.Spec.Replicas,
+							"Unexpected image. Expected: %s. Actual: %s",
+							test.expectedStatefulSet.Image, actualImage,
 						)
 					}
 				}

@@ -37,7 +37,7 @@ func StatefulSetForCluster(
 	statefulSetName := util.NodePoolResourceName(cluster, np)
 	nodePoolLabels := util.NodePoolLabels(cluster, np.Name)
 
-	image := cassImageToUse(&cluster.Spec)
+	image := CassImageToUse(&cluster.Spec)
 
 	set := &apps.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{

@@ -95,6 +95,12 @@ func NewCassandra(
 			WorkFunc: cc.handleObject,
 		},
 	)
+	// An event handler to trigger status updates when pilots change
+	pilots.Informer().AddEventHandler(
+		&controllers.BlockingEventHandler{
+			WorkFunc: cc.handleObject,
+		},
+	)
 	cc.cassLister = cassClusters.Lister()
 	cc.statefulSetLister = statefulSets.Lister()
 	cc.cassListerSynced = cassClusters.Informer().HasSynced

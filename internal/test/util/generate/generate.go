@@ -7,6 +7,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
+	"github.com/jetstack/navigator/pkg/cassandra/version"
 )
 
 type PilotConfig struct {
@@ -121,6 +122,7 @@ func StatefulSet(c StatefulSetConfig) *apps.StatefulSet {
 
 type CassandraClusterConfig struct {
 	Name, Namespace string
+	Version         version.Version
 }
 
 func CassandraCluster(c CassandraClusterConfig) *v1alpha1.CassandraCluster {
@@ -128,6 +130,9 @@ func CassandraCluster(c CassandraClusterConfig) *v1alpha1.CassandraCluster {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      c.Name,
 			Namespace: c.Namespace,
+		},
+		Spec: v1alpha1.CassandraClusterSpec{
+			Version: c.Version,
 		},
 	}
 }

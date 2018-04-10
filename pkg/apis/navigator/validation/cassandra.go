@@ -1,6 +1,7 @@
 package validation
 
 import (
+	"fmt"
 	"reflect"
 
 	apimachineryvalidation "k8s.io/apimachinery/pkg/api/validation"
@@ -9,6 +10,8 @@ import (
 
 	"github.com/jetstack/navigator/pkg/apis/navigator"
 )
+
+var supportedMajorVersions = sets.NewInt64(3)
 
 func ValidateCassandraClusterNodePool(np *navigator.CassandraClusterNodePool, fldPath *field.Path) field.ErrorList {
 	// TODO: call k8s.io/kubernetes/pkg/apis/core/validation.ValidateResourceRequirements on np.Resources
@@ -26,6 +29,26 @@ func ValidateCassandraClusterUpdate(old, new *navigator.CassandraCluster) field.
 	allErrs := ValidateCassandraCluster(new)
 
 	fldPath := field.NewPath("spec")
+
+	if new.Spec.Version.LessThan(&old.Spec.Version) {
+		allErrs = append(
+			allErrs,
+			field.Forbidden(
+				fldPath.Child("version"),
+				"cannot perform version downgrades",
+			),
+		)
+	}
+
+	if new.Spec.Version.Major != old.Spec.Version.Major {
+		allErrs = append(
+			allErrs,
+			field.Forbidden(
+				fldPath.Child("version"),
+				"cannot perform major version upgrades",
+			),
+		)
+	}
 
 	npPath := fldPath.Child("nodePools")
 	for i, newNp := range new.Spec.NodePools {
@@ -60,6 +83,21 @@ func ValidateCassandraClusterUpdate(old, new *navigator.CassandraCluster) field.
 
 func ValidateCassandraClusterSpec(spec *navigator.CassandraClusterSpec, fldPath *field.Path) field.ErrorList {
 	allErrs := ValidateNavigatorClusterConfig(&spec.NavigatorClusterConfig, fldPath)
+
+	if !supportedMajorVersions.Has(spec.Version.Major) {
+		allErrs = append(
+			allErrs,
+			field.Forbidden(
+				fldPath.Child("version"),
+				fmt.Sprintf(
+					"%s is not supported. Supported major versions are: %v",
+					spec.Version,
+					supportedMajorVersions.List(),
+				),
+			),
+		)
+	}
+
 	npPath := fldPath.Child("nodePools")
 	allNames := sets.String{}
 	for i, np := range spec.NodePools {

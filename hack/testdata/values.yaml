@@ -31,3 +31,4 @@ controller:
     repository: quay.io/jetstack/navigator-controller
     tag: build
     pullPolicy: Never
+  logLevel: 4

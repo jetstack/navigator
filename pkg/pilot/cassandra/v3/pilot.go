@@ -10,6 +10,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/golang/glog"
+	"github.com/pkg/errors"
 
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/cassandra/nodetool"
@@ -85,11 +86,12 @@ func (p *Pilot) syncFunc(pilot *v1alpha1.Pilot) error {
 	if pilot.Status.Cassandra == nil {
 		pilot.Status.Cassandra = &v1alpha1.CassandraPilotStatus{}
 	}
-
 	version, err := p.nodeTool.Version()
-	if err != nil {
+	if err == nil {
+		glog.V(4).Infof("Got Cassandra version: %s", version)
+	} else {
+		glog.Errorf("Error while getting Cassandra version: %s", err)
 		pilot.Status.Cassandra.Version = nil
-		glog.Errorf("error while getting Cassandra version: %s", err)
 	}
 	pilot.Status.Cassandra.Version = version
 	return nil
@@ -98,7 +100,7 @@ func (p *Pilot) syncFunc(pilot *v1alpha1.Pilot) error {
 func localNodeUpAndNormal(nodeTool nodetool.Interface) error {
 	nodes, err := nodeTool.Status()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "unable to get cluster status")
 	}
 	localNode := nodes.LocalNode()
 	if localNode == nil {

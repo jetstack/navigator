@@ -2,7 +2,9 @@ package cassandra
 
 import (
 	"github.com/golang/glog"
+	"github.com/pkg/errors"
 	apiv1 "k8s.io/api/core/v1"
+
 	"k8s.io/client-go/tools/record"
 
 	v1alpha1 "github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
@@ -172,6 +174,7 @@ func (e *defaultCassandraClusterControl) Sync(c *v1alpha1.CassandraCluster) erro
 
 	a := NextAction(c)
 	if a != nil {
+		glog.V(4).Infof("Executing action: %#v", a)
 		err = a.Execute(e.state)
 		if err != nil {
 			e.recorder.Eventf(
@@ -181,10 +184,9 @@ func (e *defaultCassandraClusterControl) Sync(c *v1alpha1.CassandraCluster) erro
 				MessageErrorSync,
 				err,
 			)
-			return err
+			return errors.Wrap(err, "failure while executing action")
 		}
 	}
-
 	e.recorder.Event(
 		c,
 		apiv1.EventTypeNormal,
@@ -206,12 +208,38 @@ func NextAction(c *v1alpha1.CassandraCluster) controllers.Action {
 	}
 	for _, np := range c.Spec.NodePools {
 		nps := c.Status.NodePools[np.Name]
-		if np.Replicas > nps.ReadyReplicas {
+		switch {
+		case np.Replicas == nps.ReadyReplicas:
+			continue
+		case np.Replicas > nps.ReadyReplicas:
 			return &actions.ScaleOut{
 				Cluster:  c,
 				NodePool: &np,
 			}
+		default:
+			glog.Errorf(
+				"Unsupported scale change on NodePool %q from %d to %d",
+				np.Name, nps.ReadyReplicas, np.Replicas,
+			)
+			return nil
 		}
+	}
+	for _, np := range c.Spec.NodePools {
+		nps := c.Status.NodePools[np.Name]
+		if nps.Version == nil {
+			return nil
+		}
+		if nps.Version.LessThan(&c.Spec.Version) {
+			if nps.Version.Major != c.Spec.Version.Major {
+				glog.Error("Major version upgrades are not supported")
+				return nil
+			}
+			return &actions.UpdateVersion{
+				Cluster:  c,
+				NodePool: &np,
+			}
+		}
+		glog.Error("Version downgrades are not supported")
 	}
 	return nil
 }
