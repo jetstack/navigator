@@ -109,7 +109,6 @@ func (e *defaultElasticsearchClusterControl) Sync(c *v1alpha1.ElasticsearchClust
 
 	if c.Spec.Paused == true {
 		glog.V(4).Infof("defaultElasticsearchClusterControl.Sync skipped, since cluster is paused")
-		e.recorder.Eventf(c, apiv1.EventTypeNormal, pauseField, messageClusterPaused)
 		return c.Status, nil
 	}
 

@@ -84,12 +84,6 @@ func NewControl(
 func (e *defaultCassandraClusterControl) Sync(c *v1alpha1.CassandraCluster) error {
 	if c.Spec.Paused == true {
 		glog.V(4).Infof("defaultCassandraClusterControl.Sync skipped, since cluster is paused")
-		e.recorder.Eventf(
-			c,
-			apiv1.EventTypeNormal,
-			PauseField,
-			MessageClusterPaused,
-		)
 		return nil
 	}
 
