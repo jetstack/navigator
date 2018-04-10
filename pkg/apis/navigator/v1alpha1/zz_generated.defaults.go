@@ -36,9 +36,13 @@ func RegisterDefaults(scheme *runtime.Scheme) error {
 }
 
 func SetObjectDefaults_CassandraCluster(in *CassandraCluster) {
+	SetDefaults_ImageSpec(&in.Spec.NavigatorClusterConfig.PilotImage)
 	for i := range in.Spec.NodePools {
 		a := &in.Spec.NodePools[i]
 		SetDefaults_CassandraClusterNodePool(a)
+	}
+	if in.Spec.Image != nil {
+		SetDefaults_ImageSpec(in.Spec.Image)
 	}
 }
 
@@ -50,9 +54,13 @@ func SetObjectDefaults_CassandraClusterList(in *CassandraClusterList) {
 }
 
 func SetObjectDefaults_ElasticsearchCluster(in *ElasticsearchCluster) {
+	SetDefaults_ImageSpec(&in.Spec.NavigatorClusterConfig.PilotImage)
 	for i := range in.Spec.NodePools {
 		a := &in.Spec.NodePools[i]
 		SetDefaults_ElasticsearchClusterNodePool(a)
+	}
+	if in.Spec.Image != nil {
+		SetDefaults_ImageSpec(in.Spec.Image)
 	}
 }
 
