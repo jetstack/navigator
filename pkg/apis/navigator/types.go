@@ -46,6 +46,7 @@ type CassandraClusterNodePool struct {
 }
 
 type CassandraClusterStatus struct {
+	NavigatorClusterStatus
 	NodePools map[string]CassandraClusterNodePoolStatus
 }
 
@@ -79,6 +80,7 @@ type ElasticsearchCluster struct {
 }
 
 type ElasticsearchClusterStatus struct {
+	NavigatorClusterStatus
 	NodePools map[string]ElasticsearchClusterNodePoolStatus
 	Health    *ElasticsearchClusterHealth
 }
@@ -154,8 +156,45 @@ type NavigatorClusterConfig struct {
 	Paused bool
 }
 
+type NavigatorClusterStatus struct {
+	Conditions []ClusterCondition
+}
+
 type NavigatorSecurityContext struct {
 	RunAsUser *int64
+}
+
+type ClusterConditionType string
+
+const (
+	// Available means the cluster is available, ie. at least the minimum available
+	// replicas required are up and running for at least minReadySeconds.
+	ClusterAvailable ClusterConditionType = "Available"
+	// Progressing means the cluster is progressing. Progress for a deployment is
+	// considered when a new replica set is created or adopted, and when new pods scale
+	// up or old pods scale down. Progress is not estimated for paused deployments or
+	// when progressDeadlineSeconds is not specified.
+	ClusterProgressing ClusterConditionType = "Progressing"
+	// ReplicaFailure is added in a cluster when one of its pods fails to be created
+	// or deleted.
+	ClusterReplicaFailure ClusterConditionType = "ReplicaFailure"
+)
+
+type ClusterCondition struct {
+	// Type of deployment condition.
+	Type ClusterConditionType
+
+	// Status of the condition, one of True, False, Unknown.
+	Status ConditionStatus
+
+	// Last time the condition transitioned from one status to another.
+	LastTransitionTime metav1.Time
+
+	// The reason for the condition's last transition.
+	Reason string
+
+	// A human readable message indicating details about the transition.
+	Message string
 }
 
 // +genclient
