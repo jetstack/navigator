@@ -32,5 +32,4 @@ spec:
         cpu: "500m"
         memory: "2Gi"
 
-    persistence:
-      enabled: false
+    # Disable persistence by not including the stanza
