@@ -325,21 +325,21 @@ type NavigatorSecurityContext struct {
 type ClusterConditionType string
 
 const (
-	// Available means the cluster is available, ie. at least the minimum available
-	// replicas required are up and running for at least minReadySeconds.
-	ClusterAvailable ClusterConditionType = "Available"
-	// Progressing means the cluster is progressing. Progress for a deployment is
-	// considered when a new replica set is created or adopted, and when new pods scale
-	// up or old pods scale down. Progress is not estimated for paused deployments or
-	// when progressDeadlineSeconds is not specified.
-	ClusterProgressing ClusterConditionType = "Progressing"
-	// ReplicaFailure is added in a cluster when one of its pods fails to be created
-	// or deleted.
-	ClusterReplicaFailure ClusterConditionType = "ReplicaFailure"
+	ClusterConditionAvailable ClusterConditionType = "Available"
+
+	ClusterConditionProgressing ClusterConditionType = "Progressing"
+)
+
+const (
+	// PausedClusterReason is added in a cluster when it is paused. Lack of progress shouldn't be
+	// estimated once a cluster is paused.
+	PausedClusterReason = "ClusterPaused"
+	// ResumedClusterReason is added in a cluster when it is resumed.
+	ResumedClusterReason = "ClusterResumed"
 )
 
 type ClusterCondition struct {
-	// Type of deployment condition.
+	// Type of cluster condition.
 	Type ClusterConditionType `json:"type"`
 
 	// Status of the condition, one of True, False, Unknown.
