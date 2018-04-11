@@ -115,6 +115,9 @@ func (e *defaultCassandraClusterControl) checkPausedConditions(c *v1alpha1.Cassa
 }
 
 func (e *defaultCassandraClusterControl) Sync(c *v1alpha1.CassandraCluster) error {
+	c = c.DeepCopy()
+	var err error
+
 	e.checkPausedConditions(c)
 
 	if c.Spec.Paused == true {
@@ -123,7 +126,7 @@ func (e *defaultCassandraClusterControl) Sync(c *v1alpha1.CassandraCluster) erro
 	}
 
 	glog.V(4).Infof("defaultCassandraClusterControl.Sync")
-	err := e.seedProviderServiceControl.Sync(c)
+	err = e.seedProviderServiceControl.Sync(c)
 	if err != nil {
 		e.recorder.Eventf(
 			c,
