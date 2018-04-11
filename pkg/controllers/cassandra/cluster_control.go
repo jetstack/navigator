@@ -21,8 +21,6 @@ const (
 	ErrorSync   = "ErrSync"
 	SuccessSync = "SuccessSync"
 
-	PauseField = "spec.paused"
-
 	MessageErrorSyncServiceAccount = "Error syncing service account: %s"
 	MessageErrorSyncRole           = "Error syncing role: %s"
 	MessageErrorSyncRoleBinding    = "Error syncing role binding: %s"
@@ -33,7 +31,6 @@ const (
 	MessageErrorSyncSeedLabels     = "Error syncing seed labels: %s"
 	MessageErrorSync               = "Error syncing: %s"
 	MessageSuccessSync             = "Successfully synced CassandraCluster"
-	MessageClusterPaused           = "Cluster paused, not syncing"
 )
 
 type ControlInterface interface {

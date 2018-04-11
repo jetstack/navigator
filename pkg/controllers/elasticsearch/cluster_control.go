@@ -29,8 +29,6 @@ import (
 const (
 	errorSync = "ErrSync"
 
-	pauseField = "spec.paused"
-
 	messageErrorSyncServiceAccount = "Error syncing service account: %s"
 	messageErrorSyncConfigMap      = "Error syncing config map: %s"
 	messageErrorSyncService        = "Error syncing service: %s"
@@ -38,7 +36,6 @@ const (
 	messageErrorSyncRoles          = "Error syncing RBAC roles: %s"
 	messageErrorSyncRoleBindings   = "Error syncing RBAC role bindings: %s"
 	messageSuccessExecuteAction    = "Successfully executed action"
-	messageClusterPaused           = "Cluster paused, not syncing"
 )
 
 type ControlInterface interface {
