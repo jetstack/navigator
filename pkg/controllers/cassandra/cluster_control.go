@@ -81,7 +81,42 @@ func NewControl(
 	}
 }
 
+// checkPausedConditions checks if the given cluster is paused or not and adds an appropriate condition.
+func (e *defaultCassandraClusterControl) checkPausedConditions(c *v1alpha1.CassandraCluster) error {
+	cond := c.Status.GetStatusCondition(v1alpha1.ClusterConditionProgressing)
+	pausedCondExists := cond != nil && cond.Reason == v1alpha1.PausedClusterReason
+
+	needsUpdate := false
+	if c.Spec.Paused && !pausedCondExists {
+		c.Status.UpdateStatusCondition(
+			v1alpha1.ClusterConditionProgressing,
+			v1alpha1.ConditionUnknown,
+			v1alpha1.PausedClusterReason,
+			"Cluster is paused",
+		)
+		needsUpdate = true
+	} else if !c.Spec.Paused && pausedCondExists {
+		c.Status.UpdateStatusCondition(
+			v1alpha1.ClusterConditionProgressing,
+			v1alpha1.ConditionUnknown,
+			v1alpha1.ResumedClusterReason,
+			"Cluster is resumed",
+		)
+		needsUpdate = true
+	}
+
+	if !needsUpdate {
+		return nil
+	}
+
+	var err error
+	c, err = e.state.NavigatorClientset.NavigatorV1alpha1().CassandraClusters(c.Namespace).UpdateStatus(c)
+	return err
+}
+
 func (e *defaultCassandraClusterControl) Sync(c *v1alpha1.CassandraCluster) error {
+	e.checkPausedConditions(c)
+
 	if c.Spec.Paused == true {
 		glog.V(4).Infof("defaultCassandraClusterControl.Sync skipped, since cluster is paused")
 		return nil
