@@ -14,6 +14,9 @@ const (
 	ElasticsearchNodePoolNameLabel         = "navigator.jetstack.io/elasticsearch-node-pool-name"
 	ElasticsearchNodePoolVersionAnnotation = "navigator.jetstack.io/elasticsearch-version"
 	ElasticsearchRoleLabelPrefix           = "navigator.jetstack.io/elasticsearch-role-"
+
+	CassandraClusterNameLabel  = "navigator.jetstack.io/cassandra-cluster-name"
+	CassandraNodePoolNameLabel = "navigator.jetstack.io/cassandra-node-pool-name"
 )
 
 // +genclient

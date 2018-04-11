@@ -15,10 +15,8 @@ import (
 )
 
 const (
-	typeName             = "cass"
-	kindName             = "CassandraCluster"
-	ClusterNameLabelKey  = "navigator.jetstack.io/cassandra-cluster-name"
-	NodePoolNameLabelKey = "navigator.jetstack.io/cassandra-node-pool-name"
+	typeName = "cass"
+	kindName = "CassandraCluster"
 )
 
 func NewControllerRef(c *v1alpha1.CassandraCluster) metav1.OwnerReference {
@@ -51,14 +49,14 @@ func PilotRBACRoleName(c *v1alpha1.CassandraCluster) string {
 
 func ClusterLabels(c *v1alpha1.CassandraCluster) map[string]string {
 	return map[string]string{
-		"app":               "cassandracluster",
-		ClusterNameLabelKey: c.Name,
+		"app": "cassandracluster",
+		v1alpha1.CassandraClusterNameLabel: c.Name,
 	}
 }
 
 func SelectorForCluster(c *v1alpha1.CassandraCluster) (labels.Selector, error) {
 	clusterNameReq, err := labels.NewRequirement(
-		ClusterNameLabelKey,
+		v1alpha1.CassandraClusterNameLabel,
 		selection.Equals,
 		[]string{c.Name},
 	)
@@ -73,7 +71,7 @@ func NodePoolLabels(
 	poolName string,
 ) map[string]string {
 	labels := ClusterLabels(c)
-	labels[NodePoolNameLabelKey] = poolName
+	labels[v1alpha1.CassandraNodePoolNameLabel] = poolName
 	return labels
 }
 
