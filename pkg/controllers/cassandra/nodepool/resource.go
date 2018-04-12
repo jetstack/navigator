@@ -28,6 +28,10 @@ const (
 	jolokiaHost    = "127.0.0.1"
 	jolokiaPort    = 8778
 	jolokiaContext = "/jolokia"
+
+	// This field is deprecated. v1.Service.PublishNotReadyAddresses will replace it.
+	// See https://github.com/kubernetes/kubernetes/blob/v1.10.0/pkg/controller/endpoint/endpoints_controller.go#L68
+	tolerateUnreadyEndpointsAnnotationKey = "service.alpha.kubernetes.io/tolerate-unready-endpoints"
 )
 
 func StatefulSetForCluster(
@@ -341,6 +345,34 @@ func pilotInstallationContainer(
 				apiv1.ResourceCPU:    resource.MustParse("10m"),
 				apiv1.ResourceMemory: resource.MustParse("50Mi"),
 			},
+		},
+	}
+}
+
+func HeadlessServiceForClusterNodePool(
+	cluster *v1alpha1.CassandraCluster,
+	np *v1alpha1.CassandraClusterNodePool,
+) *apiv1.Service {
+	return &apiv1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      util.NodePoolResourceName(cluster, np),
+			Namespace: cluster.Namespace,
+			Annotations: map[string]string{
+				tolerateUnreadyEndpointsAnnotationKey: "true",
+			},
+		},
+		Spec: apiv1.ServiceSpec{
+			Type:      apiv1.ServiceTypeClusterIP,
+			ClusterIP: "None",
+			// Headless service should not require a port.
+			// But without it, DNS records are not registered.
+			// See https://github.com/kubernetes/kubernetes/issues/55158
+			Ports: []apiv1.ServicePort{{Port: 65535}},
+			// This ensures that DNS names are published regardless of whether the
+			// Cassandra pod ReadinessProbes (listening on their CQL port).
+			// It won't handle CQL connections until it has successfully connected and
+			// negotiated with a seed host
+			PublishNotReadyAddresses: true,
 		},
 	}
 }
