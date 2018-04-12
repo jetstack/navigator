@@ -199,6 +199,14 @@ func StatefulSetForCluster(
 									Name:  "HEAP_NEWSIZE",
 									Value: "100M",
 								},
+								apiv1.EnvVar{
+									Name: "CASSANDRA_LISTEN_ADDRESS",
+									ValueFrom: &apiv1.EnvVarSource{
+										FieldRef: &apiv1.ObjectFieldSelector{
+											FieldPath: "spec.hostname",
+										},
+									},
+								},
 								{
 									Name:  "CASSANDRA_ENDPOINT_SNITCH",
 									Value: cassSnitch,
@@ -238,14 +246,6 @@ func StatefulSetForCluster(
 										sharedVolumeMountPath,
 										"kubernetes-cassandra.jar",
 									),
-								},
-								{
-									Name: "POD_IP",
-									ValueFrom: &apiv1.EnvVarSource{
-										FieldRef: &apiv1.ObjectFieldSelector{
-											FieldPath: "status.podIP",
-										},
-									},
 								},
 								apiv1.EnvVar{
 									Name: "POD_NAME",
