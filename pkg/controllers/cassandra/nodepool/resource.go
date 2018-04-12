@@ -215,6 +215,16 @@ func StatefulSetForCluster(
 									Name:  "CASSANDRA_RPC_ADDRESS",
 									Value: " ",
 								},
+								// Disable default seeds
+								// See:
+								// https://github.com/docker-library/cassandra/blame/master/3.11/docker-entrypoint.sh#L31 and
+								// https://github.com/apache/cassandra/blob/cassandra-3.11.2/conf/cassandra.yaml#L416 and
+								// https://github.com/kubernetes/examples/blob/cabf8b8e4739e576837111e156763d19a64a3591/cassandra/java/src/main/java/io/k8s/cassandra/KubernetesSeedProvider.java#L69 and
+								// https://github.com/kubernetes/examples/blob/cabf8b8e4739e576837111e156763d19a64a3591/cassandra/go/main.go#L51
+								{
+									Name:  "CASSANDRA_SEEDS",
+									Value: "",
+								},
 								{
 									Name:  "CASSANDRA_ENDPOINT_SNITCH",
 									Value: cassSnitch,
@@ -381,9 +391,7 @@ func HeadlessServiceForClusterNodePool(
 			// See https://github.com/kubernetes/kubernetes/issues/55158
 			Ports: []apiv1.ServicePort{{Port: 65535}},
 			// This ensures that DNS names are published regardless of whether the
-			// Cassandra pod ReadinessProbes (listening on their CQL port).
-			// It won't handle CQL connections until it has successfully connected and
-			// negotiated with a seed host
+			// Cassandra pod is ready.
 			PublishNotReadyAddresses: true,
 		},
 	}
