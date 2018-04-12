@@ -199,13 +199,21 @@ func StatefulSetForCluster(
 									Name:  "HEAP_NEWSIZE",
 									Value: "100M",
 								},
-								apiv1.EnvVar{
-									Name: "CASSANDRA_LISTEN_ADDRESS",
-									ValueFrom: &apiv1.EnvVarSource{
-										FieldRef: &apiv1.ObjectFieldSelector{
-											FieldPath: "metadata.name",
-										},
-									},
+								// Deliberately set blank so that Cassandra will do a hostname lookup.
+								// See https://github.com/apache/cassandra/blob/cassandra-3.11.2/conf/cassandra.yaml#L592
+								{
+									Name:  "CASSANDRA_LISTEN_ADDRESS",
+									Value: "",
+								},
+								// Deliberately set blank so that Cassandra will do a hostname lookup.
+								{
+									Name:  "CASSANDRA_BROADCAST_ADDRESS",
+									Value: "",
+								},
+								// Deliberately set blank so that Cassandra will do a hostname lookup.
+								{
+									Name:  "CASSANDRA_RPC_ADDRESS",
+									Value: "",
 								},
 								{
 									Name:  "CASSANDRA_ENDPOINT_SNITCH",
@@ -353,6 +361,7 @@ func HeadlessServiceForClusterNodePool(
 	cluster *v1alpha1.CassandraCluster,
 	np *v1alpha1.CassandraClusterNodePool,
 ) *apiv1.Service {
+	nodePoolLabels := util.NodePoolLabels(cluster, np.Name)
 	return &apiv1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      util.NodePoolResourceName(cluster, np),
@@ -360,8 +369,11 @@ func HeadlessServiceForClusterNodePool(
 			Annotations: map[string]string{
 				tolerateUnreadyEndpointsAnnotationKey: "true",
 			},
+			Labels:          nodePoolLabels,
+			OwnerReferences: []metav1.OwnerReference{util.NewControllerRef(cluster)},
 		},
 		Spec: apiv1.ServiceSpec{
+			Selector:  nodePoolLabels,
 			Type:      apiv1.ServiceTypeClusterIP,
 			ClusterIP: "None",
 			// Headless service should not require a port.
