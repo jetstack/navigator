@@ -203,7 +203,7 @@ func StatefulSetForCluster(
 									Name: "CASSANDRA_LISTEN_ADDRESS",
 									ValueFrom: &apiv1.EnvVarSource{
 										FieldRef: &apiv1.ObjectFieldSelector{
-											FieldPath: "spec.hostname",
+											FieldPath: "metadata.name",
 										},
 									},
 								},
