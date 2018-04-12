@@ -414,9 +414,53 @@ function test_cassandracluster() {
         fail_test "Cassandra liveness probe failed to restart dead node"
     fi
 
-    # Get a map of pod name to IP address
+    echo "Print a map of pod name to IP address before deleting node"
     kubectl --namespace "${namespace}" get pods \
             '-o=jsonpath={range .items[*]}{.spec.hostname}: {.status.podIP} {"\n"}{end} '
+
+    echo "Get the IP of node 2 of 3"
+    original_ip=$(kubectl --namespace "${namespace}" get pod \
+                          "cass-${CASS_NAME}-${CASS_NODEPOOL1_NAME}-1" \
+                          --output "jsonpath={ .status.podIP }")
+
+    echo "Delete a pod 2 of 3"
+    kubectl --namespace "${namespace}" delete pod \
+            "cass-${CASS_NAME}-${CASS_NODEPOOL1_NAME}-1" --force --grace-period=0
+
+    echo "Wait for the IP address to change"
+    if ! retry not stdout_equals "${original_ip}" kubectl --namespace "${namespace}" get pod \
+         "cass-${CASS_NAME}-${CASS_NODEPOOL1_NAME}-1" \
+         --output "jsonpath={ .status.podIP }"
+    then
+        fail_test "The pod IP didn't change"
+    fi
+
+    echo "Get a map of pod name to IP address after pod IP changes"
+    kubectl --namespace "${namespace}" get pods \
+            '-o=jsonpath={range .items[*]}{.spec.hostname}: {.status.podIP} {"\n"}{end} '
+
+    echo "nodepool status should show a node joining..."
+    kubectl --namespace "${namespace}" exec \
+            "cass-${CASS_NAME}-${CASS_NODEPOOL1_NAME}-0" \
+            -- /bin/sh -c 'JVM_OPTS="" nodetool status'
+
+    echo "Wait for test data to be available on all nodes again"
+    if ! retry \
+         stdout_matches "testvalue1" \
+         cql_connect \
+         "${namespace}" \
+         "cass-${CASS_NAME}-nodes" \
+         "${CASS_CQL_PORT}" \
+         --debug \
+         --execute='CONSISTENCY ALL; SELECT * FROM space1.testtable1'
+    then
+        fail_test "Data was not restored to the restarted node"
+    fi
+
+    echo "nodepool status should now show all nodes Up and Normal (UN)"
+    kubectl --namespace "${namespace}" exec \
+            "cass-${CASS_NAME}-${CASS_NODEPOOL1_NAME}-0" \
+            -- /bin/sh -c 'JVM_OPTS="" nodetool status'
 }
 
 if [[ "test_cassandracluster" = "${TEST_PREFIX}"* ]]; then
