@@ -395,7 +395,7 @@ function test_cassandracluster() {
          --debug \
          --execute='CONSISTENCY ALL; SELECT * FROM space1.testtable1'
     then
-        fail_test "Data was not replicated to second node"
+        fail_test "Data was not replicated to all nodes"
     fi
 
     simulate_unresponsive_cassandra_process \
