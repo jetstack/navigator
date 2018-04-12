@@ -90,9 +90,7 @@ func (t *tool) Status() (NodeMap, error) {
 	}
 
 	nodes := NodeMap{}
-	mappedNodes := sets.NewString()
 	for host, id := range ssInfo.HostIdMap {
-		mappedNodes.Insert(host)
 		nodes[host] = &Node{
 			Host:   host,
 			ID:     id,
@@ -111,15 +109,6 @@ func (t *tool) Status() (NodeMap, error) {
 			liveNodes, unreachableNodes,
 		)
 	}
-	if !mappedNodes.IsSuperset(liveNodes.Union(unreachableNodes)) {
-		return nil, fmt.Errorf(
-			"mapped nodes must be a superset of Live and Unreachable nodes. "+
-				"Live: %v, "+
-				"Unreachable: %v, "+
-				"Mapped: %v",
-			liveNodes, unreachableNodes, mappedNodes,
-		)
-	}
 
 	leavingNodes := sets.NewString(ssInfo.LeavingNodes...)
 	joiningNodes := sets.NewString(ssInfo.JoiningNodes...)
@@ -132,17 +121,6 @@ func (t *tool) Status() (NodeMap, error) {
 				"Joining: %v, "+
 				"Moving: %v",
 			leavingNodes, joiningNodes, movingNodes,
-		)
-	}
-
-	if !mappedNodes.IsSuperset(leavingNodes.Union(joiningNodes).Union(movingNodes)) {
-		return nil, fmt.Errorf(
-			"mapped nodes must be a superset of leaving, joining and moving nodes. "+
-				"Leaving: %v, "+
-				"Joining: %v, "+
-				"Moving: %v, "+
-				"Mapped: %v",
-			leavingNodes, joiningNodes, movingNodes, mappedNodes,
 		)
 	}
 

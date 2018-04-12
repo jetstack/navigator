@@ -232,18 +232,6 @@ func TestNodeToolStatus(t *testing.T) {
 			},
 		},
 		{
-			title: "Live node not in HostIdMap",
-			handler: func(t *testing.T, w http.ResponseWriter, r *http.Request) {
-				_, err := w.Write([]byte(
-					`{"value": {"HostIdMap": {}, "LiveNodes": ["192.0.2.254"]}}`,
-				))
-				if err != nil {
-					t.Fatal(err)
-				}
-			},
-			expectedError: true,
-		},
-		{
 			title: "Live intersects with unreachable",
 			handler: func(t *testing.T, w http.ResponseWriter, r *http.Request) {
 				_, err := w.Write([]byte(
@@ -251,18 +239,6 @@ func TestNodeToolStatus(t *testing.T) {
 						`{"value": {"HostIdMap": {"%s": "%s"}, "LiveNodes": ["%s"], "UnreachableNodes": ["%s"]}}`,
 						host1, uuid1, host1, host1,
 					),
-				))
-				if err != nil {
-					t.Fatal(err)
-				}
-			},
-			expectedError: true,
-		},
-		{
-			title: "Leaving node not in HostIdMap",
-			handler: func(t *testing.T, w http.ResponseWriter, r *http.Request) {
-				_, err := w.Write([]byte(
-					`{"value": {"HostIdMap": {}, "LeavingNodes": ["192.0.2.254"]}}`,
 				))
 				if err != nil {
 					t.Fatal(err)
