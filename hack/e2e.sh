@@ -413,6 +413,10 @@ function test_cassandracluster() {
     then
         fail_test "Cassandra liveness probe failed to restart dead node"
     fi
+
+    # Get a map of pod name to IP address
+    kubectl --namespace "${namespace}" get pods \
+            '-o=jsonpath={range .items[*]}{.spec.hostname}: {.status.podIP} {"\n"}{end} '
 }
 
 if [[ "test_cassandracluster" = "${TEST_PREFIX}"* ]]; then
