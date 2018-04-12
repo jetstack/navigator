@@ -351,7 +351,7 @@ function test_cassandracluster() {
     fi
 
     # Increment the replica count
-    export CASS_REPLICAS=2
+    export CASS_REPLICAS=3
     kubectl apply \
         --namespace "${namespace}" \
         --filename \
@@ -366,13 +366,13 @@ function test_cassandracluster() {
         fail_test "A ScaleOut event was not recorded"
     fi
 
-    if ! retry TIMEOUT=300 stdout_equals 2 kubectl \
+    if ! retry TIMEOUT=300 stdout_equals 3 kubectl \
          --namespace "${namespace}" \
          get cassandracluster \
          "${CASS_NAME}" \
          "-o=jsonpath={ .status.nodePools['${CASS_NODEPOOL1_NAME}'].readyReplicas }"
     then
-        fail_test "Second cassandra node did not become ready"
+        fail_test "The extra cassandra nodes did not become ready"
     fi
 
     # TODO: A better test would be to query the endpoints and check that only
@@ -418,7 +418,7 @@ function test_cassandracluster() {
 if [[ "test_cassandracluster" = "${TEST_PREFIX}"* ]]; then
     CASS_TEST_NS="test-cassandra-${TEST_ID}"
 
-    for i in {1..2}; do
+    for i in {1..5}; do
         kube_create_pv "${CASS_TEST_NS}-pv${i}" 5Gi default
     done
 
