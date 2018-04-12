@@ -215,7 +215,8 @@ func StatefulSetForCluster(
 									Name:  "CASSANDRA_RPC_ADDRESS",
 									Value: " ",
 								},
-								// Disable default seeds
+								// Set a non-existent default seed.
+								// We only want to use the seed provider service.
 								// See:
 								// https://github.com/docker-library/cassandra/blame/master/3.11/docker-entrypoint.sh#L31 and
 								// https://github.com/apache/cassandra/blob/cassandra-3.11.2/conf/cassandra.yaml#L416 and
@@ -223,7 +224,7 @@ func StatefulSetForCluster(
 								// https://github.com/kubernetes/examples/blob/cabf8b8e4739e576837111e156763d19a64a3591/cassandra/go/main.go#L51
 								{
 									Name:  "CASSANDRA_SEEDS",
-									Value: "",
+									Value: "default-seed-dnsname",
 								},
 								{
 									Name:  "CASSANDRA_ENDPOINT_SNITCH",
