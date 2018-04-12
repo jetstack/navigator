@@ -203,17 +203,17 @@ func StatefulSetForCluster(
 								// See https://github.com/apache/cassandra/blob/cassandra-3.11.2/conf/cassandra.yaml#L592
 								{
 									Name:  "CASSANDRA_LISTEN_ADDRESS",
-									Value: "",
+									Value: " ",
 								},
 								// Deliberately set blank so that Cassandra will do a hostname lookup.
 								{
 									Name:  "CASSANDRA_BROADCAST_ADDRESS",
-									Value: "",
+									Value: " ",
 								},
 								// Deliberately set blank so that Cassandra will do a hostname lookup.
 								{
 									Name:  "CASSANDRA_RPC_ADDRESS",
-									Value: "",
+									Value: " ",
 								},
 								{
 									Name:  "CASSANDRA_ENDPOINT_SNITCH",
