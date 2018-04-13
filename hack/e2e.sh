@@ -351,7 +351,7 @@ function test_cassandracluster() {
     fi
 
     # Increment the replica count
-    export CASS_REPLICAS=3
+    export CASS_REPLICAS=2
     kubectl apply \
         --namespace "${namespace}" \
         --filename \
@@ -366,7 +366,7 @@ function test_cassandracluster() {
         fail_test "A ScaleOut event was not recorded"
     fi
 
-    if ! retry TIMEOUT=600 stdout_equals 3 kubectl \
+    if ! retry TIMEOUT=600 stdout_equals 2 kubectl \
          --namespace "${namespace}" \
          get cassandracluster \
          "${CASS_NAME}" \
@@ -418,34 +418,7 @@ function test_cassandracluster() {
     kubectl --namespace "${namespace}" get pods \
             --output 'jsonpath={range .items[*]}{.spec.hostname}: {.status.podIP} {"\n"}{end}'
 
-    echo "Get the IP of node 2 of 3"
-    original_ip=$(kubectl --namespace "${namespace}" get pod \
-                          "cass-${CASS_NAME}-${CASS_NODEPOOL1_NAME}-1" \
-                          --output "jsonpath={ .status.podIP }")
-
-    echo "Delete a pod 2 of 3"
-    kubectl --namespace "${namespace}" delete pod \
-            "cass-${CASS_NAME}-${CASS_NODEPOOL1_NAME}-1" --force --grace-period=0
-
-    echo "Waiting for pod IP to change"
-    local start_time
-    start_time="$(date +"%s")"
-    local end_time
-    end_time="$(($start_time + 60))"
-    while true
-    do
-        if [[ "$(date +"%s")" -lt "${end_time}" ]]; then
-            fail_test "IP address did not change"
-            return 1
-        fi
-        new_ip=$(kubectl --namespace "${namespace}" get pod \
-                         "cass-${CASS_NAME}-${CASS_NODEPOOL1_NAME}-1" \
-                         --output "jsonpath={ .status.podIP }")
-        if [[ "${new_ip}" && "${new_ip}" != "${original_ip}" ]]; then
-            break
-        fi
-        sleep 1
-    done
+    retry TIMEOUT=120 kube_delete_pod_and_test_for_new_ip "${namespace}" "${pod}"
 
     echo "Get a map of pod name to IP address after pod IP changes"
     kubectl --namespace "${namespace}" get pods \

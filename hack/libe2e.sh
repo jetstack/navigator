@@ -160,7 +160,7 @@ function stdout_matches() {
     shift
     local actual
     actual=$("${@}")
-    grep --quiet "${expected}" <<<"${actual}"
+    grep "${expected}" <<<"${actual}"
 }
 
 function stdout_gt() {
@@ -253,12 +253,15 @@ function kube_create_pv() {
     local name="${1}"
     local capacity="${2}"
     local storage_class="${3}"
-    local schedulable_nodes=$(
+    local schedulable_nodes
+    schedulable_nodes=$(
         kubectl get nodes \
                 --output \
                 'jsonpath={range $.items[*]}{.metadata.name} {.spec.taints[*].effect}{"\n"}{end}' \
             | grep -v NoSchedule)
-    local node_name=$(python -c 'import random,sys; print(random.choice(sys.argv[1:]))' $schedulable_nodes)
+    local node_name
+    node_name=$(python -c 'import random,sys; print(random.choice(sys.argv[1:]))' $schedulable_nodes)
+
     local path="hostpath_pvs/${name}/"
 
     kubectl create --filename - <<EOF
@@ -328,6 +331,48 @@ spec:
       - name: host-tmp
         hostPath:
           path: /tmp
-  backoffLimit: 4
 EOF
+}
+
+function kube_get_pod_uid() {
+    local namespace="${1}"
+    local pod="${2}"
+
+    kubectl --namespace "${namespace}" get pod \
+            "${pod}" \
+            --output "jsonpath={ .metadata.uid }" \
+        | egrep '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+}
+
+function kube_get_pod_ip() {
+    local namespace="${1}"
+    local pod="${2}"
+
+    kubectl --namespace "${namespace}" get pod \
+            "${pod}" \
+            --output "jsonpath={ .status.podIP }" | \
+        egrep '^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$'
+}
+
+function kube_delete_pod_and_test_for_new_ip() {
+    local namespace="${1}"
+    local pod="${2}"
+
+    local original_ip
+    original_ip=$(retry kube_get_pod_ip "${namespace}" "${pod}")
+
+    local original_uid
+    original_uid=$(retry kube_get_pod_uid "${namespace}" "${pod}")
+
+    # Delete the pod without grace period
+    kubectl --namespace "${namespace}" delete pod "${pod}" --grace-period=0 --force || true
+    # Run another pod immediately, to hopefully take the IP address of the deleted pod
+    in_cluster_command "${namespace}" "busybox:latest" "/bin/sleep" "2"
+    retry not stdout_equals "${original_uid}" \
+          retry kube_get_pod_uid "${namespace}" "${pod}"
+
+    local new_ip
+    new_ip=$(retry kube_get_pod_ip "${namespace}" "${pod}")
+
+    [[ "${original_ip}" != "${new_ip}" ]]
 }
