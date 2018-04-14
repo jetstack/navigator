@@ -20,6 +20,10 @@ import (
 const (
 	SeedLabelKey   = "navigator.jetstack.io/cassandra-seed"
 	SeedLabelValue = "true"
+
+	// This field is deprecated. v1.Service.PublishNotReadyAddresses will replace it.
+	// See https://github.com/kubernetes/kubernetes/blob/v1.10.0/pkg/controller/endpoint/endpoints_controller.go#L68
+	tolerateUnreadyEndpointsAnnotationKey = "service.alpha.kubernetes.io/tolerate-unready-endpoints"
 )
 
 type serviceFactory func(*v1alpha1.CassandraCluster) *apiv1.Service
@@ -93,8 +97,11 @@ func SeedsServiceForCluster(cluster *v1alpha1.CassandraCluster) *apiv1.Service {
 	labels := util.ClusterLabels(cluster)
 	service := &apiv1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            util.SeedsServiceName(cluster),
-			Namespace:       cluster.Namespace,
+			Name:      util.SeedsServiceName(cluster),
+			Namespace: cluster.Namespace,
+			Annotations: map[string]string{
+				tolerateUnreadyEndpointsAnnotationKey: "true",
+			},
 			OwnerReferences: []metav1.OwnerReference{util.NewControllerRef(cluster)},
 			Labels:          labels,
 		},
@@ -106,6 +113,10 @@ func SeedsServiceForCluster(cluster *v1alpha1.CassandraCluster) *apiv1.Service {
 			// But without it, DNS records are not registered.
 			// See https://github.com/kubernetes/kubernetes/issues/55158
 			Ports: []apiv1.ServicePort{{Port: 65535}},
+			// This ensures that seed node addresses are published immediately.
+			// And are available during C* node start up.
+			// Even for seed nodes them selves.
+			PublishNotReadyAddresses: true,
 		},
 	}
 	// Only mark nodes explicitly labeled as seeds as seed nodes
