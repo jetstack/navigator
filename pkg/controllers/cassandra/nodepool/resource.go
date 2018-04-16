@@ -218,7 +218,16 @@ func StatefulSetForCluster(
 									Name: "JVM_OPTS",
 									Value: fmt.Sprintf(
 										"-javaagent:%s/jolokia.jar=host=%s,port=%d,agentContext=%s "+
-											"-javaagent:%s/jmx_prometheus_javaagent.jar=8080:%s/jmx_prometheus_javaagent.yaml",
+											"-javaagent:%s/jmx_prometheus_javaagent.jar=8080:%s/jmx_prometheus_javaagent.yaml "+
+
+											// allow using cgroup flags
+											"-XX:+UnlockExperimentalVMOptions "+
+
+											// use cgroup limit instead of host
+											"-XX:+UseCGroupMemoryLimitForHeap "+
+
+											// use 100% of the available memory
+											"-XX:MaxRAMFraction=1 ",
 										sharedVolumeMountPath,
 										jolokiaHost,
 										jolokiaPort,
