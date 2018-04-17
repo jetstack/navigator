@@ -29,11 +29,19 @@ func SetDefaults_CassandraClusterNodePool(np *CassandraClusterNodePool) {
 	if np.Replicas == nil {
 		np.Replicas = ptr.Int32(1)
 	}
+
+	if np.NodeSelector == nil {
+		np.NodeSelector = map[string]string{}
+	}
 }
 
 func SetDefaults_ElasticsearchClusterNodePool(np *ElasticsearchClusterNodePool) {
 	if np.Replicas == nil {
 		np.Replicas = ptr.Int32(1)
+	}
+
+	if np.NodeSelector == nil {
+		np.NodeSelector = map[string]string{}
 	}
 }
 
