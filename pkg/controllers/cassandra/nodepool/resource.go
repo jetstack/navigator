@@ -231,7 +231,7 @@ func StatefulSetForCluster(
 									Name: "CLASSPATH",
 									Value: path.Join(
 										sharedVolumeMountPath,
-										"kubernetes-cassandra.jar",
+										"libcassandra-kubernetes-seed-provider.jar",
 									),
 								},
 								{
@@ -326,7 +326,7 @@ func pilotInstallationContainer(
 			"/jolokia.jar",
 			"/jmx_prometheus_javaagent.jar",
 			"/jmx_prometheus_javaagent.yaml",
-			"/kubernetes-cassandra.jar",
+			"/libcassandra-kubernetes-seed-provider.jar",
 			fmt.Sprintf("%s/", sharedVolumeMountPath),
 		},
 		VolumeMounts: []apiv1.VolumeMount{

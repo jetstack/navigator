@@ -8,10 +8,8 @@ RUN chmod a+r /jolokia.jar && touch /jolokia.jar
 RUN chmod a+r /jmx_prometheus_javaagent.jar && touch /jmx_prometheus_javaagent.jar
 RUN chmod a+r /jmx_prometheus_javaagent.yaml && touch /jmx_prometheus_javaagent.yaml
 
-# note: temporarily pulled directly from kubernetes/examples until we find a better place to put it
-# Use the commit before https://github.com/kubernetes/examples/pull/201, because that broke everything.
-ADD https://github.com/kubernetes/examples/raw/7ac4ceb28b98b78c5be337a141c2db10b862e31e/cassandra/image/files/kubernetes-cassandra.jar /kubernetes-cassandra.jar
-RUN chmod a+r /kubernetes-cassandra.jar && touch /kubernetes-cassandra.jar
+ADD https://github.com/jetstack/cassandra-kubernetes-seed-provider/releases/download/0.1.0/libcassandra-kubernetes-seed-provider.jar /libcassandra-kubernetes-seed-provider.jar
+RUN chmod a+r /libcassandra-kubernetes-seed-provider.jar && touch /libcassandra-kubernetes-seed-provider.jar
 
 ADD navigator-pilot-cassandra_linux_amd64 /pilot
 
