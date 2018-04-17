@@ -13,7 +13,6 @@ var supportedPullPolicies = []string{
 	string(corev1.PullNever),
 	string(corev1.PullIfNotPresent),
 	string(corev1.PullAlways),
-	"",
 }
 
 var emptySemver = semver.Version{}
@@ -28,8 +27,7 @@ func ValidateImageSpec(img *navigator.ImageSpec, fldPath *field.Path) field.Erro
 	}
 	if img.PullPolicy != corev1.PullNever &&
 		img.PullPolicy != corev1.PullIfNotPresent &&
-		img.PullPolicy != corev1.PullAlways &&
-		img.PullPolicy != "" {
+		img.PullPolicy != corev1.PullAlways {
 		el = append(el, field.NotSupported(fldPath.Child("pullPolicy"), img.PullPolicy, supportedPullPolicies))
 	}
 	return el
@@ -47,6 +45,17 @@ func ValidateNavigatorSecurityContext(ctx *navigator.NavigatorSecurityContext, f
 		if *ctx.RunAsUser < 0 {
 			el = append(el, field.Invalid(fldPath.Child("runAsUser"), *ctx.RunAsUser, "must be non-negative"))
 		}
+	}
+	return el
+}
+
+func ValidatePersistenceConfig(cfg *navigator.PersistenceConfig, fldPath *field.Path) field.ErrorList {
+	el := field.ErrorList{}
+	if cfg.Size.IsZero() {
+		el = append(el, field.Required(fldPath.Child("size"), ""))
+	}
+	if cfg.Size.Sign() == -1 {
+		el = append(el, field.Invalid(fldPath.Child("size"), cfg.Size, "must be greater than zero"))
 	}
 	return el
 }

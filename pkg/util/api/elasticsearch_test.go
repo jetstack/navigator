@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
+	"github.com/jetstack/navigator/pkg/util/ptr"
 )
 
 func TestCountElasticsearchMasters(t *testing.T) {
@@ -16,7 +17,7 @@ func TestCountElasticsearchMasters(t *testing.T) {
 		{
 			in: []v1alpha1.ElasticsearchClusterNodePool{
 				{
-					Replicas: 2,
+					Replicas: ptr.Int32(2),
 					Roles:    []v1alpha1.ElasticsearchClusterRole{v1alpha1.ElasticsearchRoleMaster},
 				},
 			},
@@ -25,11 +26,11 @@ func TestCountElasticsearchMasters(t *testing.T) {
 		{
 			in: []v1alpha1.ElasticsearchClusterNodePool{
 				{
-					Replicas: 2,
+					Replicas: ptr.Int32(2),
 					Roles:    []v1alpha1.ElasticsearchClusterRole{v1alpha1.ElasticsearchRoleMaster},
 				},
 				{
-					Replicas: 2,
+					Replicas: ptr.Int32(2),
 					Roles:    []v1alpha1.ElasticsearchClusterRole{v1alpha1.ElasticsearchRoleMaster},
 				},
 			},
@@ -38,15 +39,15 @@ func TestCountElasticsearchMasters(t *testing.T) {
 		{
 			in: []v1alpha1.ElasticsearchClusterNodePool{
 				{
-					Replicas: 2,
+					Replicas: ptr.Int32(2),
 					Roles:    []v1alpha1.ElasticsearchClusterRole{v1alpha1.ElasticsearchRoleMaster},
 				},
 				{
-					Replicas: 2,
+					Replicas: ptr.Int32(2),
 					Roles:    []v1alpha1.ElasticsearchClusterRole{v1alpha1.ElasticsearchRoleIngest},
 				},
 				{
-					Replicas: 2,
+					Replicas: ptr.Int32(2),
 					Roles:    []v1alpha1.ElasticsearchClusterRole{v1alpha1.ElasticsearchRoleData},
 				},
 			},

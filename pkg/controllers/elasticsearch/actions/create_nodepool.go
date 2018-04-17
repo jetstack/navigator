@@ -71,7 +71,7 @@ func nodePoolStatefulSet(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.Elastics
 			},
 		},
 		Spec: apps.StatefulSetSpec{
-			Replicas:    ptr.Int32(np.Replicas),
+			Replicas:    np.Replicas,
 			ServiceName: statefulSetName,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: util.NodePoolLabels(c, np.Name),
@@ -84,11 +84,11 @@ func nodePoolStatefulSet(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.Elastics
 		},
 	}
 
-	if np.Persistence.Enabled {
+	if np.Persistence != nil {
 		volumeClaimTemplateAnnotations := map[string]string{}
 
-		if np.Persistence.StorageClass != "" {
-			volumeClaimTemplateAnnotations["volume.beta.kubernetes.io/storage-class"] = np.Persistence.StorageClass
+		if np.Persistence.StorageClass != nil {
+			volumeClaimTemplateAnnotations["volume.beta.kubernetes.io/storage-class"] = *np.Persistence.StorageClass
 		}
 
 		ss.Spec.VolumeClaimTemplates = []apiv1.PersistentVolumeClaim{
@@ -101,6 +101,7 @@ func nodePoolStatefulSet(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.Elastics
 					AccessModes: []apiv1.PersistentVolumeAccessMode{
 						apiv1.ReadWriteOnce,
 					},
+					StorageClassName: np.Persistence.StorageClass,
 					Resources: apiv1.ResourceRequirements{
 						Requests: apiv1.ResourceList{
 							apiv1.ResourceStorage: np.Persistence.Size,
@@ -134,7 +135,7 @@ func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.Elasticsear
 		},
 	}
 
-	if !np.Persistence.Enabled {
+	if np.Persistence == nil {
 		volumes = append(volumes, apiv1.Volume{
 			Name: esDataVolumeName,
 			VolumeSource: apiv1.VolumeSource{

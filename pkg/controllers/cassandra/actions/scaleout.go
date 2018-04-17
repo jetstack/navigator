@@ -31,23 +31,23 @@ func (a *ScaleOut) Execute(s *controllers.State) error {
 		return errors.Wrap(err, "unable to find statefulset")
 	}
 
-	if *existingSet.Spec.Replicas == a.NodePool.Replicas {
+	if *existingSet.Spec.Replicas == *a.NodePool.Replicas {
 		glog.V(4).Infof(
 			"ScaleOut not necessary because StatefulSet '%s/%s' "+
 				"already has the desired replicas value: %d",
 			existingSet.Namespace, existingSet.Name,
-			existingSet.Spec.Replicas,
+			*existingSet.Spec.Replicas,
 		)
 		return nil
 	}
 
-	if *existingSet.Spec.Replicas > a.NodePool.Replicas {
+	if *existingSet.Spec.Replicas > *a.NodePool.Replicas {
 		glog.Errorf(
 			"ScaleOut error. "+
 				"The StatefulSet '%s/%s' replicas value must be lower than the desired value. "+
 				"ActualReplicas: %d, DesiredReplicas: %d",
 			existingSet.Namespace, existingSet.Name,
-			*existingSet.Spec.Replicas, a.NodePool.Replicas,
+			*existingSet.Spec.Replicas, *a.NodePool.Replicas,
 		)
 		return nil
 	}
@@ -81,7 +81,7 @@ func (a *ScaleOut) Execute(s *controllers.State) error {
 		a.Name(),
 		"ScaleOut: NodePool=%s/%s/%s, ReplicaCount=%d, TargetReplicaCount=%d",
 		a.Cluster.Namespace, a.Cluster.Name, a.NodePool.Name,
-		*existingSet.Spec.Replicas, a.NodePool.Replicas,
+		*existingSet.Spec.Replicas, *a.NodePool.Replicas,
 	)
 	return nil
 }

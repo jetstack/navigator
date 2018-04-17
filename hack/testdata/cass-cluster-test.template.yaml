@@ -10,7 +10,6 @@ spec:
     datacenter: "${CASS_NODEPOOL1_DATACENTER}"
     rack: "${CASS_NODEPOOL1_RACK}"
     persistence:
-      enabled: true
       size: "5Gi"
       storageClass: "default"
     nodeSelector: {}

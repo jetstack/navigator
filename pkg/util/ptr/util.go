@@ -11,3 +11,14 @@ func Int64(i int64) *int64 {
 func Bool(b bool) *bool {
 	return &b
 }
+
+func String(s string) *string {
+	return &s
+}
+
+func DerefString(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}

@@ -11,6 +11,10 @@ import (
 )
 
 func ValidateCassandraClusterNodePool(np *navigator.CassandraClusterNodePool, fldPath *field.Path) field.ErrorList {
+	el := field.ErrorList{}
+	if np.Persistence != nil {
+		el = append(el, ValidatePersistenceConfig(np.Persistence, fldPath.Child("persistence"))...)
+	}
 	// TODO: call k8s.io/kubernetes/pkg/apis/core/validation.ValidateResourceRequirements on np.Resources
 	// this will require vendoring kubernetes/kubernetes.
 	return field.ErrorList{}
@@ -34,7 +38,7 @@ func ValidateCassandraClusterUpdate(old, new *navigator.CassandraCluster) field.
 		for _, oldNp := range old.Spec.NodePools {
 			if newNp.Name == oldNp.Name {
 				if !reflect.DeepEqual(newNp.Persistence, oldNp.Persistence) {
-					if oldNp.Persistence.Enabled {
+					if oldNp.Persistence != nil {
 						allErrs = append(allErrs, field.Forbidden(idxPath.Child("persistence"), "cannot modify persistence configuration once enabled"))
 					}
 				}

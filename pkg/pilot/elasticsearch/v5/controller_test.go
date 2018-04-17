@@ -1,6 +1,7 @@
 package v5
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
@@ -9,35 +10,36 @@ import (
 func TestParseHealth(t *testing.T) {
 	type testT struct {
 		str      string
-		expected v1alpha1.ElasticsearchClusterHealth
+		expected *v1alpha1.ElasticsearchClusterHealth
 	}
+	greenHealth := v1alpha1.ElasticsearchClusterHealthGreen
+	redHealth := v1alpha1.ElasticsearchClusterHealthRed
+	yellowHealth := v1alpha1.ElasticsearchClusterHealthYellow
 	tests := []testT{
 		{
 			str:      "grEeN",
-			expected: v1alpha1.ElasticsearchClusterHealthGreen,
+			expected: &greenHealth,
 		},
 		{
 			str:      "reD",
-			expected: v1alpha1.ElasticsearchClusterHealthRed,
+			expected: &redHealth,
 		},
 		{
 			str:      "YELLOW",
-			expected: v1alpha1.ElasticsearchClusterHealthYellow,
+			expected: &yellowHealth,
 		},
 		{
-			str:      "abcdefgh",
-			expected: "abcdefgh",
+			str: "abcdefgh",
 		},
 		{
-			str:      "ABCdef",
-			expected: "ABCdef",
+			str: "ABCdef",
 		},
 	}
 	testFn := func(test testT) func(*testing.T) {
 		return func(t *testing.T) {
 			actual := parseHealth(test.str)
-			if actual != test.expected {
-				t.Errorf("Expected health status to equal %s but got %s", test.expected, actual)
+			if !reflect.DeepEqual(test.expected, actual) {
+				t.Errorf("Expected health status to equal %v but got %v", test.expected, actual)
 			}
 		}
 	}

@@ -8,7 +8,7 @@ func CountElasticsearchMasters(pools []v1alpha1.ElasticsearchClusterNodePool) in
 	masters := int32(0)
 	for _, pool := range pools {
 		if ContainsElasticsearchRole(pool.Roles, v1alpha1.ElasticsearchRoleMaster) {
-			masters += pool.Replicas
+			masters += *pool.Replicas
 		}
 	}
 	return masters

@@ -5,10 +5,11 @@ import (
 	"math/rand"
 
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
+	"github.com/jetstack/navigator/pkg/util/ptr"
 )
 
 func FuzzCassandraNodePool(np *v1alpha1.CassandraClusterNodePool, rand *rand.Rand, size int) {
-	np.Replicas = rand.Int31n(5)
+	np.Replicas = ptr.Int32(rand.Int31n(5))
 }
 
 func FuzzCassandraClusterNodePools(cluster *v1alpha1.CassandraCluster, rand *rand.Rand, size int) {
@@ -24,11 +25,11 @@ func FuzzCassandraClusterNodePools(cluster *v1alpha1.CassandraCluster, rand *ran
 		}
 		FuzzCassandraNodePool(&np, rand, size)
 		nps := v1alpha1.CassandraClusterNodePoolStatus{
-			ReadyReplicas: np.Replicas,
+			ReadyReplicas: *np.Replicas,
 		}
 		// 20% chance of ScaleOut
 		if rand.Intn(4) == 0 {
-			np.Replicas++
+			np.Replicas = ptr.Int32(*np.Replicas + 1)
 		}
 		// 20% chance of ScaleIn
 		if rand.Intn(4) == 0 {

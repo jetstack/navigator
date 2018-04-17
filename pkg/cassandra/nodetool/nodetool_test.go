@@ -348,7 +348,7 @@ func TestNodeToolStatus(t *testing.T) {
 				}
 				if !reflect.DeepEqual(ntResponse, test.expectedResponse) {
 					t.Errorf(
-						"Unexpected response. Expected: %s. Got %s.",
+						"Unexpected response. Expected: %+v. Got %+v.",
 						test.expectedResponse,
 						ntResponse,
 					)

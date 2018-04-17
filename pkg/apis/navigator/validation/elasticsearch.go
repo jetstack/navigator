@@ -32,7 +32,9 @@ func ValidateElasticsearchClusterRole(r navigator.ElasticsearchClusterRole, fldP
 
 func ValidateElasticsearchClusterNodePool(np *navigator.ElasticsearchClusterNodePool, fldPath *field.Path) field.ErrorList {
 	el := ValidateDNS1123Subdomain(np.Name, fldPath.Child("name"))
-	el = append(el, ValidateElasticsearchPersistence(&np.Persistence, fldPath.Child("persistence"))...)
+	if np.Persistence != nil {
+		el = append(el, ValidatePersistenceConfig(np.Persistence, fldPath.Child("persistence"))...)
+	}
 	rolesPath := fldPath.Child("roles")
 	if len(np.Roles) == 0 {
 		el = append(el, field.Required(rolesPath, "at least one role must be specified"))
@@ -41,22 +43,11 @@ func ValidateElasticsearchClusterNodePool(np *navigator.ElasticsearchClusterNode
 		idxPath := rolesPath.Index(i)
 		el = append(el, ValidateElasticsearchClusterRole(r, idxPath)...)
 	}
-	if np.Replicas < 0 {
+	if np.Replicas != nil && *np.Replicas < 0 {
 		el = append(el, field.Invalid(fldPath.Child("replicas"), np.Replicas, "must be greater than zero"))
 	}
 	// TODO: call k8s.io/kubernetes/pkg/apis/core/validation.ValidateResourceRequirements on np.Resources
 	// this will require vendoring kubernetes/kubernetes.
-	return el
-}
-
-func ValidateElasticsearchPersistence(cfg *navigator.PersistenceConfig, fldPath *field.Path) field.ErrorList {
-	el := field.ErrorList{}
-	if cfg.Enabled && cfg.Size.IsZero() {
-		el = append(el, field.Required(fldPath.Child("size"), ""))
-	}
-	if cfg.Size.Sign() == -1 {
-		el = append(el, field.Invalid(fldPath.Child("size"), cfg.Size, "must be greater than zero"))
-	}
 	return el
 }
 
@@ -82,13 +73,15 @@ func ValidateElasticsearchClusterSpec(spec *navigator.ElasticsearchClusterSpec, 
 	switch {
 	case numMasters == 0:
 		allErrs = append(allErrs, field.Invalid(npPath, numMasters, "must be at least one master node"))
-	case spec.MinimumMasters == 0:
+	case spec.MinimumMasters == nil:
 		// do nothing, navigator-controller will automatically calculate &
 		// manage the minimumMasters required for the cluster
-	case spec.MinimumMasters < quorum:
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("minimumMasters"), spec.MinimumMasters, fmt.Sprintf("must be a minimum of %d to avoid a split brain scenario", quorum)))
-	case spec.MinimumMasters > numMasters:
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("minimumMasters"), spec.MinimumMasters, fmt.Sprintf("cannot be greater than the total number of master nodes")))
+	case *spec.MinimumMasters == 0:
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("minimumMasters"), *spec.MinimumMasters, fmt.Sprintf("cannot be zero")))
+	case *spec.MinimumMasters < quorum:
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("minimumMasters"), *spec.MinimumMasters, fmt.Sprintf("must be a minimum of %d to avoid a split brain scenario", quorum)))
+	case *spec.MinimumMasters > numMasters:
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("minimumMasters"), *spec.MinimumMasters, fmt.Sprintf("cannot be greater than the total number of master nodes")))
 	}
 
 	if spec.Version.Equal(emptySemver) {
@@ -115,7 +108,7 @@ func ValidateElasticsearchClusterUpdate(old, new *navigator.ElasticsearchCluster
 		for _, oldNp := range old.Spec.NodePools {
 			if newNp.Name == oldNp.Name {
 				if !reflect.DeepEqual(newNp.Persistence, oldNp.Persistence) {
-					if oldNp.Persistence.Enabled {
+					if oldNp.Persistence != nil {
 						allErrs = append(allErrs, field.Forbidden(idxPath.Child("persistence"), "cannot modify persistence configuration once enabled"))
 					}
 				}
@@ -143,7 +136,7 @@ func countElasticsearchMasters(pools []navigator.ElasticsearchClusterNodePool) i
 	masters := int32(0)
 	for _, pool := range pools {
 		if containsElasticsearchRole(pool.Roles, navigator.ElasticsearchRoleMaster) {
-			masters += pool.Replicas
+			masters += *pool.Replicas
 		}
 	}
 	return masters

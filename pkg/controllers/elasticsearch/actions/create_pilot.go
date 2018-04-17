@@ -68,9 +68,6 @@ func newPilotResource(c *v1alpha1.ElasticsearchCluster, pod *core.Pod) *v1alpha1
 			OwnerReferences: []metav1.OwnerReference{util.NewControllerRef(c)},
 			Labels:          pod.Labels,
 		},
-		Spec: v1alpha1.PilotSpec{
-			Elasticsearch: &v1alpha1.PilotElasticsearchSpec{},
-		},
 	}
 	return pilot
 }

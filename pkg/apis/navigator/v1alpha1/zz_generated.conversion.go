@@ -21,6 +21,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	semver "github.com/coreos/go-semver/semver"
 	navigator "github.com/jetstack/navigator/pkg/apis/navigator"
 	version "github.com/jetstack/navigator/pkg/cassandra/version"
 	v1 "k8s.io/api/core/v1"
@@ -77,8 +78,6 @@ func RegisterConversions(scheme *runtime.Scheme) error {
 		Convert_navigator_Pilot_To_v1alpha1_Pilot,
 		Convert_v1alpha1_PilotCondition_To_navigator_PilotCondition,
 		Convert_navigator_PilotCondition_To_v1alpha1_PilotCondition,
-		Convert_v1alpha1_PilotElasticsearchSpec_To_navigator_PilotElasticsearchSpec,
-		Convert_navigator_PilotElasticsearchSpec_To_v1alpha1_PilotElasticsearchSpec,
 		Convert_v1alpha1_PilotList_To_navigator_PilotList,
 		Convert_navigator_PilotList_To_v1alpha1_PilotList,
 		Convert_v1alpha1_PilotSpec_To_navigator_PilotSpec,
@@ -164,13 +163,11 @@ func Convert_navigator_CassandraClusterList_To_v1alpha1_CassandraClusterList(in 
 
 func autoConvert_v1alpha1_CassandraClusterNodePool_To_navigator_CassandraClusterNodePool(in *CassandraClusterNodePool, out *navigator.CassandraClusterNodePool, s conversion.Scope) error {
 	out.Name = in.Name
-	out.Replicas = in.Replicas
-	if err := Convert_v1alpha1_PersistenceConfig_To_navigator_PersistenceConfig(&in.Persistence, &out.Persistence, s); err != nil {
-		return err
-	}
+	out.Replicas = (*int32)(unsafe.Pointer(in.Replicas))
+	out.Persistence = (*navigator.PersistenceConfig)(unsafe.Pointer(in.Persistence))
 	out.NodeSelector = *(*map[string]string)(unsafe.Pointer(&in.NodeSelector))
-	out.Rack = in.Rack
-	out.Datacenter = in.Datacenter
+	out.Rack = (*string)(unsafe.Pointer(in.Rack))
+	out.Datacenter = (*string)(unsafe.Pointer(in.Datacenter))
 	out.Resources = in.Resources
 	out.SchedulerName = in.SchedulerName
 	return nil
@@ -183,13 +180,11 @@ func Convert_v1alpha1_CassandraClusterNodePool_To_navigator_CassandraClusterNode
 
 func autoConvert_navigator_CassandraClusterNodePool_To_v1alpha1_CassandraClusterNodePool(in *navigator.CassandraClusterNodePool, out *CassandraClusterNodePool, s conversion.Scope) error {
 	out.Name = in.Name
-	out.Replicas = in.Replicas
-	if err := Convert_navigator_PersistenceConfig_To_v1alpha1_PersistenceConfig(&in.Persistence, &out.Persistence, s); err != nil {
-		return err
-	}
+	out.Replicas = (*int32)(unsafe.Pointer(in.Replicas))
+	out.Persistence = (*PersistenceConfig)(unsafe.Pointer(in.Persistence))
 	out.NodeSelector = *(*map[string]string)(unsafe.Pointer(&in.NodeSelector))
-	out.Rack = in.Rack
-	out.Datacenter = in.Datacenter
+	out.Rack = (*string)(unsafe.Pointer(in.Rack))
+	out.Datacenter = (*string)(unsafe.Pointer(in.Datacenter))
 	out.Resources = in.Resources
 	out.SchedulerName = in.SchedulerName
 	return nil
@@ -366,13 +361,11 @@ func Convert_navigator_ElasticsearchClusterList_To_v1alpha1_ElasticsearchCluster
 
 func autoConvert_v1alpha1_ElasticsearchClusterNodePool_To_navigator_ElasticsearchClusterNodePool(in *ElasticsearchClusterNodePool, out *navigator.ElasticsearchClusterNodePool, s conversion.Scope) error {
 	out.Name = in.Name
-	out.Replicas = in.Replicas
+	out.Replicas = (*int32)(unsafe.Pointer(in.Replicas))
 	out.Roles = *(*[]navigator.ElasticsearchClusterRole)(unsafe.Pointer(&in.Roles))
 	out.NodeSelector = *(*map[string]string)(unsafe.Pointer(&in.NodeSelector))
 	out.Resources = in.Resources
-	if err := Convert_v1alpha1_PersistenceConfig_To_navigator_PersistenceConfig(&in.Persistence, &out.Persistence, s); err != nil {
-		return err
-	}
+	out.Persistence = (*navigator.PersistenceConfig)(unsafe.Pointer(in.Persistence))
 	out.SchedulerName = in.SchedulerName
 	return nil
 }
@@ -384,13 +377,11 @@ func Convert_v1alpha1_ElasticsearchClusterNodePool_To_navigator_ElasticsearchClu
 
 func autoConvert_navigator_ElasticsearchClusterNodePool_To_v1alpha1_ElasticsearchClusterNodePool(in *navigator.ElasticsearchClusterNodePool, out *ElasticsearchClusterNodePool, s conversion.Scope) error {
 	out.Name = in.Name
-	out.Replicas = in.Replicas
+	out.Replicas = (*int32)(unsafe.Pointer(in.Replicas))
 	out.Roles = *(*[]ElasticsearchClusterRole)(unsafe.Pointer(&in.Roles))
 	out.NodeSelector = *(*map[string]string)(unsafe.Pointer(&in.NodeSelector))
 	out.Resources = in.Resources
-	if err := Convert_navigator_PersistenceConfig_To_v1alpha1_PersistenceConfig(&in.Persistence, &out.Persistence, s); err != nil {
-		return err
-	}
+	out.Persistence = (*PersistenceConfig)(unsafe.Pointer(in.Persistence))
 	out.SchedulerName = in.SchedulerName
 	return nil
 }
@@ -428,7 +419,7 @@ func autoConvert_v1alpha1_ElasticsearchClusterSpec_To_navigator_ElasticsearchClu
 	out.Plugins = *(*[]string)(unsafe.Pointer(&in.Plugins))
 	out.NodePools = *(*[]navigator.ElasticsearchClusterNodePool)(unsafe.Pointer(&in.NodePools))
 	out.Image = (*navigator.ImageSpec)(unsafe.Pointer(in.Image))
-	out.MinimumMasters = in.MinimumMasters
+	out.MinimumMasters = (*int32)(unsafe.Pointer(in.MinimumMasters))
 	return nil
 }
 
@@ -445,7 +436,7 @@ func autoConvert_navigator_ElasticsearchClusterSpec_To_v1alpha1_ElasticsearchClu
 	out.Image = (*ImageSpec)(unsafe.Pointer(in.Image))
 	out.Plugins = *(*[]string)(unsafe.Pointer(&in.Plugins))
 	out.NodePools = *(*[]ElasticsearchClusterNodePool)(unsafe.Pointer(&in.NodePools))
-	out.MinimumMasters = in.MinimumMasters
+	out.MinimumMasters = (*int32)(unsafe.Pointer(in.MinimumMasters))
 	return nil
 }
 
@@ -456,7 +447,7 @@ func Convert_navigator_ElasticsearchClusterSpec_To_v1alpha1_ElasticsearchCluster
 
 func autoConvert_v1alpha1_ElasticsearchClusterStatus_To_navigator_ElasticsearchClusterStatus(in *ElasticsearchClusterStatus, out *navigator.ElasticsearchClusterStatus, s conversion.Scope) error {
 	out.NodePools = *(*map[string]navigator.ElasticsearchClusterNodePoolStatus)(unsafe.Pointer(&in.NodePools))
-	out.Health = navigator.ElasticsearchClusterHealth(in.Health)
+	out.Health = (*navigator.ElasticsearchClusterHealth)(unsafe.Pointer(in.Health))
 	return nil
 }
 
@@ -467,7 +458,7 @@ func Convert_v1alpha1_ElasticsearchClusterStatus_To_navigator_ElasticsearchClust
 
 func autoConvert_navigator_ElasticsearchClusterStatus_To_v1alpha1_ElasticsearchClusterStatus(in *navigator.ElasticsearchClusterStatus, out *ElasticsearchClusterStatus, s conversion.Scope) error {
 	out.NodePools = *(*map[string]ElasticsearchClusterNodePoolStatus)(unsafe.Pointer(&in.NodePools))
-	out.Health = ElasticsearchClusterHealth(in.Health)
+	out.Health = (*ElasticsearchClusterHealth)(unsafe.Pointer(in.Health))
 	return nil
 }
 
@@ -478,7 +469,7 @@ func Convert_navigator_ElasticsearchClusterStatus_To_v1alpha1_ElasticsearchClust
 
 func autoConvert_v1alpha1_ElasticsearchPilotStatus_To_navigator_ElasticsearchPilotStatus(in *ElasticsearchPilotStatus, out *navigator.ElasticsearchPilotStatus, s conversion.Scope) error {
 	out.Documents = (*int64)(unsafe.Pointer(in.Documents))
-	out.Version = in.Version
+	out.Version = (*semver.Version)(unsafe.Pointer(in.Version))
 	return nil
 }
 
@@ -489,7 +480,7 @@ func Convert_v1alpha1_ElasticsearchPilotStatus_To_navigator_ElasticsearchPilotSt
 
 func autoConvert_navigator_ElasticsearchPilotStatus_To_v1alpha1_ElasticsearchPilotStatus(in *navigator.ElasticsearchPilotStatus, out *ElasticsearchPilotStatus, s conversion.Scope) error {
 	out.Documents = (*int64)(unsafe.Pointer(in.Documents))
-	out.Version = in.Version
+	out.Version = (*semver.Version)(unsafe.Pointer(in.Version))
 	return nil
 }
 
@@ -573,9 +564,8 @@ func Convert_navigator_NavigatorSecurityContext_To_v1alpha1_NavigatorSecurityCon
 }
 
 func autoConvert_v1alpha1_PersistenceConfig_To_navigator_PersistenceConfig(in *PersistenceConfig, out *navigator.PersistenceConfig, s conversion.Scope) error {
-	out.Enabled = in.Enabled
 	out.Size = in.Size
-	out.StorageClass = in.StorageClass
+	out.StorageClass = (*string)(unsafe.Pointer(in.StorageClass))
 	return nil
 }
 
@@ -585,9 +575,8 @@ func Convert_v1alpha1_PersistenceConfig_To_navigator_PersistenceConfig(in *Persi
 }
 
 func autoConvert_navigator_PersistenceConfig_To_v1alpha1_PersistenceConfig(in *navigator.PersistenceConfig, out *PersistenceConfig, s conversion.Scope) error {
-	out.Enabled = in.Enabled
 	out.Size = in.Size
-	out.StorageClass = in.StorageClass
+	out.StorageClass = (*string)(unsafe.Pointer(in.StorageClass))
 	return nil
 }
 
@@ -656,24 +645,6 @@ func Convert_navigator_PilotCondition_To_v1alpha1_PilotCondition(in *navigator.P
 	return autoConvert_navigator_PilotCondition_To_v1alpha1_PilotCondition(in, out, s)
 }
 
-func autoConvert_v1alpha1_PilotElasticsearchSpec_To_navigator_PilotElasticsearchSpec(in *PilotElasticsearchSpec, out *navigator.PilotElasticsearchSpec, s conversion.Scope) error {
-	return nil
-}
-
-// Convert_v1alpha1_PilotElasticsearchSpec_To_navigator_PilotElasticsearchSpec is an autogenerated conversion function.
-func Convert_v1alpha1_PilotElasticsearchSpec_To_navigator_PilotElasticsearchSpec(in *PilotElasticsearchSpec, out *navigator.PilotElasticsearchSpec, s conversion.Scope) error {
-	return autoConvert_v1alpha1_PilotElasticsearchSpec_To_navigator_PilotElasticsearchSpec(in, out, s)
-}
-
-func autoConvert_navigator_PilotElasticsearchSpec_To_v1alpha1_PilotElasticsearchSpec(in *navigator.PilotElasticsearchSpec, out *PilotElasticsearchSpec, s conversion.Scope) error {
-	return nil
-}
-
-// Convert_navigator_PilotElasticsearchSpec_To_v1alpha1_PilotElasticsearchSpec is an autogenerated conversion function.
-func Convert_navigator_PilotElasticsearchSpec_To_v1alpha1_PilotElasticsearchSpec(in *navigator.PilotElasticsearchSpec, out *PilotElasticsearchSpec, s conversion.Scope) error {
-	return autoConvert_navigator_PilotElasticsearchSpec_To_v1alpha1_PilotElasticsearchSpec(in, out, s)
-}
-
 func autoConvert_v1alpha1_PilotList_To_navigator_PilotList(in *PilotList, out *navigator.PilotList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
 	out.Items = *(*[]navigator.Pilot)(unsafe.Pointer(&in.Items))
@@ -697,7 +668,6 @@ func Convert_navigator_PilotList_To_v1alpha1_PilotList(in *navigator.PilotList, 
 }
 
 func autoConvert_v1alpha1_PilotSpec_To_navigator_PilotSpec(in *PilotSpec, out *navigator.PilotSpec, s conversion.Scope) error {
-	out.Elasticsearch = (*navigator.PilotElasticsearchSpec)(unsafe.Pointer(in.Elasticsearch))
 	return nil
 }
 
@@ -707,7 +677,6 @@ func Convert_v1alpha1_PilotSpec_To_navigator_PilotSpec(in *PilotSpec, out *navig
 }
 
 func autoConvert_navigator_PilotSpec_To_v1alpha1_PilotSpec(in *navigator.PilotSpec, out *PilotSpec, s conversion.Scope) error {
-	out.Elasticsearch = (*PilotElasticsearchSpec)(unsafe.Pointer(in.Elasticsearch))
 	return nil
 }
 
@@ -717,7 +686,6 @@ func Convert_navigator_PilotSpec_To_v1alpha1_PilotSpec(in *navigator.PilotSpec, 
 }
 
 func autoConvert_v1alpha1_PilotStatus_To_navigator_PilotStatus(in *PilotStatus, out *navigator.PilotStatus, s conversion.Scope) error {
-	out.LastCompletedPhase = navigator.PilotPhase(in.LastCompletedPhase)
 	out.Conditions = *(*[]navigator.PilotCondition)(unsafe.Pointer(&in.Conditions))
 	out.Elasticsearch = (*navigator.ElasticsearchPilotStatus)(unsafe.Pointer(in.Elasticsearch))
 	out.Cassandra = (*navigator.CassandraPilotStatus)(unsafe.Pointer(in.Cassandra))
@@ -730,7 +698,6 @@ func Convert_v1alpha1_PilotStatus_To_navigator_PilotStatus(in *PilotStatus, out 
 }
 
 func autoConvert_navigator_PilotStatus_To_v1alpha1_PilotStatus(in *navigator.PilotStatus, out *PilotStatus, s conversion.Scope) error {
-	out.LastCompletedPhase = PilotPhase(in.LastCompletedPhase)
 	out.Conditions = *(*[]PilotCondition)(unsafe.Pointer(&in.Conditions))
 	out.Elasticsearch = (*ElasticsearchPilotStatus)(unsafe.Pointer(in.Elasticsearch))
 	out.Cassandra = (*CassandraPilotStatus)(unsafe.Pointer(in.Cassandra))

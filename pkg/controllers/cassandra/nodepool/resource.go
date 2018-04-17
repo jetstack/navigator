@@ -208,11 +208,11 @@ func StatefulSetForCluster(
 								},
 								{
 									Name:  "CASSANDRA_DC",
-									Value: np.Datacenter,
+									Value: ptr.DerefString(np.Datacenter),
 								},
 								{
 									Name:  "CASSANDRA_RACK",
-									Value: np.Rack,
+									Value: ptr.DerefString(np.Rack),
 								},
 								{
 									Name: "JVM_OPTS",
@@ -270,19 +270,24 @@ func StatefulSetForCluster(
 			},
 		},
 	}
-	if np.Persistence.Enabled {
+	if np.Persistence != nil {
+		volumeClaimTemplateAnnotations := map[string]string{}
+
+		if np.Persistence.StorageClass != nil {
+			volumeClaimTemplateAnnotations["volume.beta.kubernetes.io/storage-class"] = *np.Persistence.StorageClass
+		}
+
 		set.Spec.VolumeClaimTemplates = []apiv1.PersistentVolumeClaim{
 			{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: cassDataVolumeName,
-					Annotations: map[string]string{
-						"volume.beta.kubernetes.io/storage-class": np.Persistence.StorageClass,
-					},
+					Name:        cassDataVolumeName,
+					Annotations: volumeClaimTemplateAnnotations,
 				},
 				Spec: apiv1.PersistentVolumeClaimSpec{
 					AccessModes: []apiv1.PersistentVolumeAccessMode{
 						apiv1.ReadWriteOnce,
 					},
+					StorageClassName: np.Persistence.StorageClass,
 					Resources: apiv1.ResourceRequirements{
 						Requests: apiv1.ResourceList{
 							apiv1.ResourceStorage: np.Persistence.Size,

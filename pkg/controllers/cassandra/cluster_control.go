@@ -206,7 +206,7 @@ func NextAction(c *v1alpha1.CassandraCluster) controllers.Action {
 	}
 	for _, np := range c.Spec.NodePools {
 		nps := c.Status.NodePools[np.Name]
-		if np.Replicas > nps.ReadyReplicas {
+		if *np.Replicas > nps.ReadyReplicas {
 			return &actions.ScaleOut{
 				Cluster:  c,
 				NodePool: &np,
