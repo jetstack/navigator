@@ -16,6 +16,7 @@ BUILD_IMAGE_NAME := navigator/builder
 CMDS := controller apiserver pilot-elasticsearch pilot-cassandra
 
 GOPATH ?= /tmp/go
+GOFLAGS ?= "-a"
 
 help:
 	# all       - runs verify, build and docker_build targets
@@ -84,7 +85,7 @@ docker_push: $(DOCKER_PUSH_TARGETS)
 go_verify: go_fmt go_test go_build
 
 $(CMDS):
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -tags netgo -ldflags '-w' -o navigator-$@_linux_amd64 ./cmd/$@
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build $(GOFLAGS) -tags netgo -ldflags '-w' -o navigator-$@_linux_amd64 ./cmd/$@
 
 go_build: $(CMDS)
 
