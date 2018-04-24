@@ -12,6 +12,7 @@ import (
 
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/util"
+	"github.com/jetstack/navigator/pkg/controllers/common"
 	"github.com/jetstack/navigator/pkg/util/ptr"
 )
 
@@ -218,7 +219,8 @@ func StatefulSetForCluster(
 									Name: "JVM_OPTS",
 									Value: fmt.Sprintf(
 										"-javaagent:%s/jolokia.jar=host=%s,port=%d,agentContext=%s "+
-											"-javaagent:%s/jmx_prometheus_javaagent.jar=8080:%s/jmx_prometheus_javaagent.yaml",
+											"-javaagent:%s/jmx_prometheus_javaagent.jar=8080:%s/jmx_prometheus_javaagent.yaml "+
+											common.JVMCgroupOpts,
 										sharedVolumeMountPath,
 										jolokiaHost,
 										jolokiaPort,

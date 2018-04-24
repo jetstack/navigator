@@ -12,6 +12,7 @@ import (
 
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers"
+	"github.com/jetstack/navigator/pkg/controllers/common"
 	"github.com/jetstack/navigator/pkg/controllers/elasticsearch/util"
 	"github.com/jetstack/navigator/pkg/util/ptr"
 )
@@ -200,6 +201,10 @@ func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.Elasticsear
 						{
 							Name:  "PLUGINS",
 							Value: plugins,
+						},
+						{
+							Name:  "ES_JAVA_OPTS",
+							Value: common.JVMCgroupOpts,
 						},
 						{
 							Name: "LEADER_ELECTION_CONFIG_MAP",
