@@ -15,11 +15,11 @@ spec:
     nodeSelector: {}
     resources:
       requests:
-        cpu: "500m"
-        memory: "2Gi"
+        cpu: "250m"
+        memory: "1Gi"
       limits:
-        cpu: "500m"
-        memory: "2Gi"
+        cpu: "250m"
+        memory: "1Gi"
   pilotImage:
     repository: "${NAVIGATOR_IMAGE_REPOSITORY}/navigator-pilot-cassandra"
     tag: "${NAVIGATOR_IMAGE_TAG}"

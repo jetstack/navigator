@@ -4,6 +4,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 
+	"github.com/pkg/errors"
+
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/nodepool"
@@ -21,8 +23,13 @@ func (a *CreateNodePool) Name() string {
 }
 
 func (a *CreateNodePool) Execute(s *controllers.State) error {
+	headlessService := nodepool.HeadlessServiceForClusterNodePool(a.Cluster, a.NodePool)
+	_, err := s.Clientset.CoreV1().Services(headlessService.Namespace).Create(headlessService)
+	if err != nil && !k8sErrors.IsAlreadyExists(err) {
+		return errors.Wrap(err, "unable to create headless service for nodepool")
+	}
 	ss := nodepool.StatefulSetForCluster(a.Cluster, a.NodePool)
-	_, err := s.Clientset.AppsV1beta1().StatefulSets(ss.Namespace).Create(ss)
+	_, err = s.Clientset.AppsV1beta1().StatefulSets(ss.Namespace).Create(ss)
 	if k8sErrors.IsAlreadyExists(err) {
 		return nil
 	}

@@ -366,13 +366,13 @@ function test_cassandracluster() {
         fail_test "A ScaleOut event was not recorded"
     fi
 
-    if ! retry TIMEOUT=300 stdout_equals 2 kubectl \
+    if ! retry TIMEOUT=600 stdout_equals 2 kubectl \
          --namespace "${namespace}" \
          get cassandracluster \
          "${CASS_NAME}" \
          "-o=jsonpath={ .status.nodePools['${CASS_NODEPOOL1_NAME}'].readyReplicas }"
     then
-        fail_test "Second cassandra node did not become ready"
+        fail_test "The extra cassandra nodes did not become ready"
     fi
 
     # TODO: A better test would be to query the endpoints and check that only
@@ -395,7 +395,7 @@ function test_cassandracluster() {
          --debug \
          --execute='CONSISTENCY ALL; SELECT * FROM space1.testtable1'
     then
-        fail_test "Data was not replicated to second node"
+        fail_test "Data was not replicated to all nodes"
     fi
 
     simulate_unresponsive_cassandra_process \
@@ -413,12 +413,45 @@ function test_cassandracluster() {
     then
         fail_test "Cassandra liveness probe failed to restart dead node"
     fi
+
+    echo "Print a map of pod name to IP address before deleting node"
+    kubectl --namespace "${namespace}" get pods \
+            --output 'jsonpath={range .items[*]}{.spec.hostname}: {.status.podIP} {"\n"}{end}'
+
+    retry TIMEOUT=120 kube_delete_pod_and_test_for_new_ip "${namespace}" "${pod}"
+
+    echo "Get a map of pod name to IP address after pod IP changes"
+    kubectl --namespace "${namespace}" get pods \
+            '-o=jsonpath={range .items[*]}{.spec.hostname}: {.status.podIP} {"\n"}{end} '
+
+    echo "nodepool status should show a node joining..."
+    kubectl --namespace "${namespace}" exec \
+            "cass-${CASS_NAME}-${CASS_NODEPOOL1_NAME}-0" \
+            -- /bin/sh -c 'JVM_OPTS="" nodetool status'
+
+    echo "Wait for test data to be available on all nodes again"
+    if ! retry TIMEOUT=300 \
+         stdout_matches "testvalue1" \
+         cql_connect \
+         "${namespace}" \
+         "cass-${CASS_NAME}-nodes" \
+         "${CASS_CQL_PORT}" \
+         --debug \
+         --execute='CONSISTENCY ALL; SELECT * FROM space1.testtable1'
+    then
+        fail_test "Data was not restored to the restarted node"
+    fi
+
+    echo "nodepool status should now show all nodes Up and Normal (UN)"
+    kubectl --namespace "${namespace}" exec \
+            "cass-${CASS_NAME}-${CASS_NODEPOOL1_NAME}-0" \
+            -- /bin/sh -c 'JVM_OPTS="" nodetool status'
 }
 
 if [[ "test_cassandracluster" = "${TEST_PREFIX}"* ]]; then
     CASS_TEST_NS="test-cassandra-${TEST_ID}"
 
-    for i in {1..2}; do
+    for i in {1..5}; do
         kube_create_pv "${CASS_TEST_NS}-pv${i}" 5Gi default
     done
 

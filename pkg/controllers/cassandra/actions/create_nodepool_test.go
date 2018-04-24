@@ -17,9 +17,42 @@ func TestCreateNodePool(t *testing.T) {
 		cluster             generate.CassandraClusterConfig
 		nodePool            generate.CassandraClusterNodePoolConfig
 		expectedStatefulSet *generate.StatefulSetConfig
+		expectedService     *generate.ServiceConfig
 		expectedErr         bool
 	}
 	tests := map[string]testT{
+		"A service is created if one does not already exist": {
+			cluster: generate.CassandraClusterConfig{
+				Name:      "cluster1",
+				Namespace: "ns1",
+			},
+			nodePool: generate.CassandraClusterNodePoolConfig{
+				Name: "pool1",
+			},
+			expectedService: &generate.ServiceConfig{
+				Name:      "cass-cluster1-pool1",
+				Namespace: "ns1",
+			},
+		},
+		"No error if service already exists": {
+			kubeObjects: []runtime.Object{
+				generate.Service(generate.ServiceConfig{
+					Name:      "cass-cluster1-pool1",
+					Namespace: "ns1",
+				}),
+			},
+			cluster: generate.CassandraClusterConfig{
+				Name:      "cluster1",
+				Namespace: "ns1",
+			},
+			nodePool: generate.CassandraClusterNodePoolConfig{
+				Name: "pool1",
+			},
+			expectedService: &generate.ServiceConfig{
+				Name:      "cass-cluster1-pool1",
+				Namespace: "ns1",
+			},
+		},
 		"A statefulset is created if one does not already exist": {
 			cluster: generate.CassandraClusterConfig{
 				Name:      "cluster1",
@@ -83,6 +116,14 @@ func TestCreateNodePool(t *testing.T) {
 						Get(test.expectedStatefulSet.Name, metav1.GetOptions{})
 					if err != nil {
 						t.Fatalf("Unexpected error retrieving statefulset: %v", err)
+					}
+				}
+				if test.expectedService != nil {
+					_, err = fixture.KubeClient().CoreV1().
+						Services(test.expectedService.Namespace).
+						Get(test.expectedService.Name, metav1.GetOptions{})
+					if err != nil {
+						t.Fatalf("Unexpected error retrieving service: %v", err)
 					}
 				}
 			},

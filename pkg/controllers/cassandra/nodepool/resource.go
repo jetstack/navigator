@@ -29,6 +29,10 @@ const (
 	jolokiaHost    = "127.0.0.1"
 	jolokiaPort    = 8778
 	jolokiaContext = "/jolokia"
+
+	// This field is deprecated. v1.Service.PublishNotReadyAddresses will replace it.
+	// See https://github.com/kubernetes/kubernetes/blob/v1.10.0/pkg/controller/endpoint/endpoints_controller.go#L68
+	tolerateUnreadyEndpointsAnnotationKey = "service.alpha.kubernetes.io/tolerate-unready-endpoints"
 )
 
 func StatefulSetForCluster(
@@ -56,7 +60,8 @@ func StatefulSetForCluster(
 			UpdateStrategy: apps.StatefulSetUpdateStrategy{
 				Type: apps.RollingUpdateStatefulSetStrategyType,
 			},
-			PodManagementPolicy: apps.ParallelPodManagement,
+			PodManagementPolicy: apps.OrderedReadyPodManagement,
+			ServiceName:         statefulSetName,
 			Template: apiv1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: nodePoolLabels,
@@ -195,6 +200,33 @@ func StatefulSetForCluster(
 									Name:  "HEAP_NEWSIZE",
 									Value: "100M",
 								},
+								// Deliberately set blank so that Cassandra will do a hostname lookup.
+								// See https://github.com/apache/cassandra/blob/cassandra-3.11.2/conf/cassandra.yaml#L592
+								{
+									Name:  "CASSANDRA_LISTEN_ADDRESS",
+									Value: " ",
+								},
+								// Deliberately set blank so that Cassandra will do a hostname lookup.
+								{
+									Name:  "CASSANDRA_BROADCAST_ADDRESS",
+									Value: " ",
+								},
+								// Deliberately set blank so that Cassandra will do a hostname lookup.
+								{
+									Name:  "CASSANDRA_RPC_ADDRESS",
+									Value: " ",
+								},
+								// Set a non-existent default seed.
+								// We only want to use the seed provider service.
+								// See:
+								// https://github.com/docker-library/cassandra/blame/master/3.11/docker-entrypoint.sh#L31 and
+								// https://github.com/apache/cassandra/blob/cassandra-3.11.2/conf/cassandra.yaml#L416 and
+								// https://github.com/kubernetes/examples/blob/cabf8b8e4739e576837111e156763d19a64a3591/cassandra/java/src/main/java/io/k8s/cassandra/KubernetesSeedProvider.java#L69 and
+								// https://github.com/kubernetes/examples/blob/cabf8b8e4739e576837111e156763d19a64a3591/cassandra/go/main.go#L51
+								{
+									Name:  "CASSANDRA_SEEDS",
+									Value: "default-seed-dnsname",
+								},
 								{
 									Name:  "CASSANDRA_ENDPOINT_SNITCH",
 									Value: cassSnitch,
@@ -235,14 +267,6 @@ func StatefulSetForCluster(
 										sharedVolumeMountPath,
 										"kubernetes-cassandra.jar",
 									),
-								},
-								{
-									Name: "POD_IP",
-									ValueFrom: &apiv1.EnvVarSource{
-										FieldRef: &apiv1.ObjectFieldSelector{
-											FieldPath: "status.podIP",
-										},
-									},
 								},
 								apiv1.EnvVar{
 									Name: "POD_NAME",
@@ -347,6 +371,36 @@ func pilotInstallationContainer(
 				apiv1.ResourceCPU:    resource.MustParse("10m"),
 				apiv1.ResourceMemory: resource.MustParse("50Mi"),
 			},
+		},
+	}
+}
+
+func HeadlessServiceForClusterNodePool(
+	cluster *v1alpha1.CassandraCluster,
+	np *v1alpha1.CassandraClusterNodePool,
+) *apiv1.Service {
+	nodePoolLabels := util.NodePoolLabels(cluster, np.Name)
+	return &apiv1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      util.NodePoolResourceName(cluster, np),
+			Namespace: cluster.Namespace,
+			Annotations: map[string]string{
+				tolerateUnreadyEndpointsAnnotationKey: "true",
+			},
+			Labels:          nodePoolLabels,
+			OwnerReferences: []metav1.OwnerReference{util.NewControllerRef(cluster)},
+		},
+		Spec: apiv1.ServiceSpec{
+			Selector:  nodePoolLabels,
+			Type:      apiv1.ServiceTypeClusterIP,
+			ClusterIP: "None",
+			// Headless service should not require a port.
+			// But without it, DNS records are not registered.
+			// See https://github.com/kubernetes/kubernetes/issues/55158
+			Ports: []apiv1.ServicePort{{Port: 65535}},
+			// This ensures that DNS names are published regardless of whether the
+			// Cassandra pod is ready.
+			PublishNotReadyAddresses: true,
 		},
 	}
 }

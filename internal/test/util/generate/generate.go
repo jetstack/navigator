@@ -143,3 +143,16 @@ func CassandraClusterNodePool(c CassandraClusterNodePoolConfig) *v1alpha1.Cassan
 		Replicas: &c.Replicas,
 	}
 }
+
+type ServiceConfig struct {
+	Name, Namespace string
+}
+
+func Service(c ServiceConfig) *core.Service {
+	return &core.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      c.Name,
+			Namespace: c.Namespace,
+		},
+	}
+}
