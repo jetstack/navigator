@@ -37,6 +37,9 @@ spec:
 {{- if .Values.controller.namespace }}
           - --namespace={{ .Values.controller.namespace }}
 {{- end }}
+{{- if .Values.featureGates }}
+          - --feature-gates={{ .Values.featureGates }}
+{{- end }}
           - --leader-election-namespace={{ .Release.Namespace }}
           - --v={{ .Values.controller.logLevel }}
           imagePullPolicy: {{ .Values.controller.image.pullPolicy }}
