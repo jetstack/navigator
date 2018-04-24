@@ -18,5 +18,7 @@ type Context struct {
 	KubeSharedInformerFactory kubeinformers.SharedInformerFactory
 	SharedInformerFactory     intinformers.SharedInformerFactory
 
+	Features map[string]bool
+
 	Namespace string
 }

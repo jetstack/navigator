@@ -32,6 +32,7 @@ import (
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/seedlabeller"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/service"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/serviceaccount"
+	"github.com/jetstack/navigator/pkg/util/features"
 )
 
 // NewCassandra returns a new CassandraController that can be used
@@ -55,6 +56,7 @@ type CassandraController struct {
 	roleBindingsListerSynced    cache.InformerSynced
 	queue                       workqueue.RateLimitingInterface
 	recorder                    record.EventRecorder
+	features                    map[string]bool
 }
 
 func NewCassandra(
@@ -69,6 +71,7 @@ func NewCassandra(
 	roles rbacinformers.RoleInformer,
 	roleBindings rbacinformers.RoleBindingInformer,
 	recorder record.EventRecorder,
+	features map[string]bool,
 ) *CassandraController {
 	queue := workqueue.NewNamedRateLimitingQueue(
 		workqueue.DefaultControllerRateLimiter(),
@@ -79,6 +82,7 @@ func NewCassandra(
 		navigatorClient: naviClient,
 		queue:           queue,
 		recorder:        recorder,
+		features:        features,
 	}
 	cassClusters.Informer().AddEventHandler(
 		&controllers.QueuingEventHandler{Queue: queue},
@@ -165,6 +169,10 @@ func NewCassandra(
 // Run is the main event loop
 func (e *CassandraController) Run(workers int, stopCh <-chan struct{}) error {
 	glog.Infof("Starting Cassandra controller")
+
+	if features.Enabled(e.features, features.Example) {
+		glog.Infof("Example feature flag enabled")
+	}
 
 	if !cache.WaitForCacheSync(
 		stopCh,
@@ -333,6 +341,7 @@ func CassandraControllerFromContext(ctx *controllers.Context) *CassandraControll
 		ctx.KubeSharedInformerFactory.Rbac().V1beta1().Roles(),
 		ctx.KubeSharedInformerFactory.Rbac().V1beta1().RoleBindings(),
 		ctx.Recorder,
+		ctx.Features,
 	)
 }
 

@@ -117,6 +117,7 @@ func buildControllerContext(opts *options.ControllerOptions) (*controllers.Conte
 		KubeSharedInformerFactory: kubeSharedInformerFactory,
 		SharedInformerFactory:     sharedInformerFactory,
 		Namespace:                 opts.Namespace,
+		Features:                  opts.Features,
 	}, kubeCfg, nil
 }
 
