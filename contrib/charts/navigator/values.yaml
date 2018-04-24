@@ -22,7 +22,7 @@ apiserver:
   # serviceAccount: "apiserver-svc-acct"
   image:
     repository: quay.io/jetstack/navigator-apiserver
-    tag: v0.1.0-alpha.1
+    tag: v0.1.0
     pullPolicy: Always
   logLevel: 2
 
@@ -42,7 +42,7 @@ controller:
   # serviceAccount: "controller-svc-acct"
   image:
     repository: quay.io/jetstack/navigator-controller
-    tag: v0.1.0-alpha.1
+    tag: v0.1.0
     pullPolicy: Always
   logLevel: 2
 

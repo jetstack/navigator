@@ -13,7 +13,7 @@ spec:
 
   pilotImage:
     repository: quay.io/jetstack/navigator-pilot-elasticsearch
-    tag: v0.1.0-alpha.1
+    tag: v0.1.0
     pullPolicy: Always
 
   nodePools:
