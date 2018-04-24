@@ -227,4 +227,13 @@ Scale Out
 
 When you first create a cluster or when you increment the ``CassandraCluster.Spec.NodePools[i].ReplicaCount``,
 Navigator will add C* nodes, one at a time, until the desired number of nodes is reached.
+
+.. note::
+
+   Navigator adds C* Nodes in series (one-at-a-time)
+   and it configures all C* nodes with `auto_bootstrap: true <https://docs.datastax.com/en/cassandra/3.0/cassandra/configuration/configCassandra_yaml.html#configCassandra_yaml__auto_bootstrap>`_.
+   These settings are chosen based on current best practice for Cassandra v3, described in the the following documents:
+   `Bootstrapping Apache Cassandra Nodes <http://thelastpickle.com/blog/2017/05/23/auto-bootstrapping-part1.html>`_
+   and `Best way to add multiple nodes to existing cassandra cluster <https://stackoverflow.com/questions/37283424/best-way-to-add-multiple-nodes-to-existing-cassandra-cluster>`_.
+
 You can look at ``CassandraCluster.Status.NodePools[<nodepoolname>].ReadyReplicas`` to see the current number of healthy C* nodes in each ``nodepool``.
