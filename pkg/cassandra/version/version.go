@@ -21,6 +21,8 @@ import (
 // This also fixes the missing Patch number and stores the version internally as a semver.
 // It also keeps a reference to the original version string so that we can report that in our API.
 // So that the version reported in our API matches the version that an administrator expects.
+//
+// +k8s:deepcopy-gen=true
 type Version struct {
 	versionString string
 	semver        *semver.Version
@@ -72,3 +74,8 @@ func (v Version) MarshalJSON() ([]byte, error) {
 }
 
 var _ json.Marshaler = &Version{}
+
+// DeepCopy returns a deep-copy of the Version value.
+func (v Version) DeepCopy() Version {
+	return *New(v.String())
+}

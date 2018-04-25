@@ -185,7 +185,7 @@ func (in *CassandraClusterSpec) DeepCopyInto(out *CassandraClusterSpec) {
 			**out = **in
 		}
 	}
-	out.Version = in.Version
+	out.Version = in.Version.DeepCopy()
 	return
 }
 
@@ -231,7 +231,7 @@ func (in *CassandraPilotStatus) DeepCopyInto(out *CassandraPilotStatus) {
 			*out = nil
 		} else {
 			*out = new(version.Version)
-			**out = **in
+			**out = (*in).DeepCopy()
 		}
 	}
 	return
