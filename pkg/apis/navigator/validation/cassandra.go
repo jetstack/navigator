@@ -44,6 +44,20 @@ func ValidateCassandraClusterUpdate(old, new *navigator.CassandraCluster) field.
 
 	fldPath := field.NewPath("spec")
 
+	if !new.Spec.Version.Equal(&old.Spec.Version) {
+		allErrs = append(
+			allErrs,
+			field.Forbidden(
+				fldPath.Child("version"),
+				fmt.Sprintf(
+					"cannot change the version of an existing cluster. "+
+						"old version: %s, new version: %s",
+					old.Spec.Version, new.Spec.Version,
+				),
+			),
+		)
+	}
+
 	npPath := fldPath.Child("nodePools")
 	for i, newNp := range new.Spec.NodePools {
 		idxPath := npPath.Index(i)

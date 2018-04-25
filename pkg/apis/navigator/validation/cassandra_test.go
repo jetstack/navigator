@@ -31,6 +31,8 @@ var (
 			},
 		},
 	}
+	lowerVersion  = version.New("3.11.1")
+	higherVersion = version.New("3.12")
 )
 
 func TestValidateCassandraCluster(t *testing.T) {
@@ -147,6 +149,15 @@ func TestValidateCassandraClusterUpdate(t *testing.T) {
 		return c
 	}
 
+	setVersion := func(
+		c *navigator.CassandraCluster,
+		v *version.Version,
+	) *navigator.CassandraCluster {
+		c = c.DeepCopy()
+		c.Spec.Version = *v
+		return c
+	}
+
 	tests := map[string]testT{
 		"unchanged cluster": {
 			old: validCassCluster,
@@ -165,6 +176,16 @@ func TestValidateCassandraClusterUpdate(t *testing.T) {
 		"enable persistence config": {
 			old: setPersistence(validCassCluster, &navigator.PersistenceConfig{Size: resource.MustParse("10Gi")}),
 			new: validCassCluster,
+		},
+		"downgrade not allowed": {
+			old:           setVersion(validCassCluster, lowerVersion),
+			new:           validCassCluster,
+			errorExpected: true,
+		},
+		"upgrade not allowed": {
+			old:           validCassCluster,
+			new:           setVersion(validCassCluster, higherVersion),
+			errorExpected: true,
 		},
 	}
 
