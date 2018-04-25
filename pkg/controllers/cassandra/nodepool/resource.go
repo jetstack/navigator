@@ -56,7 +56,7 @@ func StatefulSetForCluster(
 			UpdateStrategy: apps.StatefulSetUpdateStrategy{
 				Type: apps.RollingUpdateStatefulSetStrategyType,
 			},
-			PodManagementPolicy: apps.ParallelPodManagement,
+			PodManagementPolicy: apps.OrderedReadyPodManagement,
 			Template: apiv1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: nodePoolLabels,
