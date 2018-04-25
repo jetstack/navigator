@@ -76,6 +76,11 @@ func (v Version) MarshalJSON() ([]byte, error) {
 var _ json.Marshaler = &Version{}
 
 // DeepCopy returns a deep-copy of the Version value.
+// If the underlying semver is a nil pointer, assume that the zero value is being copied,
+// and return that.
 func (v Version) DeepCopy() Version {
+	if v.semver == nil {
+		return Version{}
+	}
 	return *New(v.String())
 }

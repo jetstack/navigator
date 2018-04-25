@@ -93,3 +93,18 @@ func TestUnmarshalJSON(t *testing.T) {
 		)
 	}
 }
+
+func TestDeepCopy(t *testing.T) {
+	t.Run(
+		"zero value",
+		func(t *testing.T) {
+			t.Log(version.Version{}.DeepCopy())
+		},
+	)
+	t.Run(
+		"validated version",
+		func(t *testing.T) {
+			t.Log(version.New("3.11.2").DeepCopy())
+		},
+	)
+}
