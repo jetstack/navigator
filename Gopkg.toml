@@ -52,3 +52,7 @@ required = [
 [[override]]
   name = "k8s.io/gengo"
   revision = "b58fc7edb82e0c6ffc9b8aef61813c7261b785d4"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/hashicorp/go-version"
