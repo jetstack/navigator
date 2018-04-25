@@ -237,3 +237,8 @@ Navigator will add C* nodes, one at a time, until the desired number of nodes is
    and `Best way to add multiple nodes to existing cassandra cluster <https://stackoverflow.com/questions/37283424/best-way-to-add-multiple-nodes-to-existing-cassandra-cluster>`_.
 
 You can look at ``CassandraCluster.Status.NodePools[<nodepoolname>].ReadyReplicas`` to see the current number of healthy C* nodes in each ``nodepool``.
+
+Supported Versions
+------------------
+
+Navigator only supports Cassandra major version 3.
