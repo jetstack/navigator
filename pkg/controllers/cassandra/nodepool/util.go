@@ -21,7 +21,7 @@ const defaultCassandraImagePullPolicy = corev1.PullIfNotPresent
 func defaultCassandraImageForVersion(v version.Version) *v1alpha1.ImageSpec {
 	return &v1alpha1.ImageSpec{
 		Repository: defaultCassandraImageRepository,
-		Tag:        v.Semver(),
+		Tag:        v.Semver().String(),
 		PullPolicy: defaultCassandraImagePullPolicy,
 	}
 }

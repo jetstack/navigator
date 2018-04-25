@@ -19,7 +19,7 @@ var (
 			Namespace: "bar",
 		},
 		Spec: navigator.CassandraClusterSpec{
-			Version: *version.New("5.6.2"),
+			Version: *version.New("3.11.2"),
 			Image:   &validImageSpec,
 			NavigatorClusterConfig: validNavigatorClusterConfig,
 			NodePools: []navigator.CassandraClusterNodePool{
@@ -39,9 +39,26 @@ func TestValidateCassandraCluster(t *testing.T) {
 		errorExpected bool
 	}
 
+	setVersion := func(
+		c *navigator.CassandraCluster,
+		v *version.Version,
+	) *navigator.CassandraCluster {
+		c = c.DeepCopy()
+		c.Spec.Version = *v
+		return c
+	}
+
 	tests := map[string]testT{
 		"valid cluster": {
 			cluster: validCassCluster,
+		},
+		"version too low": {
+			cluster:       setVersion(validCassCluster, version.New("2.0.0")),
+			errorExpected: true,
+		},
+		"version too high": {
+			cluster:       setVersion(validCassCluster, version.New("4.0.0")),
+			errorExpected: true,
 		},
 	}
 
