@@ -17,8 +17,8 @@ ${CODEGEN_PKG}/generate-internal-groups.sh all \
 
 echo "Generating other deepcopy funcs"
 ${GOPATH}/bin/deepcopy-gen \
-         --input-dirs github.com/jetstack/navigator/pkg/cassandra/version \
+         --input-dirs github.com/jetstack/navigator/pkg/api/version \
          -O zz_generated.deepcopy \
-         --bounding-dirs github.com/jetstack/navigator/pkg/cassandra/version \
+         --bounding-dirs github.com/jetstack/navigator/pkg/api/version \
          --output-base "${GOPATH}/src/" \
          --go-header-file ${SCRIPT_ROOT}/hack/boilerplate.go.txt

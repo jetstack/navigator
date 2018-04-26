@@ -22,7 +22,7 @@ package v1alpha1
 
 import (
 	semver "github.com/coreos/go-semver/semver"
-	version "github.com/jetstack/navigator/pkg/cassandra/version"
+	version "github.com/jetstack/navigator/pkg/api/version"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 

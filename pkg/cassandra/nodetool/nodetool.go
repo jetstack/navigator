@@ -8,8 +8,8 @@ import (
 	"github.com/pborman/uuid"
 	"k8s.io/apimachinery/pkg/util/sets"
 
+	"github.com/jetstack/navigator/pkg/api/version"
 	"github.com/jetstack/navigator/pkg/cassandra/nodetool/client"
-	"github.com/jetstack/navigator/pkg/cassandra/version"
 )
 
 // NodeState represents the cluster membership state of a C* node.

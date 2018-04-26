@@ -1,8 +1,8 @@
 package testing
 
 import (
+	"github.com/jetstack/navigator/pkg/api/version"
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
-	"github.com/jetstack/navigator/pkg/cassandra/version"
 	"github.com/jetstack/navigator/pkg/util/ptr"
 )
 

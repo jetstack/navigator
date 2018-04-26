@@ -3,7 +3,7 @@ package version_test
 import (
 	"testing"
 
-	"github.com/jetstack/navigator/pkg/cassandra/version"
+	"github.com/jetstack/navigator/pkg/api/version"
 )
 
 func TestUnmarshalJSON(t *testing.T) {

@@ -9,7 +9,7 @@ import (
 
 	"github.com/pborman/uuid"
 
-	"github.com/jetstack/navigator/pkg/cassandra/version"
+	"github.com/jetstack/navigator/pkg/api/version"
 )
 
 const (
