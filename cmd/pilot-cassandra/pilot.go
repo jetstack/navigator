@@ -13,8 +13,14 @@ func NewCommandStartPilot(out, errOut io.Writer, stopCh <-chan struct{}) *cobra.
 	o := v3.NewOptions(out, errOut)
 
 	cmd := &cobra.Command{
-		Short: "Launch a Cassandra Pilot",
-		Long:  "Launch a Cassandra Pilot",
+		Use:   "navigator-pilot-cassandra",
+		Short: "Launch a Navigator Cassandra Pilot",
+		Long: `
+Launch a Navigator Cassandra Pilot.
+
+Navigator is a Kubernetes extension for managing common stateful services on Kubernetes.
+Documentation is available at https://navigator-dbaas.readthedocs.io.
+`,
 		RunE: func(c *cobra.Command, args []string) error {
 			if err := o.Complete(); err != nil {
 				return err

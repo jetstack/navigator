@@ -67,13 +67,19 @@ func NewNavigatorServerOptions(out, errOut io.Writer) *NavigatorServerOptions {
 	return o
 }
 
-// NewCommandStartMaster provides a CLI handler for 'start master' command
+// NewCommandStartNavigatorServer provides a CLI handler for the 'navigator-apiserver' command
 func NewCommandStartNavigatorServer(out, errOut io.Writer, stopCh <-chan struct{}) *cobra.Command {
 	o := NewNavigatorServerOptions(out, errOut)
 
 	cmd := &cobra.Command{
+		Use:   "navigator-apiserver",
 		Short: "Launch a Navigator API server",
-		Long:  "Launch a Navigator API server",
+		Long: `
+Launch a Navigator API server.
+
+Navigator is a Kubernetes extension for managing common stateful services on Kubernetes.
+Documentation is available at https://navigator-dbaas.readthedocs.io.
+`,
 		RunE: func(c *cobra.Command, args []string) error {
 			if err := o.Complete(); err != nil {
 				return err
