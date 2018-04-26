@@ -32,19 +32,19 @@ func NewNavigatorControllerOptions(out, errOut io.Writer) *NavigatorControllerOp
 	return o
 }
 
-// NewCommandStartCertManagerController is a CLI handler for starting cert-manager
+// NewCommandStartNavigatorController provides a CLI handler for the 'navigator-controller' command
 func NewCommandStartNavigatorController(out, errOut io.Writer, stopCh <-chan struct{}) *cobra.Command {
 	o := NewNavigatorControllerOptions(out, errOut)
 
 	cmd := &cobra.Command{
-		Use:   "cert-manager-controller",
-		Short: "Automated TLS controller for Kubernetes",
+		Use:   "navigator-controller",
+		Short: "Launch a Navigator controller",
 		Long: `
-cert-manager is a Kubernetes addon to automate the management and issuance of
-TLS certificates from various issuing sources.
+Launch a Navigator controller.
 
-It will ensure certificates are valid and up to date periodically, and attempt
-to renew certificates at an appropriate time before expiry.`,
+Navigator is a Kubernetes extension for managing common stateful services on Kubernetes.
+Documentation is available at https://navigator-dbaas.readthedocs.io.
+`,
 
 		// TODO: Refactor this function from this package
 		Run: func(cmd *cobra.Command, args []string) {

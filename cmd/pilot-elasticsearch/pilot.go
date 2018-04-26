@@ -13,8 +13,14 @@ func NewCommandStartPilot(out, errOut io.Writer, stopCh <-chan struct{}) *cobra.
 	o := v5.NewOptions(out, errOut)
 
 	cmd := &cobra.Command{
-		Short: "Launch an Elasticsearch Pilot",
-		Long:  "Launch an Elasticsearch Pilot",
+		Use:   "navigator-pilot-elasticsearch",
+		Short: "Launch a Navigator Elasticsearch Pilot",
+		Long: `
+Launch a Navigator Elasticsearch Pilot.
+
+Navigator is a Kubernetes extension for managing common stateful services on Kubernetes.
+Documentation is available at https://navigator-dbaas.readthedocs.io.
+`,
 		RunE: func(c *cobra.Command, args []string) error {
 			if err := o.Complete(); err != nil {
 				return err
