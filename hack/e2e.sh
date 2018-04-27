@@ -53,7 +53,8 @@ function debug_navigator_start() {
 function navigator_install() {
     echo "Installing navigator..."
     helm delete --purge "${RELEASE_NAME}" || true
-    kube_delete_namespace_and_wait "${NAVIGATOR_NAMESPACE}"
+    kubectl delete --now namespace "${NAVIGATOR_NAMESPACE}" || true
+    retry not kubectl get namespace "${NAVIGATOR_NAMESPACE}"
     kube_create_namespace_with_quota "${NAVIGATOR_NAMESPACE}"
     if helm --debug install \
             --namespace "${NAVIGATOR_NAMESPACE}" \
@@ -113,12 +114,11 @@ if ! retry navigator_ready; then
     exit 1
 fi
 
-FAILURE_COUNT=0
 TEST_ID="$(date +%s)-${RANDOM}"
 
 function fail_test() {
-    FAILURE_COUNT=$(($FAILURE_COUNT+1))
     echo "TEST FAILURE: $1"
+    exit 1
 }
 
 function test_general() {
@@ -141,9 +141,6 @@ function test_general() {
 
 GENERAL_TEST_NS="test-general-${TEST_ID}"
 test_general "${GENERAL_TEST_NS}"
-if [ "${FAILURE_COUNT}" -gt "0" ]; then
-    exit 1
-fi
 kube_delete_namespace_and_wait "${GENERAL_TEST_NS}"
 
 function test_elasticsearchcluster() {
@@ -216,9 +213,6 @@ function test_elasticsearchcluster() {
 if [[ "test_elasticsearchcluster" = "${TEST_PREFIX}"* ]]; then
     ES_TEST_NS="test-elasticsearchcluster-${TEST_ID}"
     test_elasticsearchcluster "${ES_TEST_NS}"
-    if [ "${FAILURE_COUNT}" -gt "0" ]; then
-        exit 1
-    fi
     kube_delete_namespace_and_wait "${ES_TEST_NS}"
 fi
 
@@ -423,8 +417,5 @@ if [[ "test_cassandracluster" = "${TEST_PREFIX}"* ]]; then
     done
 
     test_cassandracluster "${CASS_TEST_NS}"
-    if [ "${FAILURE_COUNT}" -gt "0" ]; then
-        exit 1
-    fi
     kube_delete_namespace_and_wait "${CASS_TEST_NS}"
 fi
