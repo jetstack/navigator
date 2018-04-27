@@ -24,12 +24,8 @@ RELEASE_NAME="nav-e2e"
 
 ROOT_DIR="$(git rev-parse --show-toplevel)"
 SCRIPT_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)"
-CONFIG_DIR=$(mktemp -d -t navigator-e2e.XXXXXXXXX)
-mkdir -p $CONFIG_DIR
-CERT_DIR="$CONFIG_DIR/certs"
-mkdir -p $CERT_DIR
-TEST_DIR="$CONFIG_DIR/tmp"
-mkdir -p $TEST_DIR
+ARTIFACTS_DIR="${PWD}/_artifacts"
+mkdir -p "${ARTIFACTS_DIR}"
 
 source "${SCRIPT_DIR}/libe2e.sh"
 
@@ -39,7 +35,7 @@ source "${SCRIPT_DIR}/libe2e.sh"
 : ${CHART_VALUES_CASSANDRA:="${SCRIPT_DIR}/testdata/values_cassandra.yaml"}
 
 # Save the cluster logs when the script exits (success or failure)
-trap "dump_debug_logs ${PWD}/_artifacts/dump_debug_logs" EXIT
+trap "dump_debug_logs ${ARTIFACTS_DIR}/dump_debug_logs" EXIT
 
 helm delete --purge "${RELEASE_NAME}" || true
 
@@ -344,7 +340,19 @@ function test_cassandracluster() {
         fail_test "Cassandra data was lost"
     fi
 
-    # Increment the replica count
+    echo "Collecting events during scale out..."
+    # Get names of nodepool pods before the scale out (line separated)
+    local original_pods_file="${ARTIFACTS_DIR}/test_cassandra.scale_out_original_pods"
+    kubectl --namespace "${namespace}" get pods \
+            --selector="navigator.jetstack.io/cassandra-cluster-name=${CASS_NAME}" \
+            --output='jsonpath={range .items[*]}{.metadata.name}{"\n"}{end}' \
+            > "${original_pods_file}"
+
+    local events_file="${ARTIFACTS_DIR}/test_cassandra.scale_out_events"
+    kubectl --namespace "${namespace}" get events --watch-only > "${events_file}" &
+    local events_pid="${!}"
+
+    echo "Incrementing the replica count..."
     export CASS_REPLICAS=2
     kubectl apply \
         --namespace "${namespace}" \
@@ -368,6 +376,14 @@ function test_cassandracluster() {
     then
         fail_test "Second cassandra node did not become ready"
     fi
+
+    echo "Checking original pods for 'Unhealthy' events during scale out..."
+    kill "${events_pid}"
+    if fgrep --file "${original_pods_file}" "${events_file}" | fgrep "Unhealthy"
+    then
+        fail_test "original pods were unhealthy during the scale out"
+    fi
+    rm -f "${events_file}" "${original_pods_file}"
 
     # TODO: A better test would be to query the endpoints and check that only
     # the `-0` pods are included. E.g.
