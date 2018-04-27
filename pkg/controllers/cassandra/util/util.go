@@ -10,6 +10,8 @@ import (
 	"k8s.io/apimachinery/pkg/selection"
 	appslisters "k8s.io/client-go/listers/apps/v1beta1"
 
+	"github.com/pkg/errors"
+
 	"github.com/jetstack/navigator/pkg/apis/navigator"
 	v1alpha1 "github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 )
@@ -64,6 +66,28 @@ func SelectorForCluster(c *v1alpha1.CassandraCluster) (labels.Selector, error) {
 		return nil, err
 	}
 	return labels.NewSelector().Add(*clusterNameReq), nil
+}
+
+// SelectorForClusterNodePools creates a selector for objects that have:
+// 1. ClusterName label matching the supplied cluster, and
+// 2. NodePoolName label (any value)
+//
+// This is used to select only StatefulSets that correspond to NodePools.
+func SelectorForClusterNodePools(c *v1alpha1.CassandraCluster) (labels.Selector, error) {
+	selector, err := SelectorForCluster(c)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to create base selector")
+	}
+	nodePoolNameExistsRequirement, err := labels.NewRequirement(
+		v1alpha1.CassandraNodePoolNameLabel,
+		selection.Exists,
+		nil, // An Exists selector must not have a value
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to create nodepool label requirement")
+	}
+	selector = selector.Add(*nodePoolNameExistsRequirement)
+	return selector, nil
 }
 
 func NodePoolLabels(
