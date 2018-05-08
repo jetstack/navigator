@@ -50,14 +50,18 @@ container_pull(
 )
 
 # pilot-cassandra http archives
-
-http_archive(
-    name = "pilot_cassandra_jar_jolokia",
-    url = "https://search.maven.org/remotecontent?filepath=org/jolokia/jolokia-jvm/1.4.0/jolokia-jvm-1.4.0-agent.jar",
+http_file(
+    name = "cassandra_jolokia",
+    url = "http://central.maven.org/maven2/org/jolokia/jolokia-jvm/1.4.0/jolokia-jvm-1.4.0-agent.jar",
     sha256 = "90089913314f15a9714d762814c4d5eb34119f84c836d63c5f7219bb36add1e3",
 )
-http_archive(
-    name = "pilot_cassandra_jar_jmx",
+http_file(
+    name = "cassandra_prometheus_jmx",
     url = "https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/0.3.0/jmx_prometheus_javaagent-0.3.0.jar",
-    sha256 = "90089913314f15a9714d762814c4d5eb34119f84c836d63c5f7219bb36add1e3",
+    sha256 = "3978000e8e3d7d66de5466d733dcbfff000526da965b50adf19b240f8f064976",
+)
+http_file(
+    name = "cassandra_seed_provider",
+    url = "https://github.com/jetstack/cassandra-kubernetes-seed-provider/releases/download/0.1.0/libcassandra-kubernetes-seed-provider.jar",
+    sha256 = "c1953d10410e8f9bf7bf8b81e247c1a5fc6531e894ed4a9011a559c5b38827bd",
 )
