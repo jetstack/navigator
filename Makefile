@@ -49,7 +49,7 @@ verify: .hack_verify dep_verify go_verify helm_verify
 .hack_verify:
 	@echo Running repo-infra verify scripts
 	@echo Running href checker:
-	@${HACK_DIR}/verify-links.sh
+	@${HACK_DIR}/verify-links.sh -x
 	@echo Running errexit checker:
 	@${HACK_DIR}/verify-errexit.sh
 	@echo Running generated client checker:
