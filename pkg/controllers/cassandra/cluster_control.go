@@ -103,7 +103,6 @@ func (e *defaultCassandraClusterControl) syncPausedConditions(c *v1alpha1.Cassan
 }
 
 func (e *defaultCassandraClusterControl) Sync(c *v1alpha1.CassandraCluster) error {
-	c = c.DeepCopy()
 	var err error
 
 	err = e.syncPausedConditions(c)
