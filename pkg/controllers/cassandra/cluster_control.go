@@ -107,7 +107,7 @@ func (e *defaultCassandraClusterControl) checkPausedConditions(c *v1alpha1.Cassa
 	}
 
 	var err error
-	c, err = e.state.NavigatorClientset.NavigatorV1alpha1().CassandraClusters(c.Namespace).UpdateStatus(c)
+	_, err = e.state.NavigatorClientset.NavigatorV1alpha1().CassandraClusters(c.Namespace).UpdateStatus(c)
 	return err
 }
 
