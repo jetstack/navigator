@@ -87,7 +87,7 @@ func (e *defaultCassandraClusterControl) checkPausedConditions(c *v1alpha1.Cassa
 	if c.Spec.Paused && !pausedCondExists {
 		c.Status.UpdateStatusCondition(
 			v1alpha1.ClusterConditionProgressing,
-			v1alpha1.ConditionUnknown,
+			v1alpha1.ConditionFalse,
 			v1alpha1.PausedClusterReason,
 			"Cluster is paused",
 		)
@@ -95,7 +95,7 @@ func (e *defaultCassandraClusterControl) checkPausedConditions(c *v1alpha1.Cassa
 	} else if !c.Spec.Paused && pausedCondExists {
 		c.Status.UpdateStatusCondition(
 			v1alpha1.ClusterConditionProgressing,
-			v1alpha1.ConditionUnknown,
+			v1alpha1.ConditionTrue,
 			v1alpha1.ResumedClusterReason,
 			"Cluster is resumed",
 		)
