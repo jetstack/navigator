@@ -100,12 +100,11 @@ func NewController(
 	}
 }
 
-// checkPausedConditions checks if the given cluster is paused or not and adds an appropriate condition.
-func (e *defaultElasticsearchClusterControl) checkPausedConditions(c *v1alpha1.ElasticsearchCluster) error {
+// syncPausedConditions checks if the given cluster is paused or not and adds an appropriate condition.
+func (e *defaultElasticsearchClusterControl) syncPausedConditions(c *v1alpha1.ElasticsearchCluster) error {
 	cond := c.Status.GetStatusCondition(v1alpha1.ClusterConditionProgressing)
 	pausedCondExists := cond != nil && cond.Reason == v1alpha1.PausedClusterReason
 
-	needsUpdate := false
 	if c.Spec.Paused && !pausedCondExists {
 		c.Status.UpdateStatusCondition(
 			v1alpha1.ClusterConditionProgressing,
@@ -113,7 +112,6 @@ func (e *defaultElasticsearchClusterControl) checkPausedConditions(c *v1alpha1.E
 			v1alpha1.PausedClusterReason,
 			"Cluster is paused",
 		)
-		needsUpdate = true
 	} else if !c.Spec.Paused && pausedCondExists {
 		c.Status.UpdateStatusCondition(
 			v1alpha1.ClusterConditionProgressing,
@@ -121,23 +119,15 @@ func (e *defaultElasticsearchClusterControl) checkPausedConditions(c *v1alpha1.E
 			v1alpha1.ResumedClusterReason,
 			"Cluster is resumed",
 		)
-		needsUpdate = true
 	}
-
-	if !needsUpdate {
-		return nil
-	}
-
-	var err error
-	_, err = e.navigatorClient.NavigatorV1alpha1().ElasticsearchClusters(c.Namespace).UpdateStatus(c)
-	return err
+	return nil
 }
 
 func (e *defaultElasticsearchClusterControl) Sync(c *v1alpha1.ElasticsearchCluster) (v1alpha1.ElasticsearchClusterStatus, error) {
 	c = c.DeepCopy()
 	var err error
 
-	err = e.checkPausedConditions(c)
+	err = e.syncPausedConditions(c)
 	if err != nil {
 		return c.Status, err
 	}
