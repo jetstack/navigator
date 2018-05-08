@@ -1,0 +1,63 @@
+# Bazel dependencies
+http_archive(
+    name = "io_bazel_rules_go",
+    url = "https://github.com/bazelbuild/rules_go/releases/download/0.11.1/rules_go-0.11.1.tar.gz",
+    sha256 = "1868ff68d6079e31b2f09b828b58d62e57ca8e9636edff699247c9108518570b",
+)
+http_archive(
+    name = "bazel_gazelle",
+    url = "https://github.com/bazelbuild/bazel-gazelle/releases/download/0.11.0/bazel-gazelle-0.11.0.tar.gz",
+    sha256 = "92a3c59734dad2ef85dc731dbcb2bc23c4568cded79d4b87ebccd787eb89e8d0",
+)
+git_repository(
+    name = "io_bazel_rules_docker",
+    remote = "https://github.com/bazelbuild/rules_docker.git",
+    tag = "v0.4.0",
+)
+
+# Load rules_go
+load(
+    "@io_bazel_rules_go//go:def.bzl",
+    "go_rules_dependencies",
+    "go_register_toolchains",
+)
+go_rules_dependencies()
+go_register_toolchains()
+
+# Load gazelle
+load(
+    "@bazel_gazelle//:deps.bzl",
+    "gazelle_dependencies",
+)
+gazelle_dependencies()
+
+# Load rules_docker
+load(
+    "@io_bazel_rules_docker//container:container.bzl",
+    "container_pull",
+    container_repositories = "repositories",
+)
+# This is NOT needed when going through the language lang_image
+# "repositories" function(s).
+container_repositories()
+
+# Provide base alpine image
+container_pull(
+    name = "alpine",
+    registry = "index.docker.io",
+    repository = "library/alpine",
+    tag = "3.5",
+)
+
+# pilot-cassandra http archives
+
+http_archive(
+    name = "pilot_cassandra_jar_jolokia",
+    url = "https://search.maven.org/remotecontent?filepath=org/jolokia/jolokia-jvm/1.4.0/jolokia-jvm-1.4.0-agent.jar",
+    sha256 = "90089913314f15a9714d762814c4d5eb34119f84c836d63c5f7219bb36add1e3",
+)
+http_archive(
+    name = "pilot_cassandra_jar_jmx",
+    url = "https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/0.3.0/jmx_prometheus_javaagent-0.3.0.jar",
+    sha256 = "90089913314f15a9714d762814c4d5eb34119f84c836d63c5f7219bb36add1e3",
+)

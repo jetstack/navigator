@@ -67,7 +67,12 @@ dep_verify:
 DOCKER_BUILD_TARGETS = $(addprefix docker_build_, $(CMDS))
 $(DOCKER_BUILD_TARGETS):
 	$(eval DOCKER_BUILD_CMD := $(subst docker_build_,,$@))
-	docker build -t $(REGISTRY)/$(IMAGE_NAME)-$(DOCKER_BUILD_CMD):$(BUILD_TAG) -f Dockerfile.$(DOCKER_BUILD_CMD) .
+	bazel run \
+		--define STABLE_DOCKER_TAG=$(BUILD_TAG) \
+		--features static \
+		--features pure \
+		//:$(DOCKER_BUILD_CMD)
+
 docker_build: $(DOCKER_BUILD_TARGETS)
 
 DOCKER_PUSH_TARGETS = $(addprefix docker_push_, $(CMDS))
@@ -85,12 +90,20 @@ docker_push: $(DOCKER_PUSH_TARGETS)
 go_verify: go_fmt go_test go_build
 
 $(CMDS):
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build $(GOFLAGS) -tags netgo -ldflags '-w' -o navigator-$@_linux_amd64 ./cmd/$@
+	bazel build \
+		--features static \
+		--features pure \
+		//cmd/$@
 
 go_build: $(CMDS)
 
 go_test:
-	go test -v $$(go list ./... | grep -v '/vendor/')
+	bazel test \
+		--features=race \
+		//cmd/... \
+		//pkg/... \
+		//internal/... \
+		//plugin/...
 
 go_fmt:
 	./hack/verify-lint.sh
