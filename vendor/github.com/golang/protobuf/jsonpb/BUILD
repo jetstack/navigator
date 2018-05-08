@@ -1,0 +1,30 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["jsonpb.go"],
+    importmap = "vendor/github.com/golang/protobuf/jsonpb",
+    importpath = "github.com/golang/protobuf/jsonpb",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/github.com/golang/protobuf/proto:go_default_library",
+        "@io_bazel_rules_go//proto/wkt:struct_go_proto",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["jsonpb_test.go"],
+    embed = [":go_default_library"],
+    deps = [
+        "//vendor/github.com/golang/protobuf/jsonpb/jsonpb_test_proto:go_default_library",
+        "//vendor/github.com/golang/protobuf/proto:go_default_library",
+        "//vendor/github.com/golang/protobuf/proto/proto3_proto:go_default_library",
+        "//vendor/github.com/golang/protobuf/ptypes:go_default_library",
+        "@io_bazel_rules_go//proto/wkt:any_go_proto",
+        "@io_bazel_rules_go//proto/wkt:duration_go_proto",
+        "@io_bazel_rules_go//proto/wkt:struct_go_proto",
+        "@io_bazel_rules_go//proto/wkt:timestamp_go_proto",
+        "@io_bazel_rules_go//proto/wkt:wrappers_go_proto",
+    ],
+)

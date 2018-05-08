@@ -10,6 +10,7 @@ go_library(
         "types_swagger_doc_generated.go",
         "zz_generated.deepcopy.go",
     ],
+    importmap = "vendor/k8s.io/api/apps/v1",
     importpath = "k8s.io/api/apps/v1",
     visibility = ["//visibility:public"],
     deps = [
@@ -20,24 +21,4 @@ go_library(
         "//vendor/k8s.io/apimachinery/pkg/runtime/schema:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/util/intstr:go_default_library",
     ],
-)
-
-filegroup(
-    name = "go_default_library_protos",
-    srcs = ["generated.proto"],
-    visibility = ["//visibility:public"],
-)
-
-filegroup(
-    name = "package-srcs",
-    srcs = glob(["**"]),
-    tags = ["automanaged"],
-    visibility = ["//visibility:private"],
-)
-
-filegroup(
-    name = "all-srcs",
-    srcs = [":package-srcs"],
-    tags = ["automanaged"],
-    visibility = ["//visibility:public"],
 )

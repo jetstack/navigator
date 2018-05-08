@@ -1,0 +1,49 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "clone.go",
+        "decode.go",
+        "encode.go",
+        "equal.go",
+        "extensions.go",
+        "lib.go",
+        "message_set.go",
+        "pointer_unsafe.go",
+        "properties.go",
+        "text.go",
+        "text_parser.go",
+    ],
+    importmap = "vendor/github.com/golang/protobuf/proto",
+    importpath = "github.com/golang/protobuf/proto",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "all_test.go",
+        "any_test.go",
+        "clone_test.go",
+        "decode_test.go",
+        "encode_test.go",
+        "equal_test.go",
+        "extensions_test.go",
+        "map_test.go",
+        "message_set_test.go",
+        "proto3_test.go",
+        "size2_test.go",
+        "size_test.go",
+        "text_parser_test.go",
+        "text_test.go",
+    ],
+    embed = [":go_default_library"],
+    deps = [
+        "//vendor/github.com/golang/protobuf/proto/proto3_proto:go_default_library",
+        "//vendor/github.com/golang/protobuf/proto/testdata:go_default_library",
+        "//vendor/github.com/golang/protobuf/ptypes:go_default_library",
+        "//vendor/golang.org/x/sync/errgroup:go_default_library",
+        "@io_bazel_rules_go//proto/wkt:any_go_proto",
+    ],
+)

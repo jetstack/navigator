@@ -7,6 +7,7 @@ go_library(
         "conversion.go",
         "doc.go",
     ],
+    importmap = "vendor/k8s.io/apiserver/pkg/admission/plugin/webhook/versioned",
     importpath = "k8s.io/apiserver/pkg/admission/plugin/webhook/versioned",
     visibility = ["//visibility:public"],
     deps = [
@@ -19,8 +20,7 @@ go_library(
 go_test(
     name = "go_default_test",
     srcs = ["conversion_test.go"],
-    importpath = "k8s.io/apiserver/pkg/admission/plugin/webhook/versioned",
-    library = ":go_default_library",
+    embed = [":go_default_library"],
     deps = [
         "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1/unstructured:go_default_library",
@@ -30,18 +30,4 @@ go_test(
         "//vendor/k8s.io/apiserver/pkg/apis/example/v1:go_default_library",
         "//vendor/k8s.io/apiserver/pkg/apis/example2/v1:go_default_library",
     ],
-)
-
-filegroup(
-    name = "package-srcs",
-    srcs = glob(["**"]),
-    tags = ["automanaged"],
-    visibility = ["//visibility:private"],
-)
-
-filegroup(
-    name = "all-srcs",
-    srcs = [":package-srcs"],
-    tags = ["automanaged"],
-    visibility = ["//visibility:public"],
 )

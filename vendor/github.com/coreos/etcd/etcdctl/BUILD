@@ -1,0 +1,25 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["main.go"],
+    importmap = "vendor/github.com/coreos/etcd/etcdctl",
+    importpath = "github.com/coreos/etcd/etcdctl",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//vendor/github.com/coreos/etcd/etcdctl/ctlv2:go_default_library",
+        "//vendor/github.com/coreos/etcd/etcdctl/ctlv3:go_default_library",
+    ],
+)
+
+go_binary(
+    name = "etcdctl",
+    embed = [":go_default_library"],
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["main_test.go"],
+    embed = [":go_default_library"],
+)

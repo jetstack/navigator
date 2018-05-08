@@ -8,6 +8,7 @@ go_library(
         "interfaces.go",
         "util.go",
     ],
+    importmap = "vendor/k8s.io/client-go/scale",
     importpath = "k8s.io/client-go/scale",
     visibility = ["//visibility:public"],
     deps = [
@@ -35,8 +36,7 @@ go_test(
         "client_test.go",
         "roundtrip_test.go",
     ],
-    importpath = "k8s.io/client-go/scale",
-    library = ":go_default_library",
+    embed = [":go_default_library"],
     deps = [
         "//vendor/github.com/stretchr/testify/assert:go_default_library",
         "//vendor/k8s.io/api/apps/v1beta1:go_default_library",
@@ -56,22 +56,4 @@ go_test(
         "//vendor/k8s.io/client-go/rest/fake:go_default_library",
         "//vendor/k8s.io/client-go/testing:go_default_library",
     ],
-)
-
-filegroup(
-    name = "package-srcs",
-    srcs = glob(["**"]),
-    tags = ["automanaged"],
-    visibility = ["//visibility:private"],
-)
-
-filegroup(
-    name = "all-srcs",
-    srcs = [
-        ":package-srcs",
-        "//staging/src/k8s.io/client-go/scale/fake:all-srcs",
-        "//staging/src/k8s.io/client-go/scale/scheme:all-srcs",
-    ],
-    tags = ["automanaged"],
-    visibility = ["//visibility:public"],
 )

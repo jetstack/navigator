@@ -1,0 +1,15 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["column.go"],
+    importmap = "vendor/github.com/kr/text/colwriter",
+    importpath = "github.com/kr/text/colwriter",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["column_test.go"],
+    embed = [":go_default_library"],
+)

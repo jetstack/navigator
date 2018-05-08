@@ -6,6 +6,7 @@ go_library(
         "admissionreview.go",
         "doc.go",
     ],
+    importmap = "vendor/k8s.io/apiserver/pkg/admission/plugin/webhook/request",
     importpath = "k8s.io/apiserver/pkg/admission/plugin/webhook/request",
     visibility = ["//visibility:public"],
     deps = [
@@ -16,18 +17,4 @@ go_library(
         "//vendor/k8s.io/apimachinery/pkg/util/uuid:go_default_library",
         "//vendor/k8s.io/apiserver/pkg/admission:go_default_library",
     ],
-)
-
-filegroup(
-    name = "package-srcs",
-    srcs = glob(["**"]),
-    tags = ["automanaged"],
-    visibility = ["//visibility:private"],
-)
-
-filegroup(
-    name = "all-srcs",
-    srcs = [":package-srcs"],
-    tags = ["automanaged"],
-    visibility = ["//visibility:public"],
 )

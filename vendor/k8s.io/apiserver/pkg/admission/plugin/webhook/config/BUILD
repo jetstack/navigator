@@ -8,6 +8,7 @@ go_library(
         "kubeconfig.go",
         "serviceresolver.go",
     ],
+    importmap = "vendor/k8s.io/apiserver/pkg/admission/plugin/webhook/config",
     importpath = "k8s.io/apiserver/pkg/admission/plugin/webhook/config",
     visibility = ["//visibility:public"],
     deps = [
@@ -32,29 +33,11 @@ go_test(
         "authentication_test.go",
         "serviceresolver_test.go",
     ],
-    importpath = "k8s.io/apiserver/pkg/admission/plugin/webhook/config",
-    library = ":go_default_library",
+    embed = [":go_default_library"],
     deps = [
         "//vendor/k8s.io/apimachinery/pkg/api/equality:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/util/diff:go_default_library",
         "//vendor/k8s.io/client-go/rest:go_default_library",
         "//vendor/k8s.io/client-go/tools/clientcmd/api:go_default_library",
     ],
-)
-
-filegroup(
-    name = "package-srcs",
-    srcs = glob(["**"]),
-    tags = ["automanaged"],
-    visibility = ["//visibility:private"],
-)
-
-filegroup(
-    name = "all-srcs",
-    srcs = [
-        ":package-srcs",
-        "//staging/src/k8s.io/apiserver/pkg/admission/plugin/webhook/config/apis/webhookadmission:all-srcs",
-    ],
-    tags = ["automanaged"],
-    visibility = ["//visibility:public"],
 )

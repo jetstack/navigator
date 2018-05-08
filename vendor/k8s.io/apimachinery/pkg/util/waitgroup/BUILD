@@ -6,6 +6,7 @@ go_library(
         "doc.go",
         "waitgroup.go",
     ],
+    importmap = "vendor/k8s.io/apimachinery/pkg/util/waitgroup",
     importpath = "k8s.io/apimachinery/pkg/util/waitgroup",
     visibility = ["//visibility:public"],
 )
@@ -13,20 +14,5 @@ go_library(
 go_test(
     name = "go_default_test",
     srcs = ["waitgroup_test.go"],
-    importpath = "k8s.io/apimachinery/pkg/util/waitgroup",
-    library = ":go_default_library",
-)
-
-filegroup(
-    name = "package-srcs",
-    srcs = glob(["**"]),
-    tags = ["automanaged"],
-    visibility = ["//visibility:private"],
-)
-
-filegroup(
-    name = "all-srcs",
-    srcs = [":package-srcs"],
-    tags = ["automanaged"],
-    visibility = ["//visibility:public"],
+    embed = [":go_default_library"],
 )

@@ -1,0 +1,25 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "doc.go",
+        "map.go",
+        "merge.go",
+        "mergo.go",
+    ],
+    importmap = "vendor/github.com/imdario/mergo",
+    importpath = "github.com/imdario/mergo",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "issue17_test.go",
+        "mergo_test.go",
+    ],
+    data = glob(["testdata/**"]),
+    embed = [":go_default_library"],
+    deps = ["//vendor/gopkg.in/yaml.v1:go_default_library"],
+)

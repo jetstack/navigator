@@ -1,0 +1,29 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "chown.go",
+        "chown_linux.go",
+        "lumberjack.go",
+    ],
+    importmap = "vendor/gopkg.in/natefinch/lumberjack.v2",
+    importpath = "gopkg.in/natefinch/lumberjack.v2",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "example_test.go",
+        "linux_test.go",
+        "lumberjack_test.go",
+        "rotate_test.go",
+        "testing_test.go",
+    ],
+    embed = [":go_default_library"],
+    deps = [
+        "//vendor/github.com/BurntSushi/toml:go_default_library",
+        "//vendor/gopkg.in/yaml.v2:go_default_library",
+    ],
+)

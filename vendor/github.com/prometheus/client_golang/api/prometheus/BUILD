@@ -1,0 +1,24 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["api.go"],
+    importmap = "vendor/github.com/prometheus/client_golang/api/prometheus",
+    importpath = "github.com/prometheus/client_golang/api/prometheus",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/github.com/prometheus/common/model:go_default_library",
+        "//vendor/golang.org/x/net/context:go_default_library",
+        "//vendor/golang.org/x/net/context/ctxhttp:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["api_test.go"],
+    embed = [":go_default_library"],
+    deps = [
+        "//vendor/github.com/prometheus/common/model:go_default_library",
+        "//vendor/golang.org/x/net/context:go_default_library",
+    ],
+)

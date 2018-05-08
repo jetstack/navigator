@@ -1,0 +1,26 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "deserialize.go",
+        "escape.go",
+        "option.go",
+        "serialize.go",
+    ],
+    importmap = "vendor/github.com/coreos/go-systemd/unit",
+    importpath = "github.com/coreos/go-systemd/unit",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "deserialize_test.go",
+        "end_to_end_test.go",
+        "escape_test.go",
+        "option_test.go",
+        "serialize_test.go",
+    ],
+    embed = [":go_default_library"],
+)

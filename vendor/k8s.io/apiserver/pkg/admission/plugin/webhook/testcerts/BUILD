@@ -6,20 +6,7 @@ go_library(
         "certs.go",
         "doc.go",
     ],
+    importmap = "vendor/k8s.io/apiserver/pkg/admission/plugin/webhook/testcerts",
     importpath = "k8s.io/apiserver/pkg/admission/plugin/webhook/testcerts",
-    visibility = ["//visibility:public"],
-)
-
-filegroup(
-    name = "package-srcs",
-    srcs = glob(["**"]),
-    tags = ["automanaged"],
-    visibility = ["//visibility:private"],
-)
-
-filegroup(
-    name = "all-srcs",
-    srcs = [":package-srcs"],
-    tags = ["automanaged"],
     visibility = ["//visibility:public"],
 )

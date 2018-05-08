@@ -6,6 +6,7 @@ go_library(
         "admission.go",
         "doc.go",
     ],
+    importmap = "vendor/k8s.io/apiserver/pkg/admission/plugin/webhook/mutating",
     importpath = "k8s.io/apiserver/pkg/admission/plugin/webhook/mutating",
     visibility = ["//visibility:public"],
     deps = [
@@ -38,8 +39,7 @@ go_library(
 go_test(
     name = "go_default_test",
     srcs = ["admission_test.go"],
-    importpath = "k8s.io/apiserver/pkg/admission/plugin/webhook/mutating",
-    library = ":go_default_library",
+    embed = [":go_default_library"],
     deps = [
         "//vendor/k8s.io/api/admission/v1beta1:go_default_library",
         "//vendor/k8s.io/api/admissionregistration/v1beta1:go_default_library",
@@ -54,18 +54,4 @@ go_test(
         "//vendor/k8s.io/apiserver/pkg/authentication/user:go_default_library",
         "//vendor/k8s.io/client-go/rest:go_default_library",
     ],
-)
-
-filegroup(
-    name = "package-srcs",
-    srcs = glob(["**"]),
-    tags = ["automanaged"],
-    visibility = ["//visibility:private"],
-)
-
-filegroup(
-    name = "all-srcs",
-    srcs = [":package-srcs"],
-    tags = ["automanaged"],
-    visibility = ["//visibility:public"],
 )

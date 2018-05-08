@@ -1,0 +1,28 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "oauth2.go",
+        "token.go",
+        "transport.go",
+    ],
+    importmap = "vendor/golang.org/x/oauth2/internal",
+    importpath = "golang.org/x/oauth2/internal",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/golang.org/x/net/context:go_default_library",
+        "//vendor/golang.org/x/net/context/ctxhttp:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "oauth2_test.go",
+        "token_test.go",
+        "transport_test.go",
+    ],
+    embed = [":go_default_library"],
+    deps = ["//vendor/golang.org/x/net/context:go_default_library"],
+)

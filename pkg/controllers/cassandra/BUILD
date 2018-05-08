@@ -1,0 +1,63 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "cassandra.go",
+        "cluster_control.go",
+    ],
+    importpath = "github.com/jetstack/navigator/pkg/controllers/cassandra",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/apis/navigator/v1alpha1:go_default_library",
+        "//pkg/client/clientset/versioned:go_default_library",
+        "//pkg/client/informers/externalversions/navigator/v1alpha1:go_default_library",
+        "//pkg/client/listers/navigator/v1alpha1:go_default_library",
+        "//pkg/controllers:go_default_library",
+        "//pkg/controllers/cassandra/actions:go_default_library",
+        "//pkg/controllers/cassandra/nodepool:go_default_library",
+        "//pkg/controllers/cassandra/pilot:go_default_library",
+        "//pkg/controllers/cassandra/role:go_default_library",
+        "//pkg/controllers/cassandra/rolebinding:go_default_library",
+        "//pkg/controllers/cassandra/seedlabeller:go_default_library",
+        "//pkg/controllers/cassandra/service:go_default_library",
+        "//pkg/controllers/cassandra/serviceaccount:go_default_library",
+        "//vendor/github.com/golang/glog:go_default_library",
+        "//vendor/k8s.io/api/core/v1:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/api/errors:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/util/errors:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/util/runtime:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/util/wait:go_default_library",
+        "//vendor/k8s.io/client-go/informers/apps/v1beta1:go_default_library",
+        "//vendor/k8s.io/client-go/informers/core/v1:go_default_library",
+        "//vendor/k8s.io/client-go/informers/rbac/v1beta1:go_default_library",
+        "//vendor/k8s.io/client-go/kubernetes:go_default_library",
+        "//vendor/k8s.io/client-go/listers/apps/v1beta1:go_default_library",
+        "//vendor/k8s.io/client-go/tools/cache:go_default_library",
+        "//vendor/k8s.io/client-go/tools/record:go_default_library",
+        "//vendor/k8s.io/client-go/util/workqueue:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "cassandra_test.go",
+        "cluster_control_test.go",
+    ],
+    embed = [":go_default_library"],
+    deps = [
+        "//pkg/apis/navigator/v1alpha1:go_default_library",
+        "//pkg/client/clientset/versioned/fake:go_default_library",
+        "//pkg/client/informers/externalversions:go_default_library",
+        "//pkg/controllers:go_default_library",
+        "//pkg/controllers/cassandra/actions:go_default_library",
+        "//pkg/controllers/cassandra/testing:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/watch:go_default_library",
+        "//vendor/k8s.io/client-go/informers:go_default_library",
+        "//vendor/k8s.io/client-go/kubernetes/fake:go_default_library",
+        "//vendor/k8s.io/client-go/testing:go_default_library",
+        "//vendor/k8s.io/client-go/tools/record:go_default_library",
+    ],
+)

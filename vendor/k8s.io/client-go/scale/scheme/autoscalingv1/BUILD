@@ -8,6 +8,7 @@ go_library(
         "register.go",
         "zz_generated.conversion.go",
     ],
+    importmap = "vendor/k8s.io/client-go/scale/scheme/autoscalingv1",
     importpath = "k8s.io/client-go/scale/scheme/autoscalingv1",
     visibility = ["//visibility:public"],
     deps = [
@@ -18,18 +19,4 @@ go_library(
         "//vendor/k8s.io/apimachinery/pkg/runtime/schema:go_default_library",
         "//vendor/k8s.io/client-go/scale/scheme:go_default_library",
     ],
-)
-
-filegroup(
-    name = "package-srcs",
-    srcs = glob(["**"]),
-    tags = ["automanaged"],
-    visibility = ["//visibility:private"],
-)
-
-filegroup(
-    name = "all-srcs",
-    srcs = [":package-srcs"],
-    tags = ["automanaged"],
-    visibility = ["//visibility:public"],
 )

@@ -1,0 +1,16 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["test.pb.go"],
+    importmap = "vendor/github.com/golang/protobuf/proto/testdata",
+    importpath = "github.com/golang/protobuf/proto/testdata",
+    visibility = ["//visibility:public"],
+    deps = ["//vendor/github.com/golang/protobuf/proto:go_default_library"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["golden_test.go"],
+    embed = [":go_default_library"],
+)

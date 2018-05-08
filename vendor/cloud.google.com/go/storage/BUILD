@@ -1,0 +1,63 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "acl.go",
+        "bucket.go",
+        "copy.go",
+        "doc.go",
+        "go110.go",
+        "go17.go",
+        "iam.go",
+        "invoke.go",
+        "not_go110.go",
+        "not_go17.go",
+        "reader.go",
+        "storage.go",
+        "writer.go",
+    ],
+    importmap = "vendor/cloud.google.com/go/storage",
+    importpath = "cloud.google.com/go/storage",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/cloud.google.com/go/iam:go_default_library",
+        "//vendor/cloud.google.com/go/internal:go_default_library",
+        "//vendor/cloud.google.com/go/internal/optional:go_default_library",
+        "//vendor/cloud.google.com/go/internal/version:go_default_library",
+        "//vendor/github.com/googleapis/gax-go:go_default_library",
+        "//vendor/golang.org/x/net/context:go_default_library",
+        "//vendor/google.golang.org/api/googleapi:go_default_library",
+        "//vendor/google.golang.org/api/iterator:go_default_library",
+        "//vendor/google.golang.org/api/option:go_default_library",
+        "//vendor/google.golang.org/api/storage/v1:go_default_library",
+        "//vendor/google.golang.org/api/transport/http:go_default_library",
+        "//vendor/google.golang.org/genproto/googleapis/iam/v1:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "bucket_test.go",
+        "example_test.go",
+        "integration_test.go",
+        "invoke_test.go",
+        "storage_test.go",
+        "writer_test.go",
+    ],
+    data = glob(["testdata/**"]),
+    embed = [":go_default_library"],
+    deps = [
+        "//vendor/cloud.google.com/go/iam:go_default_library",
+        "//vendor/cloud.google.com/go/internal/pretty:go_default_library",
+        "//vendor/cloud.google.com/go/internal/testutil:go_default_library",
+        "//vendor/github.com/google/go-cmp/cmp:go_default_library",
+        "//vendor/golang.org/x/net/context:go_default_library",
+        "//vendor/google.golang.org/api/googleapi:go_default_library",
+        "//vendor/google.golang.org/api/iterator:go_default_library",
+        "//vendor/google.golang.org/api/iterator/testing:go_default_library",
+        "//vendor/google.golang.org/api/option:go_default_library",
+        "//vendor/google.golang.org/api/storage/v1:go_default_library",
+    ],
+)

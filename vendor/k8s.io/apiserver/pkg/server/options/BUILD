@@ -15,6 +15,7 @@ go_library(
         "server_run_options.go",
         "serving.go",
     ],
+    importmap = "vendor/k8s.io/apiserver/pkg/server/options",
     importpath = "k8s.io/apiserver/pkg/server/options",
     visibility = ["//visibility:public"],
     deps = [
@@ -72,8 +73,7 @@ go_test(
         "serving_test.go",
     ],
     data = glob(["testdata/**"]),
-    importpath = "k8s.io/apiserver/pkg/server/options",
-    library = ":go_default_library",
+    embed = [":go_default_library"],
     deps = [
         "//vendor/github.com/stretchr/testify/assert:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/runtime:go_default_library",
@@ -85,21 +85,4 @@ go_test(
         "//vendor/k8s.io/client-go/discovery:go_default_library",
         "//vendor/k8s.io/client-go/rest:go_default_library",
     ],
-)
-
-filegroup(
-    name = "package-srcs",
-    srcs = glob(["**"]),
-    tags = ["automanaged"],
-    visibility = ["//visibility:private"],
-)
-
-filegroup(
-    name = "all-srcs",
-    srcs = [
-        ":package-srcs",
-        "//staging/src/k8s.io/apiserver/pkg/server/options/encryptionconfig:all-srcs",
-    ],
-    tags = ["automanaged"],
-    visibility = ["//visibility:public"],
 )
