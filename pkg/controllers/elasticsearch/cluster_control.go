@@ -109,7 +109,7 @@ func (e *defaultElasticsearchClusterControl) checkPausedConditions(c *v1alpha1.E
 	if c.Spec.Paused && !pausedCondExists {
 		c.Status.UpdateStatusCondition(
 			v1alpha1.ClusterConditionProgressing,
-			v1alpha1.ConditionUnknown,
+			v1alpha1.ConditionFalse,
 			v1alpha1.PausedClusterReason,
 			"Cluster is paused",
 		)
@@ -117,7 +117,7 @@ func (e *defaultElasticsearchClusterControl) checkPausedConditions(c *v1alpha1.E
 	} else if !c.Spec.Paused && pausedCondExists {
 		c.Status.UpdateStatusCondition(
 			v1alpha1.ClusterConditionProgressing,
-			v1alpha1.ConditionUnknown,
+			v1alpha1.ConditionTrue,
 			v1alpha1.ResumedClusterReason,
 			"Cluster is resumed",
 		)
@@ -129,7 +129,7 @@ func (e *defaultElasticsearchClusterControl) checkPausedConditions(c *v1alpha1.E
 	}
 
 	var err error
-	c, err = e.navigatorClient.NavigatorV1alpha1().ElasticsearchClusters(c.Namespace).UpdateStatus(c)
+	_, err = e.navigatorClient.NavigatorV1alpha1().ElasticsearchClusters(c.Namespace).UpdateStatus(c)
 	return err
 }
 
