@@ -44,7 +44,7 @@ build: $(CMDS)
 
 generate: .generate_files
 
-verify: .hack_verify dep_verify go_verify helm_verify
+verify: go_verify .hack_verify dep_verify helm_verify
 
 .hack_verify:
 	@echo Running repo-infra verify scripts
