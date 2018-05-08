@@ -24,12 +24,8 @@ RELEASE_NAME="nav-e2e"
 
 ROOT_DIR="$(git rev-parse --show-toplevel)"
 SCRIPT_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)"
-CONFIG_DIR=$(mktemp -d -t navigator-e2e.XXXXXXXXX)
-mkdir -p $CONFIG_DIR
-CERT_DIR="$CONFIG_DIR/certs"
-mkdir -p $CERT_DIR
-TEST_DIR="$CONFIG_DIR/tmp"
-mkdir -p $TEST_DIR
+ARTIFACTS_DIR="${PWD}/_artifacts"
+mkdir -p "${ARTIFACTS_DIR}"
 
 source "${SCRIPT_DIR}/libe2e.sh"
 
@@ -39,7 +35,7 @@ source "${SCRIPT_DIR}/libe2e.sh"
 : ${CHART_VALUES_CASSANDRA:="${SCRIPT_DIR}/testdata/values_cassandra.yaml"}
 
 # Save the cluster logs when the script exits (success or failure)
-trap "dump_debug_logs ${PWD}/_artifacts/dump_debug_logs" EXIT
+trap "dump_debug_logs ${ARTIFACTS_DIR}/dump_debug_logs" EXIT
 
 helm delete --purge "${RELEASE_NAME}" || true
 
@@ -53,7 +49,8 @@ function debug_navigator_start() {
 function navigator_install() {
     echo "Installing navigator..."
     helm delete --purge "${RELEASE_NAME}" || true
-    kube_delete_namespace_and_wait "${NAVIGATOR_NAMESPACE}"
+    kubectl delete --now namespace "${NAVIGATOR_NAMESPACE}" || true
+    retry not kubectl get namespace "${NAVIGATOR_NAMESPACE}"
     kube_create_namespace_with_quota "${NAVIGATOR_NAMESPACE}"
     if helm --debug install \
             --namespace "${NAVIGATOR_NAMESPACE}" \
@@ -113,12 +110,11 @@ if ! retry navigator_ready; then
     exit 1
 fi
 
-FAILURE_COUNT=0
 TEST_ID="$(date +%s)-${RANDOM}"
 
 function fail_test() {
-    FAILURE_COUNT=$(($FAILURE_COUNT+1))
     echo "TEST FAILURE: $1"
+    exit 1
 }
 
 function test_general() {
@@ -141,9 +137,6 @@ function test_general() {
 
 GENERAL_TEST_NS="test-general-${TEST_ID}"
 test_general "${GENERAL_TEST_NS}"
-if [ "${FAILURE_COUNT}" -gt "0" ]; then
-    exit 1
-fi
 kube_delete_namespace_and_wait "${GENERAL_TEST_NS}"
 
 function test_elasticsearchcluster() {
@@ -216,9 +209,6 @@ function test_elasticsearchcluster() {
 if [[ "test_elasticsearchcluster" = "${TEST_PREFIX}"* ]]; then
     ES_TEST_NS="test-elasticsearchcluster-${TEST_ID}"
     test_elasticsearchcluster "${ES_TEST_NS}"
-    if [ "${FAILURE_COUNT}" -gt "0" ]; then
-        exit 1
-    fi
     kube_delete_namespace_and_wait "${ES_TEST_NS}"
 fi
 
@@ -350,7 +340,19 @@ function test_cassandracluster() {
         fail_test "Cassandra data was lost"
     fi
 
-    # Increment the replica count
+    echo "Collecting events during scale out..."
+    # Get names of nodepool pods before the scale out (line separated)
+    local original_pods_file="${ARTIFACTS_DIR}/test_cassandra.scale_out_original_pods"
+    kubectl --namespace "${namespace}" get pods \
+            --selector="navigator.jetstack.io/cassandra-cluster-name=${CASS_NAME}" \
+            --output='jsonpath={range .items[*]}{.metadata.name}{"\n"}{end}' \
+            > "${original_pods_file}"
+
+    local events_file="${ARTIFACTS_DIR}/test_cassandra.scale_out_events"
+    kubectl --namespace "${namespace}" get events --watch-only > "${events_file}" &
+    local events_pid="${!}"
+
+    echo "Incrementing the replica count..."
     export CASS_REPLICAS=2
     kubectl apply \
         --namespace "${namespace}" \
@@ -374,6 +376,14 @@ function test_cassandracluster() {
     then
         fail_test "Second cassandra node did not become ready"
     fi
+
+    echo "Checking original pods for 'Unhealthy' events during scale out..."
+    kill "${events_pid}"
+    if fgrep --file "${original_pods_file}" "${events_file}" | fgrep "Unhealthy"
+    then
+        fail_test "original pods were unhealthy during the scale out"
+    fi
+    rm -f "${events_file}" "${original_pods_file}"
 
     # TODO: A better test would be to query the endpoints and check that only
     # the `-0` pods are included. E.g.
@@ -423,8 +433,5 @@ if [[ "test_cassandracluster" = "${TEST_PREFIX}"* ]]; then
     done
 
     test_cassandracluster "${CASS_TEST_NS}"
-    if [ "${FAILURE_COUNT}" -gt "0" ]; then
-        exit 1
-    fi
     kube_delete_namespace_and_wait "${CASS_TEST_NS}"
 fi
