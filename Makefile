@@ -88,7 +88,7 @@ docker_push: $(DOCKER_PUSH_TARGETS)
 
 # Go targets
 #################
-go_verify: go_fmt go_test go_build
+go_verify: go_test go_build go_fmt
 
 $(CMDS):
 	bazel build \
