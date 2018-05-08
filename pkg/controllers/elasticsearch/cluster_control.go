@@ -137,7 +137,10 @@ func (e *defaultElasticsearchClusterControl) Sync(c *v1alpha1.ElasticsearchClust
 	c = c.DeepCopy()
 	var err error
 
-	e.checkPausedConditions(c)
+	err = e.checkPausedConditions(c)
+	if err != nil {
+		return c.Status, err
+	}
 
 	if c.Spec.Paused == true {
 		glog.V(4).Infof("defaultElasticsearchClusterControl.Sync skipped, since cluster is paused")

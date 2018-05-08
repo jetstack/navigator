@@ -115,7 +115,10 @@ func (e *defaultCassandraClusterControl) Sync(c *v1alpha1.CassandraCluster) erro
 	c = c.DeepCopy()
 	var err error
 
-	e.checkPausedConditions(c)
+	err = e.checkPausedConditions(c)
+	if err != nil {
+		return err
+	}
 
 	if c.Spec.Paused == true {
 		glog.V(4).Infof("defaultCassandraClusterControl.Sync skipped, since cluster is paused")
