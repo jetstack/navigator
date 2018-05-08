@@ -71,7 +71,8 @@ $(DOCKER_BUILD_TARGETS):
 		--define STABLE_DOCKER_TAG=$(BUILD_TAG) \
 		--features static \
 		--features pure \
-		//:$(DOCKER_BUILD_CMD)
+		--platforms=@io_bazel_rules_go//go/toolchain:linux_amd64 \
+		//build:$(DOCKER_BUILD_CMD)
 
 docker_build: $(DOCKER_BUILD_TARGETS)
 
