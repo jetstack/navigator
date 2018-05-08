@@ -14,3 +14,11 @@ ${CODEGEN_PKG}/generate-internal-groups.sh all \
   navigator:v1alpha1 \
   --output-base "${GOPATH}/src/" \
   --go-header-file ${SCRIPT_ROOT}/hack/boilerplate.go.txt
+
+echo "Generating other deepcopy funcs"
+${GOPATH}/bin/deepcopy-gen \
+         --input-dirs github.com/jetstack/navigator/pkg/api/version \
+         -O zz_generated.deepcopy \
+         --bounding-dirs github.com/jetstack/navigator/pkg/api/version \
+         --output-base "${GOPATH}/src/" \
+         --go-header-file ${SCRIPT_ROOT}/hack/boilerplate.go.txt

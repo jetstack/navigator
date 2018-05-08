@@ -6,6 +6,7 @@ import (
 	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/jetstack/navigator/pkg/api/version"
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 )
 
@@ -128,6 +129,9 @@ func CassandraCluster(c CassandraClusterConfig) *v1alpha1.CassandraCluster {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      c.Name,
 			Namespace: c.Namespace,
+		},
+		Spec: v1alpha1.CassandraClusterSpec{
+			Version: *version.New("3.11.2"),
 		},
 	}
 }

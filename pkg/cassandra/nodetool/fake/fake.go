@@ -3,9 +3,9 @@ package fake
 import (
 	"fmt"
 
+	"github.com/jetstack/navigator/pkg/api/version"
 	"github.com/jetstack/navigator/pkg/cassandra/nodetool"
 	"github.com/jetstack/navigator/pkg/cassandra/nodetool/client"
-	"github.com/jetstack/navigator/pkg/cassandra/version"
 )
 
 type FakeNodeTool struct {

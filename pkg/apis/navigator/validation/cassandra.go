@@ -1,14 +1,27 @@
 package validation
 
 import (
+	"fmt"
 	"reflect"
 
 	apimachineryvalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
+	version "github.com/hashicorp/go-version"
+
 	"github.com/jetstack/navigator/pkg/apis/navigator"
 )
+
+var supportedCassandraVersions version.Constraints
+
+func init() {
+	var err error
+	supportedCassandraVersions, err = version.NewConstraint(">= 3, < 4")
+	if err != nil {
+		panic(err)
+	}
+}
 
 func ValidateCassandraClusterNodePool(np *navigator.CassandraClusterNodePool, fldPath *field.Path) field.ErrorList {
 	el := field.ErrorList{}
@@ -30,6 +43,20 @@ func ValidateCassandraClusterUpdate(old, new *navigator.CassandraCluster) field.
 	allErrs := ValidateCassandraCluster(new)
 
 	fldPath := field.NewPath("spec")
+
+	if !new.Spec.Version.Equal(&old.Spec.Version) {
+		allErrs = append(
+			allErrs,
+			field.Forbidden(
+				fldPath.Child("version"),
+				fmt.Sprintf(
+					"cannot change the version of an existing cluster. "+
+						"old version: %s, new version: %s",
+					old.Spec.Version, new.Spec.Version,
+				),
+			),
+		)
+	}
 
 	npPath := fldPath.Child("nodePools")
 	for i, newNp := range new.Spec.NodePools {
@@ -63,7 +90,22 @@ func ValidateCassandraClusterUpdate(old, new *navigator.CassandraCluster) field.
 }
 
 func ValidateCassandraClusterSpec(spec *navigator.CassandraClusterSpec, fldPath *field.Path) field.ErrorList {
+
 	allErrs := ValidateNavigatorClusterConfig(&spec.NavigatorClusterConfig, fldPath)
+
+	if !supportedCassandraVersions.Check(spec.Version.Semver()) {
+		allErrs = append(
+			allErrs,
+			field.Forbidden(
+				fldPath.Child("version"),
+				fmt.Sprintf(
+					"%s is not supported. Supported versions are: %s",
+					spec.Version, supportedCassandraVersions,
+				),
+			),
+		)
+	}
+
 	npPath := fldPath.Child("nodePools")
 	allNames := sets.String{}
 	for i, np := range spec.NodePools {

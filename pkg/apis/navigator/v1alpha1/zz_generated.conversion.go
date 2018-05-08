@@ -22,8 +22,8 @@ package v1alpha1
 
 import (
 	semver "github.com/coreos/go-semver/semver"
+	version "github.com/jetstack/navigator/pkg/api/version"
 	navigator "github.com/jetstack/navigator/pkg/apis/navigator"
-	version "github.com/jetstack/navigator/pkg/cassandra/version"
 	v1 "k8s.io/api/core/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"

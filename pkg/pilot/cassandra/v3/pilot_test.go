@@ -3,10 +3,10 @@ package v3
 import (
 	"testing"
 
+	"github.com/jetstack/navigator/pkg/api/version"
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/cassandra/nodetool"
 	fakenodetool "github.com/jetstack/navigator/pkg/cassandra/nodetool/fake"
-	"github.com/jetstack/navigator/pkg/cassandra/version"
 )
 
 func TestPilotSyncFunc(t *testing.T) {

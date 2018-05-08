@@ -3,7 +3,7 @@ package version_test
 import (
 	"testing"
 
-	"github.com/jetstack/navigator/pkg/cassandra/version"
+	"github.com/jetstack/navigator/pkg/api/version"
 )
 
 func TestUnmarshalJSON(t *testing.T) {
@@ -21,10 +21,6 @@ func TestUnmarshalJSON(t *testing.T) {
 			s:         `"0.0.x"`,
 			expectErr: true,
 		},
-		"incomplete semver": {
-			s:         `"3"`,
-			expectErr: true,
-		},
 		"cassandra partial invalid semver with labels": {
 			s:         `"X.Y-foo+bar"`,
 			expectErr: true,
@@ -32,6 +28,12 @@ func TestUnmarshalJSON(t *testing.T) {
 		"invalid semver with labels": {
 			s:         `"X.Y.0-"`,
 			expectErr: true,
+		},
+		// Cassandra versions always include a minor version but Hashicorp
+		// go-version (which we currently use for parsing) doesn't require it.
+		"partial semver": {
+			s: `"3"`,
+			v: version.New("3.0.0"),
 		},
 		"cassandra partial semver": {
 			s: `"3.9"`,
@@ -90,4 +92,19 @@ func TestUnmarshalJSON(t *testing.T) {
 			},
 		)
 	}
+}
+
+func TestDeepCopy(t *testing.T) {
+	t.Run(
+		"zero value",
+		func(t *testing.T) {
+			t.Log(version.Version{}.DeepCopy())
+		},
+	)
+	t.Run(
+		"validated version",
+		func(t *testing.T) {
+			t.Log(version.New("3.11.2").DeepCopy())
+		},
+	)
 }

@@ -6,9 +6,9 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/jetstack/navigator/pkg/api/version"
 	"github.com/jetstack/navigator/pkg/apis/navigator"
 	"github.com/jetstack/navigator/pkg/apis/navigator/validation"
-	"github.com/jetstack/navigator/pkg/cassandra/version"
 	"github.com/jetstack/navigator/pkg/util/ptr"
 )
 
@@ -19,7 +19,7 @@ var (
 			Namespace: "bar",
 		},
 		Spec: navigator.CassandraClusterSpec{
-			Version: *version.New("5.6.2"),
+			Version: *version.New("3.11.2"),
 			Image:   &validImageSpec,
 			NavigatorClusterConfig: validNavigatorClusterConfig,
 			NodePools: []navigator.CassandraClusterNodePool{
@@ -31,6 +31,8 @@ var (
 			},
 		},
 	}
+	lowerVersion  = version.New("3.11.1")
+	higherVersion = version.New("3.12")
 )
 
 func TestValidateCassandraCluster(t *testing.T) {
@@ -39,9 +41,26 @@ func TestValidateCassandraCluster(t *testing.T) {
 		errorExpected bool
 	}
 
+	setVersion := func(
+		c *navigator.CassandraCluster,
+		v *version.Version,
+	) *navigator.CassandraCluster {
+		c = c.DeepCopy()
+		c.Spec.Version = *v
+		return c
+	}
+
 	tests := map[string]testT{
 		"valid cluster": {
 			cluster: validCassCluster,
+		},
+		"version too low": {
+			cluster:       setVersion(validCassCluster, version.New("2.0.0")),
+			errorExpected: true,
+		},
+		"version too high": {
+			cluster:       setVersion(validCassCluster, version.New("4.0.0")),
+			errorExpected: true,
 		},
 	}
 
@@ -130,6 +149,15 @@ func TestValidateCassandraClusterUpdate(t *testing.T) {
 		return c
 	}
 
+	setVersion := func(
+		c *navigator.CassandraCluster,
+		v *version.Version,
+	) *navigator.CassandraCluster {
+		c = c.DeepCopy()
+		c.Spec.Version = *v
+		return c
+	}
+
 	tests := map[string]testT{
 		"unchanged cluster": {
 			old: validCassCluster,
@@ -148,6 +176,16 @@ func TestValidateCassandraClusterUpdate(t *testing.T) {
 		"enable persistence config": {
 			old: setPersistence(validCassCluster, &navigator.PersistenceConfig{Size: resource.MustParse("10Gi")}),
 			new: validCassCluster,
+		},
+		"downgrade not allowed": {
+			old:           setVersion(validCassCluster, lowerVersion),
+			new:           validCassCluster,
+			errorExpected: true,
+		},
+		"upgrade not allowed": {
+			old:           validCassCluster,
+			new:           setVersion(validCassCluster, higherVersion),
+			errorExpected: true,
 		},
 	}
 

@@ -22,7 +22,7 @@ package navigator
 
 import (
 	semver "github.com/coreos/go-semver/semver"
-	version "github.com/jetstack/navigator/pkg/cassandra/version"
+	version "github.com/jetstack/navigator/pkg/api/version"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -176,7 +176,7 @@ func (in *CassandraClusterSpec) DeepCopyInto(out *CassandraClusterSpec) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
-	out.Version = in.Version
+	out.Version = in.Version.DeepCopy()
 	if in.Image != nil {
 		in, out := &in.Image, &out.Image
 		if *in == nil {
@@ -231,7 +231,7 @@ func (in *CassandraPilotStatus) DeepCopyInto(out *CassandraPilotStatus) {
 			*out = nil
 		} else {
 			*out = new(version.Version)
-			**out = **in
+			**out = (*in).DeepCopy()
 		}
 	}
 	return
