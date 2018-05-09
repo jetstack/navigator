@@ -33,7 +33,7 @@ func (a *ScaleIn) Execute(s *controllers.State) error {
 		return err
 	}
 	ss = ss.DeepCopy()
-	if *ss.Spec.Replicas > a.NodePool.Replicas {
+	if *ss.Spec.Replicas > *a.NodePool.Replicas {
 		pilots, err := pilotsForStatefulSet(s, a.Cluster, a.NodePool, ss)
 		if err != nil {
 			return err
@@ -48,7 +48,7 @@ func (a *ScaleIn) Execute(s *controllers.State) error {
 
 		allDecommissioned := true
 
-		nPilotsToRemove := int(*ss.Spec.Replicas - a.NodePool.Replicas)
+		nPilotsToRemove := int(*ss.Spec.Replicas - *a.NodePool.Replicas)
 		for i := 1; i <= nPilotsToRemove; i++ {
 			p := pilots[len(pilots)-i].DeepCopy()
 			if p.Spec.Cassandra == nil {
@@ -80,7 +80,7 @@ func (a *ScaleIn) Execute(s *controllers.State) error {
 		}
 
 		if allDecommissioned {
-			ss.Spec.Replicas = &a.NodePool.Replicas
+			ss.Spec.Replicas = a.NodePool.Replicas
 			_, err = s.Clientset.AppsV1beta1().StatefulSets(ss.Namespace).Update(ss)
 			if err == nil {
 				s.Recorder.Eventf(
@@ -92,7 +92,7 @@ func (a *ScaleIn) Execute(s *controllers.State) error {
 			}
 		}
 	}
-	if *ss.Spec.Replicas < a.NodePool.Replicas {
+	if *ss.Spec.Replicas < *a.NodePool.Replicas {
 		return fmt.Errorf(
 			"the NodePool.Replicas value (%d) "+
 				"is greater than the existing StatefulSet.Replicas value (%d)",

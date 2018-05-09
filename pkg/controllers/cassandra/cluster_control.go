@@ -174,7 +174,7 @@ func (e *defaultCassandraClusterControl) Sync(c *v1alpha1.CassandraCluster) erro
 
 	a, err := NextAction(c, e.state.StatefulSetLister)
 	if err != nil {
-		return c.Status, err
+		return err
 	}
 	if a != nil {
 		err = a.Execute(e.state)
@@ -224,7 +224,7 @@ func NextAction(c *v1alpha1.CassandraCluster, statefulSetLister v1beta1.Stateful
 			return nil, err
 		}
 
-		if np.Replicas < *ss.Spec.Replicas {
+		if *np.Replicas < *ss.Spec.Replicas {
 			return &actions.ScaleIn{
 				Cluster:  c,
 				NodePool: &np,

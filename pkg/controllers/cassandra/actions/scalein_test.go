@@ -3,6 +3,8 @@ package actions_test
 import (
 	"testing"
 
+	"github.com/jetstack/navigator/pkg/util/ptr"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -39,7 +41,7 @@ func TestScaleIn(t *testing.T) {
 					generate.StatefulSetConfig{
 						Name:      "cass-cluster1-pool1",
 						Namespace: "ns1",
-						Replicas:  int32Ptr(122),
+						Replicas:  ptr.Int32(122),
 					},
 				),
 			},
@@ -68,7 +70,7 @@ func TestScaleIn(t *testing.T) {
 					generate.StatefulSetConfig{
 						Name:      "cass-cluster1-pool1",
 						Namespace: "ns1",
-						Replicas:  int32Ptr(124),
+						Replicas:  ptr.Int32(124),
 					},
 				),
 			},
@@ -83,7 +85,7 @@ func TestScaleIn(t *testing.T) {
 			expectedStatefulSet: &generate.StatefulSetConfig{
 				Name:      "cass-cluster1-pool1",
 				Namespace: "ns1",
-				Replicas:  int32Ptr(124),
+				Replicas:  ptr.Int32(124),
 			},
 			expectedErr: false,
 		},
@@ -93,7 +95,7 @@ func TestScaleIn(t *testing.T) {
 					generate.StatefulSetConfig{
 						Name:      "cass-cluster1-pool1",
 						Namespace: "ns1",
-						Replicas:  int32Ptr(125),
+						Replicas:  ptr.Int32(125),
 					},
 				),
 			},
@@ -108,7 +110,7 @@ func TestScaleIn(t *testing.T) {
 			expectedStatefulSet: &generate.StatefulSetConfig{
 				Name:      "cass-cluster1-pool1",
 				Namespace: "ns1",
-				Replicas:  int32Ptr(120),
+				Replicas:  ptr.Int32(120),
 			},
 		},
 	}
@@ -150,7 +152,15 @@ func TestScaleIn(t *testing.T) {
 					if err != nil {
 						t.Fatalf("Unexpected error retrieving statefulset: %v", err)
 					}
-					generate.AssertStatefulSetMatches(t, *test.expectedStatefulSet, actualStatefulSet)
+					if err != nil {
+						t.Fatalf("Unexpected error retrieving statefulset: %v", err)
+					}
+					if *test.expectedStatefulSet.Replicas != *actualStatefulSet.Spec.Replicas {
+						t.Errorf(
+							"Unexpected replica count. Expected: %d. Actual: %d",
+							*test.expectedStatefulSet.Replicas, *actualStatefulSet.Spec.Replicas,
+						)
+					}
 				}
 			},
 		)

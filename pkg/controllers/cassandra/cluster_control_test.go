@@ -49,7 +49,10 @@ func CassandraClusterStatusSummary(c *v1alpha1.CassandraCluster) string {
 func TestNextAction(t *testing.T) {
 	f := func(c *v1alpha1.CassandraCluster) bool {
 		t.Log(CassandraClusterSummary(c))
-		a := cassandra.NextAction(c)
+		a, err := cassandra.NextAction(c)
+		if err != nil {
+			t.Errorf("error calculating next action: %v", err)
+		}
 		if a != nil {
 			t.Log("Action:", a.Name())
 		} else {
