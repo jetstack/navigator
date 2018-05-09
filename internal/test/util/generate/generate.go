@@ -63,7 +63,7 @@ func CassPilot(c PilotConfig) *v1alpha1.Pilot {
 			Labels:    labels,
 		},
 		Spec: v1alpha1.PilotSpec{
-			Cassandra: &v1alpha1.PilotCassandraSpec{
+			Cassandra: &v1alpha1.CassandraPilotSpec{
 				Decommissioned: c.Decommissioned,
 			},
 		},

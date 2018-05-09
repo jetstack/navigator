@@ -177,8 +177,8 @@ type PilotList struct {
 }
 
 type PilotSpec struct {
-	Elasticsearch *PilotElasticsearchSpec
-	Cassandra     *PilotCassandraSpec
+	Elasticsearch *ElasticsearchPilotSpec
+	Cassandra     *CassandraPilotSpec
 }
 
 type PilotPhase string
@@ -190,10 +190,10 @@ const (
 	PilotPhasePostStop  PilotPhase = "PostStop"
 )
 
-type PilotElasticsearchSpec struct {
+type ElasticsearchPilotSpec struct {
 }
 
-type PilotCassandraSpec struct {
+type CassandraPilotSpec struct {
 	Decommissioned bool
 }
 

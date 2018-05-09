@@ -329,8 +329,8 @@ type PilotList struct {
 }
 
 type PilotSpec struct {
-	Elasticsearch *PilotElasticsearchSpec `json:"elasticsearch"`
-	Cassandra     *PilotCassandraSpec     `json:"cassandra"`
+	Elasticsearch *ElasticsearchPilotSpec `json:"elasticsearch"`
+	Cassandra     *CassandraPilotSpec     `json:"cassandra"`
 }
 
 type PilotPhase string
@@ -349,10 +349,10 @@ const (
 	PilotPhasePostStop PilotPhase = "PostStop"
 )
 
-type PilotElasticsearchSpec struct {
+type ElasticsearchPilotSpec struct {
 }
 
-type PilotCassandraSpec struct {
+type CassandraPilotSpec struct {
 	// Decommissioned should be set to true if we want to decommission this node
 	Decommissioned bool `json:"decommissioned"`
 }

@@ -52,7 +52,7 @@ func (a *ScaleIn) Execute(s *controllers.State) error {
 		for i := 1; i <= nPilotsToRemove; i++ {
 			p := pilots[len(pilots)-i].DeepCopy()
 			if p.Spec.Cassandra == nil {
-				p.Spec.Cassandra = &v1alpha1.PilotCassandraSpec{}
+				p.Spec.Cassandra = &v1alpha1.CassandraPilotSpec{}
 			}
 
 			if !p.Spec.Cassandra.Decommissioned {
