@@ -8,10 +8,15 @@ import (
 	"testing"
 	"testing/quick"
 
+	"k8s.io/apimachinery/pkg/runtime"
+
+	"github.com/jetstack/navigator/internal/test/unit/framework"
+	"github.com/jetstack/navigator/internal/test/util/generate"
 	v1alpha1 "github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/actions"
 	casstesting "github.com/jetstack/navigator/pkg/controllers/cassandra/testing"
+	"github.com/jetstack/navigator/pkg/util/ptr"
 )
 
 func CassandraClusterSummary(c *v1alpha1.CassandraCluster) string {
@@ -49,7 +54,24 @@ func CassandraClusterStatusSummary(c *v1alpha1.CassandraCluster) string {
 func TestNextAction(t *testing.T) {
 	f := func(c *v1alpha1.CassandraCluster) bool {
 		t.Log(CassandraClusterSummary(c))
-		a, err := cassandra.NextAction(c)
+
+		fixture := &framework.StateFixture{
+			T: t,
+			KubeObjects: []runtime.Object{
+				generate.StatefulSet(
+					generate.StatefulSetConfig{
+						Name:      "cass-cluster1-pool1",
+						Namespace: "ns1",
+						Replicas:  ptr.Int32(8),
+					},
+				),
+			},
+		}
+		fixture.Start()
+		defer fixture.Stop()
+		state := fixture.State()
+
+		a, err := cassandra.NextAction(c, state.StatefulSetLister)
 		if err != nil {
 			t.Errorf("error calculating next action: %v", err)
 		}

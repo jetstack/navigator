@@ -11,13 +11,15 @@ import (
 )
 
 type PilotConfig struct {
-	Name, Namespace   string
-	Cluster, NodePool string
-	Documents         *int64
-	Version           string
+	Name, Namespace      string
+	Cluster, NodePool    string
+	Documents            *int64
+	Version              string
+	Decommissioned       bool
+	DecommissionedStatus bool
 }
 
-func Pilot(c PilotConfig) *v1alpha1.Pilot {
+func EsPilot(c PilotConfig) *v1alpha1.Pilot {
 	if c.Namespace == "" {
 		c.Namespace = "default"
 	}
@@ -38,6 +40,37 @@ func Pilot(c PilotConfig) *v1alpha1.Pilot {
 			Elasticsearch: &v1alpha1.ElasticsearchPilotStatus{
 				Documents: c.Documents,
 				Version:   version,
+			},
+		},
+	}
+}
+
+func CassPilot(c PilotConfig) *v1alpha1.Pilot {
+	if c.Namespace == "" {
+		c.Namespace = "default"
+	}
+	labels := map[string]string{}
+	labels[v1alpha1.CassandraClusterNameLabel] = c.Cluster
+	labels[v1alpha1.CassandraNodePoolNameLabel] = c.NodePool
+	var v *version.Version
+	if c.Version != "" {
+		v = version.New(c.Version)
+	}
+	return &v1alpha1.Pilot{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      c.Name,
+			Namespace: c.Namespace,
+			Labels:    labels,
+		},
+		Spec: v1alpha1.PilotSpec{
+			Cassandra: &v1alpha1.PilotCassandraSpec{
+				Decommissioned: c.Decommissioned,
+			},
+		},
+		Status: v1alpha1.PilotStatus{
+			Cassandra: &v1alpha1.CassandraPilotStatus{
+				Version:        v,
+				Decommissioned: c.DecommissionedStatus,
 			},
 		},
 	}

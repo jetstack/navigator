@@ -89,13 +89,31 @@ func TestScaleIn(t *testing.T) {
 			},
 			expectedErr: false,
 		},
-		"The replicas count is decremented": {
+		"The replicas count is decremented without successfully decommissioned pilots": {
 			kubeObjects: []runtime.Object{
 				generate.StatefulSet(
 					generate.StatefulSetConfig{
 						Name:      "cass-cluster1-pool1",
 						Namespace: "ns1",
-						Replicas:  ptr.Int32(125),
+						Replicas:  ptr.Int32(2),
+					},
+				),
+			},
+			navObjects: []runtime.Object{
+				generate.CassPilot(
+					generate.PilotConfig{
+						Name:      "cass-cluster1-pool1-0",
+						Namespace: "ns1",
+						NodePool:  "pool1",
+						Cluster:   "cluster1",
+					},
+				),
+				generate.CassPilot(
+					generate.PilotConfig{
+						Name:      "cass-cluster1-pool1-1",
+						Namespace: "ns1",
+						NodePool:  "pool1",
+						Cluster:   "cluster1",
 					},
 				),
 			},
@@ -105,12 +123,56 @@ func TestScaleIn(t *testing.T) {
 			},
 			nodePool: generate.CassandraClusterNodePoolConfig{
 				Name:     "pool1",
-				Replicas: 120,
+				Replicas: 1,
 			},
 			expectedStatefulSet: &generate.StatefulSetConfig{
 				Name:      "cass-cluster1-pool1",
 				Namespace: "ns1",
-				Replicas:  ptr.Int32(120),
+				Replicas:  ptr.Int32(2),
+			},
+		},
+		"The replicas count is decremented with successfully decommissioned pilots": {
+			kubeObjects: []runtime.Object{
+				generate.StatefulSet(
+					generate.StatefulSetConfig{
+						Name:      "cass-cluster1-pool1",
+						Namespace: "ns1",
+						Replicas:  ptr.Int32(2),
+					},
+				),
+			},
+			navObjects: []runtime.Object{
+				generate.CassPilot(
+					generate.PilotConfig{
+						Name:      "cass-cluster1-pool1-0",
+						Namespace: "ns1",
+						NodePool:  "pool1",
+						Cluster:   "cluster1",
+					},
+				),
+				generate.CassPilot(
+					generate.PilotConfig{
+						Name:                 "cass-cluster1-pool1-1",
+						Namespace:            "ns1",
+						NodePool:             "pool1",
+						Cluster:              "cluster1",
+						DecommissionedStatus: true,
+						Decommissioned:       true,
+					},
+				),
+			},
+			cluster: generate.CassandraClusterConfig{
+				Name:      "cluster1",
+				Namespace: "ns1",
+			},
+			nodePool: generate.CassandraClusterNodePoolConfig{
+				Name:     "pool1",
+				Replicas: 1,
+			},
+			expectedStatefulSet: &generate.StatefulSetConfig{
+				Name:      "cass-cluster1-pool1",
+				Namespace: "ns1",
+				Replicas:  ptr.Int32(1),
 			},
 		},
 	}
@@ -130,6 +192,7 @@ func TestScaleIn(t *testing.T) {
 				if test.mutator != nil {
 					test.mutator(fixture)
 				}
+
 				a := &actions.ScaleIn{
 					Cluster:  generate.CassandraCluster(test.cluster),
 					NodePool: generate.CassandraClusterNodePool(test.nodePool),
