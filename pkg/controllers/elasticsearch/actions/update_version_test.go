@@ -43,9 +43,9 @@ func TestUpdateVersion(t *testing.T) {
 				}),
 			},
 			navObjects: []runtime.Object{
-				generate.Pilot(generate.PilotConfig{Name: "es-test-data-0", Cluster: "test", NodePool: "data", Version: "6.1.1"}),
-				generate.Pilot(generate.PilotConfig{Name: "es-test-data-1", Cluster: "test", NodePool: "data", Version: "6.1.1"}),
-				generate.Pilot(generate.PilotConfig{Name: "es-test-data-2", Cluster: "test", NodePool: "data", Version: "6.1.1"}),
+				generate.EsPilot(generate.PilotConfig{Name: "es-test-data-0", Cluster: "test", NodePool: "data", Version: "6.1.1"}),
+				generate.EsPilot(generate.PilotConfig{Name: "es-test-data-1", Cluster: "test", NodePool: "data", Version: "6.1.1"}),
+				generate.EsPilot(generate.PilotConfig{Name: "es-test-data-2", Cluster: "test", NodePool: "data", Version: "6.1.1"}),
 			},
 			cluster: generate.Cluster(generate.ClusterConfig{
 				Name:    "test",
@@ -84,9 +84,9 @@ func TestUpdateVersion(t *testing.T) {
 				}),
 			},
 			navObjects: []runtime.Object{
-				generate.Pilot(generate.PilotConfig{Name: "es-test-data-0", Cluster: "test", NodePool: "data", Version: "6.1.1"}),
-				generate.Pilot(generate.PilotConfig{Name: "es-test-data-1", Cluster: "test", NodePool: "data", Version: "6.1.1"}),
-				generate.Pilot(generate.PilotConfig{Name: "es-test-data-2", Cluster: "test", NodePool: "data", Version: "6.1.2"}),
+				generate.EsPilot(generate.PilotConfig{Name: "es-test-data-0", Cluster: "test", NodePool: "data", Version: "6.1.1"}),
+				generate.EsPilot(generate.PilotConfig{Name: "es-test-data-1", Cluster: "test", NodePool: "data", Version: "6.1.1"}),
+				generate.EsPilot(generate.PilotConfig{Name: "es-test-data-2", Cluster: "test", NodePool: "data", Version: "6.1.2"}),
 			},
 			cluster: generate.Cluster(generate.ClusterConfig{
 				Name:    "test",
@@ -123,9 +123,9 @@ func TestUpdateVersion(t *testing.T) {
 				}),
 			},
 			navObjects: []runtime.Object{
-				generate.Pilot(generate.PilotConfig{Name: "es-test-data-0", Cluster: "test", NodePool: "data", Version: "6.1.1"}),
-				generate.Pilot(generate.PilotConfig{Name: "es-test-data-1", Cluster: "test", NodePool: "data", Version: "6.1.1"}),
-				generate.Pilot(generate.PilotConfig{Name: "es-test-data-2", Cluster: "test", NodePool: "data", Version: "6.1.1"}),
+				generate.EsPilot(generate.PilotConfig{Name: "es-test-data-0", Cluster: "test", NodePool: "data", Version: "6.1.1"}),
+				generate.EsPilot(generate.PilotConfig{Name: "es-test-data-1", Cluster: "test", NodePool: "data", Version: "6.1.1"}),
+				generate.EsPilot(generate.PilotConfig{Name: "es-test-data-2", Cluster: "test", NodePool: "data", Version: "6.1.1"}),
 			},
 			cluster: generate.Cluster(generate.ClusterConfig{
 				Name:    "test",
@@ -151,9 +151,9 @@ func TestUpdateVersion(t *testing.T) {
 				}),
 			},
 			navObjects: []runtime.Object{
-				generate.Pilot(generate.PilotConfig{Name: "es-test-data-0", Cluster: "test", NodePool: "data", Version: "6.1.1"}),
-				generate.Pilot(generate.PilotConfig{Name: "es-test-data-1", Cluster: "test", NodePool: "data", Version: "6.1.1"}),
-				generate.Pilot(generate.PilotConfig{Name: "es-test-data-2", Cluster: "test", NodePool: "data", Version: "6.1.1"}),
+				generate.EsPilot(generate.PilotConfig{Name: "es-test-data-0", Cluster: "test", NodePool: "data", Version: "6.1.1"}),
+				generate.EsPilot(generate.PilotConfig{Name: "es-test-data-1", Cluster: "test", NodePool: "data", Version: "6.1.1"}),
+				generate.EsPilot(generate.PilotConfig{Name: "es-test-data-2", Cluster: "test", NodePool: "data", Version: "6.1.1"}),
 			},
 			cluster: generate.Cluster(generate.ClusterConfig{
 				Name:    "test",
@@ -182,9 +182,9 @@ func TestUpdateVersion(t *testing.T) {
 				}),
 			},
 			navObjects: []runtime.Object{
-				generate.Pilot(generate.PilotConfig{Name: "es-test-data-0", Cluster: "test", NodePool: "data", Version: "6.1.2"}),
-				generate.Pilot(generate.PilotConfig{Name: "es-test-data-1", Cluster: "test", NodePool: "data", Version: "6.1.2"}),
-				generate.Pilot(generate.PilotConfig{Name: "es-test-data-2", Cluster: "test", NodePool: "data", Version: "6.1.2"}),
+				generate.EsPilot(generate.PilotConfig{Name: "es-test-data-0", Cluster: "test", NodePool: "data", Version: "6.1.2"}),
+				generate.EsPilot(generate.PilotConfig{Name: "es-test-data-1", Cluster: "test", NodePool: "data", Version: "6.1.2"}),
+				generate.EsPilot(generate.PilotConfig{Name: "es-test-data-2", Cluster: "test", NodePool: "data", Version: "6.1.2"}),
 			},
 			cluster: generate.Cluster(generate.ClusterConfig{
 				Name:    "test",
@@ -223,9 +223,9 @@ func TestUpdateVersion(t *testing.T) {
 				}),
 			},
 			navObjects: []runtime.Object{
-				generate.Pilot(generate.PilotConfig{Name: "es-test-data-0", Cluster: "test", NodePool: "data", Version: "6.1.1"}),
-				generate.Pilot(generate.PilotConfig{Name: "es-test-data-1", Cluster: "test", NodePool: "data", Version: "6.1.1"}),
-				generate.Pilot(generate.PilotConfig{Name: "es-test-data-2", Cluster: "test", NodePool: "data", Version: "6.1.2"}),
+				generate.EsPilot(generate.PilotConfig{Name: "es-test-data-0", Cluster: "test", NodePool: "data", Version: "6.1.1"}),
+				generate.EsPilot(generate.PilotConfig{Name: "es-test-data-1", Cluster: "test", NodePool: "data", Version: "6.1.1"}),
+				generate.EsPilot(generate.PilotConfig{Name: "es-test-data-2", Cluster: "test", NodePool: "data", Version: "6.1.2"}),
 			},
 			cluster: generate.Cluster(generate.ClusterConfig{
 				Name:    "test",

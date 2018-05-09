@@ -66,6 +66,18 @@ func SelectorForCluster(c *v1alpha1.CassandraCluster) (labels.Selector, error) {
 	return labels.NewSelector().Add(*clusterNameReq), nil
 }
 
+func SelectorForNodePool(c *v1alpha1.CassandraCluster, poolName string) (labels.Selector, error) {
+	nodePoolNameReq, err := labels.NewRequirement(v1alpha1.CassandraNodePoolNameLabel, selection.Equals, []string{poolName})
+	if err != nil {
+		return nil, err
+	}
+	clusterSelector, err := SelectorForCluster(c)
+	if err != nil {
+		return nil, err
+	}
+	return clusterSelector.Add(*nodePoolNameReq), nil
+}
+
 func NodePoolLabels(
 	c *v1alpha1.CassandraCluster,
 	poolName string,

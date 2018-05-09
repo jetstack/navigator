@@ -95,6 +95,14 @@ func NewCassandra(
 			WorkFunc: cc.handleObject,
 		},
 	)
+
+	// An event handler to trigger status updates when pilots change
+	pilots.Informer().AddEventHandler(
+		&controllers.BlockingEventHandler{
+			WorkFunc: cc.handleObject,
+		},
+	)
+
 	cc.cassLister = cassClusters.Lister()
 	cc.statefulSetLister = statefulSets.Lister()
 	cc.cassListerSynced = cassClusters.Informer().HasSynced
@@ -153,9 +161,11 @@ func NewCassandra(
 		),
 		recorder,
 		&controllers.State{
-			Clientset:         kubeClient,
-			StatefulSetLister: statefulSets.Lister(),
-			Recorder:          recorder,
+			Clientset:          kubeClient,
+			NavigatorClientset: naviClient,
+			StatefulSetLister:  statefulSets.Lister(),
+			PilotLister:        pilots.Lister(),
+			Recorder:           recorder,
 		},
 	)
 	cc.recorder = recorder

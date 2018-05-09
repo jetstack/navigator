@@ -30,17 +30,20 @@ type Pilot struct {
 	// a reference to the GenericPilot for this Pilot
 	genericPilot *genericpilot.GenericPilot
 	nodeTool     nodetool.Interface
+
+	decommissionInProgress bool
 }
 
 func NewPilot(opts *PilotOptions) (*Pilot, error) {
 	pilotInformer := opts.sharedInformerFactory.Navigator().V1alpha1().Pilots()
 
 	p := &Pilot{
-		Options:             opts,
-		navigatorClient:     opts.navigatorClientset,
-		pilotLister:         pilotInformer.Lister(),
-		pilotInformerSynced: pilotInformer.Informer().HasSynced,
-		nodeTool:            opts.nodeTool,
+		Options:                opts,
+		navigatorClient:        opts.navigatorClientset,
+		pilotLister:            pilotInformer.Lister(),
+		pilotInformerSynced:    pilotInformer.Informer().HasSynced,
+		nodeTool:               opts.nodeTool,
+		decommissionInProgress: false,
 	}
 
 	// hack to test the seedprovider, this should use whatever pattern is decided upon here:
@@ -86,12 +89,48 @@ func (p *Pilot) syncFunc(pilot *v1alpha1.Pilot) error {
 		pilot.Status.Cassandra = &v1alpha1.CassandraPilotStatus{}
 	}
 
+	if pilot.Spec.Cassandra != nil {
+		if pilot.Spec.Cassandra.Decommissioned {
+			p.decommissionInProgress = true
+			err := p.decommission()
+			if err != nil {
+				glog.Errorf("error while decommissioning cassandra node: %s", err)
+			} else {
+				pilot.Status.Cassandra.Decommissioned = true
+			}
+		}
+	}
+
 	version, err := p.nodeTool.Version()
 	if err != nil {
 		pilot.Status.Cassandra.Version = nil
 		glog.Errorf("error while getting Cassandra version: %s", err)
 	}
 	pilot.Status.Cassandra.Version = version
+	return nil
+}
+
+func run(args ...string) error {
+	cmd := exec.Command(args[0], args[1:]...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	os.Unsetenv("JVM_OPTS")
+	return cmd.Run()
+}
+
+func (p *Pilot) decommission() error {
+	nodes, err := p.nodeTool.Status()
+	if err != nil {
+		return err
+	}
+	localNode := nodes.LocalNode()
+
+	// if node is operational and working normally, decommission node
+	if localNode.State == nodetool.NodeStateNormal {
+		glog.Info("about to decomission node")
+		return run("nodetool", "decommission")
+	}
+
 	return nil
 }
 
@@ -107,7 +146,7 @@ func localNodeUpAndNormal(nodeTool nodetool.Interface) error {
 	if localNode.Status != nodetool.NodeStatusUp {
 		return fmt.Errorf("Unexpected local node status: %v", localNode.Status)
 	}
-	if localNode.State != nodetool.NodeStateNormal {
+	if localNode.State != nodetool.NodeStateNormal && localNode.State != nodetool.NodeStateLeaving {
 		return fmt.Errorf("Unexpected local node state: %v", localNode.State)
 	}
 	return nil
@@ -126,6 +165,10 @@ func (p *Pilot) ReadinessCheck() error {
 }
 
 func (p *Pilot) LivenessCheck() error {
+	if p.decommissionInProgress || true {
+		glog.Info("decommission in progress, reporting success for liveness")
+		return nil
+	}
 	_, err := p.nodeTool.Status()
 	return err
 }
