@@ -60,7 +60,35 @@ func TestNextAction(t *testing.T) {
 			KubeObjects: []runtime.Object{
 				generate.StatefulSet(
 					generate.StatefulSetConfig{
-						Name:      "cass-cluster1-pool1",
+						Name:      "cass-cluster1-np0",
+						Namespace: "ns1",
+						Replicas:  ptr.Int32(8),
+					},
+				),
+				generate.StatefulSet(
+					generate.StatefulSetConfig{
+						Name:      "cass-cluster1-np1",
+						Namespace: "ns1",
+						Replicas:  ptr.Int32(8),
+					},
+				),
+				generate.StatefulSet(
+					generate.StatefulSetConfig{
+						Name:      "cass-cluster1-np2",
+						Namespace: "ns1",
+						Replicas:  ptr.Int32(8),
+					},
+				),
+				generate.StatefulSet(
+					generate.StatefulSetConfig{
+						Name:      "cass-cluster1-np3",
+						Namespace: "ns1",
+						Replicas:  ptr.Int32(8),
+					},
+				),
+				generate.StatefulSet(
+					generate.StatefulSetConfig{
+						Name:      "cass-cluster1-np4",
 						Namespace: "ns1",
 						Replicas:  ptr.Int32(8),
 					},
