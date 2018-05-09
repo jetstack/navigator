@@ -101,7 +101,7 @@ func NewController(
 }
 
 // syncPausedConditions checks if the given cluster is paused or not and adds an appropriate condition.
-func (e *defaultElasticsearchClusterControl) syncPausedConditions(c *v1alpha1.ElasticsearchCluster) error {
+func (e *defaultElasticsearchClusterControl) syncPausedConditions(c *v1alpha1.ElasticsearchCluster) {
 	cond := c.Status.GetStatusCondition(v1alpha1.ClusterConditionProgressing)
 	pausedCondExists := cond != nil && cond.Reason == v1alpha1.PausedClusterReason
 
@@ -120,20 +120,16 @@ func (e *defaultElasticsearchClusterControl) syncPausedConditions(c *v1alpha1.El
 			"Cluster is resumed",
 		)
 	}
-	return nil
 }
 
 func (e *defaultElasticsearchClusterControl) Sync(c *v1alpha1.ElasticsearchCluster) (v1alpha1.ElasticsearchClusterStatus, error) {
 	c = c.DeepCopy()
 	var err error
 
-	err = e.syncPausedConditions(c)
-	if err != nil {
-		return c.Status, err
-	}
+	e.syncPausedConditions(c)
 
 	if c.Spec.Paused == true {
-		glog.V(4).Infof("defaultElasticsearchClusterControl.Sync skipped, since cluster is paused")
+		glog.Infof("defaultElasticsearchClusterControl.Sync skipped, since cluster is paused")
 		return c.Status, nil
 	}
 
