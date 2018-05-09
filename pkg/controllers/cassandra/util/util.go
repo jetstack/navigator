@@ -19,7 +19,7 @@ const (
 	kindName = "CassandraCluster"
 )
 
-func NewControllerRef(c *v1alpha1.CassandraCluster) metav1.OwnerReference {
+func NewControllerRef(c metav1.Object) metav1.OwnerReference {
 	return *metav1.NewControllerRef(c, schema.GroupVersionKind{
 		Group:   navigator.GroupName,
 		Version: "v1alpha1",
@@ -47,10 +47,10 @@ func PilotRBACRoleName(c *v1alpha1.CassandraCluster) string {
 	return fmt.Sprintf("%s-pilot", ResourceBaseName(c))
 }
 
-func ClusterLabels(c *v1alpha1.CassandraCluster) map[string]string {
+func ClusterLabels(c metav1.Object) map[string]string {
 	return map[string]string{
 		"app": "cassandracluster",
-		v1alpha1.CassandraClusterNameLabel: c.Name,
+		v1alpha1.CassandraClusterNameLabel: c.GetName(),
 	}
 }
 

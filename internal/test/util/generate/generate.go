@@ -122,18 +122,24 @@ func StatefulSet(c StatefulSetConfig) *apps.StatefulSet {
 
 type CassandraClusterConfig struct {
 	Name, Namespace string
+	Version         *version.Version
 }
 
 func CassandraCluster(c CassandraClusterConfig) *v1alpha1.CassandraCluster {
-	return &v1alpha1.CassandraCluster{
+	o := &v1alpha1.CassandraCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      c.Name,
 			Namespace: c.Namespace,
 		},
-		Spec: v1alpha1.CassandraClusterSpec{
-			Version: *version.New("3.11.2"),
-		},
+		Spec: v1alpha1.CassandraClusterSpec{},
 	}
+	if c.Version == nil {
+		o.Spec.Version = *version.New("3.11.2")
+	} else {
+		o.Spec.Version = *c.Version
+	}
+
+	return o
 }
 
 type CassandraClusterNodePoolConfig struct {

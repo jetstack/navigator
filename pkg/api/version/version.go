@@ -3,6 +3,7 @@ package version
 import (
 	"encoding/json"
 	"strconv"
+	"strings"
 
 	semver "github.com/hashicorp/go-version"
 )
@@ -59,6 +60,11 @@ func (v *Version) Semver() *semver.Version {
 	return v.semver
 }
 
+// TODO: Add tests for this
+func (v *Version) LessThan(versionB *Version) bool {
+	return v.semver.LessThan(versionB.semver)
+}
+
 func (v *Version) UnmarshalJSON(data []byte) error {
 	s, err := strconv.Unquote(string(data))
 	if err != nil {
@@ -83,4 +89,32 @@ func (v Version) DeepCopy() Version {
 		return Version{}
 	}
 	return *New(v.String())
+}
+
+func (v *Version) bump(i int) *Version {
+	v2 := v.DeepCopy()
+	parts := strings.Split(v2.Semver().String(), ".")
+	part, err := strconv.Atoi(parts[i])
+	if err != nil {
+		panic(err)
+	}
+	part++
+	parts[i] = strconv.Itoa(part)
+	return New(strings.Join(parts, "."))
+}
+
+func (v *Version) BumpMajor() *Version {
+	return v.bump(0)
+}
+
+func (v *Version) BumpMinor() *Version {
+	return v.bump(1)
+}
+
+func (v *Version) BumpPatch() *Version {
+	return v.bump(2)
+}
+
+func (v *Version) Major() int64 {
+	return v.semver.Segments64()[0]
 }

@@ -44,16 +44,26 @@ func ValidateCassandraClusterUpdate(old, new *navigator.CassandraCluster) field.
 
 	fldPath := field.NewPath("spec")
 
-	if !new.Spec.Version.Equal(&old.Spec.Version) {
+	if new.Spec.Version.LessThan(&old.Spec.Version) {
 		allErrs = append(
 			allErrs,
 			field.Forbidden(
 				fldPath.Child("version"),
 				fmt.Sprintf(
-					"cannot change the version of an existing cluster. "+
+					"cannot perform version downgrades. "+
 						"old version: %s, new version: %s",
 					old.Spec.Version, new.Spec.Version,
 				),
+			),
+		)
+	}
+
+	if new.Spec.Version.Major() != old.Spec.Version.Major() {
+		allErrs = append(
+			allErrs,
+			field.Forbidden(
+				fldPath.Child("version"),
+				"cannot perform major version upgrades",
 			),
 		)
 	}

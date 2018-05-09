@@ -17,6 +17,9 @@ func ClusterForTest() *v1alpha1.CassandraCluster {
 				},
 			},
 		},
+		Status: v1alpha1.CassandraClusterStatus{
+			NodePools: map[string]v1alpha1.CassandraClusterNodePoolStatus{},
+		},
 	}
 	c.SetName("cassandra-1")
 	c.SetNamespace("app-1")
