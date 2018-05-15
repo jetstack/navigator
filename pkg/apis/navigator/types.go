@@ -51,6 +51,7 @@ type CassandraClusterStatus struct {
 
 type CassandraClusterNodePoolStatus struct {
 	ReadyReplicas int32
+	Resources     v1.ResourceRequirements
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

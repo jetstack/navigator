@@ -114,6 +114,9 @@ type CassandraClusterStatus struct {
 type CassandraClusterNodePoolStatus struct {
 	// The number of replicas in the node pool that are currently 'Ready'.
 	ReadyReplicas int32 `json:"readyReplicas"`
+
+	// The applied resource requirements for this nodepool
+	Resources v1.ResourceRequirements `json:"resources,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
