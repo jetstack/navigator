@@ -23,6 +23,8 @@ and in Navigator, these groups of nodes are called ``nodepools``.
 
 .. include:: configure-scheduler.rst
 
+.. include:: paused-clusters.rst
+
 .. include:: managing-compute-resources.rst
 
 .. include:: supplementary-resources.rst

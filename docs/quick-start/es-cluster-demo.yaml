@@ -3,6 +3,9 @@ kind: ElasticsearchCluster
 metadata:
   name: demo
 spec:
+  #  if set, navigator will not perform any actions on the cluster
+  # paused: true
+
   ## Omitting the minimumMasters fields will cause navigator to automatically
   ## determine a quorum of masters to use.
   # minimumMasters: 2

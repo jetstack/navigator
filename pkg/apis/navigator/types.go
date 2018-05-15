@@ -46,6 +46,7 @@ type CassandraClusterNodePool struct {
 }
 
 type CassandraClusterStatus struct {
+	NavigatorClusterStatus
 	NodePools map[string]CassandraClusterNodePoolStatus
 }
 
@@ -79,6 +80,7 @@ type ElasticsearchCluster struct {
 }
 
 type ElasticsearchClusterStatus struct {
+	NavigatorClusterStatus
 	NodePools map[string]ElasticsearchClusterNodePoolStatus
 	Health    *ElasticsearchClusterHealth
 }
@@ -150,10 +152,41 @@ type NavigatorClusterConfig struct {
 	PilotImage ImageSpec
 
 	SecurityContext NavigatorSecurityContext
+
+	Paused bool
+}
+
+type NavigatorClusterStatus struct {
+	Conditions []ClusterCondition
 }
 
 type NavigatorSecurityContext struct {
 	RunAsUser *int64
+}
+
+type ClusterConditionType string
+
+const (
+	ClusterConditionAvailable ClusterConditionType = "Available"
+
+	ClusterConditionProgressing ClusterConditionType = "Progressing"
+)
+
+type ClusterCondition struct {
+	// Type of cluster condition.
+	Type ClusterConditionType
+
+	// Status of the condition, one of True, False, Unknown.
+	Status ConditionStatus
+
+	// Last time the condition transitioned from one status to another.
+	LastTransitionTime metav1.Time
+
+	// The reason for the condition's last transition.
+	Reason string
+
+	// A human readable message indicating details about the transition.
+	Message string
 }
 
 // +genclient

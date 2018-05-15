@@ -18,8 +18,7 @@ import (
 )
 
 const (
-	ErrorSync = "ErrSync"
-
+	ErrorSync   = "ErrSync"
 	SuccessSync = "SuccessSync"
 
 	MessageErrorSyncServiceAccount = "Error syncing service account: %s"
@@ -79,9 +78,40 @@ func NewControl(
 	}
 }
 
+// syncPausedConditions checks if the given cluster is paused or not and adds an appropriate condition.
+func (e *defaultCassandraClusterControl) syncPausedConditions(c *v1alpha1.CassandraCluster) {
+	cond := c.Status.GetStatusCondition(v1alpha1.ClusterConditionProgressing)
+	pausedCondExists := cond != nil && cond.Reason == v1alpha1.PausedClusterReason
+
+	if c.Spec.Paused && !pausedCondExists {
+		c.Status.UpdateStatusCondition(
+			v1alpha1.ClusterConditionProgressing,
+			v1alpha1.ConditionFalse,
+			v1alpha1.PausedClusterReason,
+			"Cluster is paused",
+		)
+	} else if !c.Spec.Paused && pausedCondExists {
+		c.Status.UpdateStatusCondition(
+			v1alpha1.ClusterConditionProgressing,
+			v1alpha1.ConditionTrue,
+			v1alpha1.ResumedClusterReason,
+			"Cluster is resumed",
+		)
+	}
+}
+
 func (e *defaultCassandraClusterControl) Sync(c *v1alpha1.CassandraCluster) error {
+	var err error
+
+	e.syncPausedConditions(c)
+
+	if c.Spec.Paused == true {
+		glog.Infof("defaultCassandraClusterControl.Sync skipped, since cluster is paused")
+		return nil
+	}
+
 	glog.V(4).Infof("defaultCassandraClusterControl.Sync")
-	err := e.seedProviderServiceControl.Sync(c)
+	err = e.seedProviderServiceControl.Sync(c)
 	if err != nil {
 		e.recorder.Eventf(
 			c,

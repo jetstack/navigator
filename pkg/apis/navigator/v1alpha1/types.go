@@ -106,6 +106,8 @@ type CassandraClusterNodePool struct {
 }
 
 type CassandraClusterStatus struct {
+	NavigatorClusterStatus `json:",inline"`
+
 	// The status of each node pool in the CassandraCluster.
 	// This will be periodically updated by Navigator.
 	NodePools map[string]CassandraClusterNodePoolStatus `json:"nodePools,omitempty"`
@@ -143,6 +145,8 @@ type ElasticsearchCluster struct {
 // ElasticsearchClusterStatus specifies the overall status of an
 // ElasticsearchCluster.
 type ElasticsearchClusterStatus struct {
+	NavigatorClusterStatus `json:",inline"`
+
 	// The status of each node pool in the ElasticsearchCluster.
 	// This will be periodically updated by Navigator.
 	NodePools map[string]ElasticsearchClusterNodePoolStatus `json:"nodePools,omitempty"`
@@ -297,6 +301,16 @@ type NavigatorClusterConfig struct {
 
 	// Security related options to be applied to the cluster pods.
 	SecurityContext NavigatorSecurityContext `json:"securityContext"`
+
+	// If set to true, no actions will take place on this cluster.
+	Paused bool `json:"paused,omitempty"`
+}
+
+type NavigatorClusterStatus struct {
+	// Represents the latest available observations of a cluster's current state.
+	// +patchMergeKey=type
+	// +patchStrategy=merge
+	Conditions []ClusterCondition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type"`
 }
 
 type NavigatorSecurityContext struct {
@@ -306,6 +320,39 @@ type NavigatorSecurityContext struct {
 	// a manual image override has been specified.
 	// +optional
 	RunAsUser *int64 `json:"runAsUser,omitempty"`
+}
+
+type ClusterConditionType string
+
+const (
+	ClusterConditionAvailable ClusterConditionType = "Available"
+
+	ClusterConditionProgressing ClusterConditionType = "Progressing"
+)
+
+const (
+	// PausedClusterReason is added in a cluster when it is paused. Lack of progress shouldn't be
+	// estimated once a cluster is paused.
+	PausedClusterReason = "ClusterPaused"
+	// ResumedClusterReason is added in a cluster when it is resumed.
+	ResumedClusterReason = "ClusterResumed"
+)
+
+type ClusterCondition struct {
+	// Type of cluster condition.
+	Type ClusterConditionType `json:"type"`
+
+	// Status of the condition, one of True, False, Unknown.
+	Status ConditionStatus `json:"status"`
+
+	// Last time the condition transitioned from one status to another.
+	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
+
+	// The reason for the condition's last transition.
+	Reason string `json:"reason,omitempty"`
+
+	// A human readable message indicating details about the transition.
+	Message string `json:"message,omitempty"`
 }
 
 // +genclient

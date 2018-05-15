@@ -50,3 +50,42 @@ func (p *Pilot) UpdateStatusCondition(conditionType PilotConditionType, status C
 		}
 	}
 }
+
+func (s *NavigatorClusterStatus) GetStatusCondition(conditionType ClusterConditionType) *ClusterCondition {
+	for i := range s.Conditions {
+		c := s.Conditions[i]
+		if c.Type == conditionType {
+			return &c
+		}
+	}
+	return nil
+}
+
+func (c *NavigatorClusterStatus) UpdateStatusCondition(conditionType ClusterConditionType, status ConditionStatus, reason, message string) {
+	newCondition := ClusterCondition{
+		Type:    conditionType,
+		Status:  status,
+		Reason:  reason,
+		Message: message,
+	}
+
+	t := time.Now()
+
+	if len(c.Conditions) == 0 {
+		newCondition.LastTransitionTime = metav1.NewTime(t)
+		c.Conditions = []ClusterCondition{newCondition}
+	} else {
+		for i, cond := range c.Conditions {
+			if cond.Type == conditionType {
+				if cond.Status != newCondition.Status {
+					newCondition.LastTransitionTime = metav1.NewTime(t)
+				} else {
+					newCondition.LastTransitionTime = cond.LastTransitionTime
+				}
+
+				c.Conditions[i] = newCondition
+				break
+			}
+		}
+	}
+}
