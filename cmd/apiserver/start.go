@@ -130,20 +130,47 @@ func (o NavigatorServerOptions) Config() (*apiserver.Config, error) {
 		return nil, fmt.Errorf("error creating self-signed certificates: %v", err)
 	}
 
-	serverConfig := genericapiserver.NewRecommendedConfig(apiserver.Codecs)
-	if err := o.RecommendedOptions.ApplyTo(serverConfig); err != nil {
-		return nil, err
+	config := &apiserver.Config{
+		GenericConfig: genericapiserver.NewRecommendedConfig(apiserver.Codecs),
 	}
 
-	client, err := clientset.NewForConfig(serverConfig.LoopbackClientConfig)
-	if err != nil {
+	// Do not call RecommendedOptions.ApplyTo because some of its sub-options
+	// require kube-apiserver configuration options
+	if err := o.RecommendedOptions.Etcd.ApplyTo(&config.GenericConfig.Config); err != nil {
 		return nil, err
 	}
-	sharedInformers := informers.NewSharedInformerFactory(client, serverConfig.LoopbackClientConfig.Timeout)
+	if err := o.RecommendedOptions.SecureServing.ApplyTo(&config.GenericConfig.Config); err != nil {
+		return nil, err
+	}
+	if err := o.RecommendedOptions.Audit.ApplyTo(&config.GenericConfig.Config); err != nil {
+		return nil, err
+	}
+	if err := o.RecommendedOptions.Features.ApplyTo(&config.GenericConfig.Config); err != nil {
+		return nil, err
+	}
 
 	// only enable admission control when running in-cluster as we require a
 	// kubernetes client
 	if !o.StandaloneMode {
+		// These RecommendedOptions require kube-apiserver configuration and
+		// won't work in a standalone API server
+		if err := o.RecommendedOptions.Authentication.ApplyTo(&config.GenericConfig.Config); err != nil {
+			return nil, err
+		}
+		if err := o.RecommendedOptions.Authorization.ApplyTo(&config.GenericConfig.Config); err != nil {
+			return nil, err
+		}
+		if err := o.RecommendedOptions.CoreAPI.ApplyTo(config.GenericConfig); err != nil {
+			return nil, err
+		}
+
+		client, err := clientset.NewForConfig(config.GenericConfig.LoopbackClientConfig)
+		if err != nil {
+			return nil, err
+		}
+		sharedInformers := informers.NewSharedInformerFactory(client, config.GenericConfig.LoopbackClientConfig.Timeout)
+		config.SharedInformerFactory = sharedInformers
+
 		inClusterConfig, err := restclient.InClusterConfig()
 		if err != nil {
 			glog.Errorf("Failed to get kube client config: %v", err)
@@ -158,18 +185,14 @@ func (o NavigatorServerOptions) Config() (*apiserver.Config, error) {
 		}
 
 		kubeSharedInformers := kubeinformers.NewSharedInformerFactory(kubeClient, 10*time.Minute)
-		serverConfig.SharedInformerFactory = kubeSharedInformers
+		config.GenericConfig.SharedInformerFactory = kubeSharedInformers
 
-		serverConfig.AdmissionControl, err = buildAdmission(&o, client, sharedInformers, kubeClient, kubeSharedInformers)
+		config.GenericConfig.AdmissionControl, err = buildAdmission(&o, client, sharedInformers, kubeClient, kubeSharedInformers)
 		if err != nil {
 			return nil, fmt.Errorf("failed to initialize admission: %v", err)
 		}
 	}
 
-	config := &apiserver.Config{
-		GenericConfig:         serverConfig,
-		SharedInformerFactory: sharedInformers,
-	}
 	return config, nil
 }
 
@@ -201,10 +224,12 @@ func (o NavigatorServerOptions) RunNavigatorServer(stopCh <-chan struct{}) error
 		return err
 	}
 
-	server.GenericAPIServer.AddPostStartHook("start-navigator-server-informers", func(context genericapiserver.PostStartHookContext) error {
-		config.SharedInformerFactory.Start(context.StopCh)
-		return nil
-	})
+	if !o.StandaloneMode {
+		server.GenericAPIServer.AddPostStartHook("start-navigator-server-informers", func(context genericapiserver.PostStartHookContext) error {
+			config.SharedInformerFactory.Start(context.StopCh)
+			return nil
+		})
+	}
 
 	return server.GenericAPIServer.PrepareRun().Run(stopCh)
 }
