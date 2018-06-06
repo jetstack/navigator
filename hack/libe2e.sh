@@ -253,6 +253,16 @@ function kube_create_pv() {
     local name="${1}"
     local capacity="${2}"
     local storage_class="${3}"
+    local schedulable_nodes
+    schedulable_nodes=$(
+        kubectl get nodes \
+                --output \
+                'jsonpath={range $.items[*]}{.metadata.name} {.spec.taints[*].effect}{"\n"}{end}' \
+            | grep -v NoSchedule)
+    local node_name
+    node_name=$(python -c 'import random,sys; print(random.choice(sys.argv[1:]))' $schedulable_nodes)
+
+    local path="hostpath_pvs/${name}/"
 
     kubectl create --filename - <<EOF
 apiVersion: v1
@@ -261,15 +271,65 @@ metadata:
   name: ${name}
   labels:
     purpose: test
+  annotations:
+        "volume.alpha.kubernetes.io/node-affinity": '{
+            "requiredDuringSchedulingIgnoredDuringExecution": {
+                "nodeSelectorTerms": [
+                    { "matchExpressions": [
+                        { "key": "kubernetes.io/hostname",
+                          "operator": "In",
+                          "values": ["${node_name}"]
+                        }
+                    ]}
+                 ]}
+              }'
 spec:
   accessModes:
     - ReadWriteOnce
   capacity:
     storage: ${capacity}
-  hostPath:
-    path: /tmp/hostpath_pvs/${name}/
+  local:
+    path: /tmp/${path}/
   storageClassName: ${storage_class}
   persistentVolumeReclaimPolicy: Delete
 EOF
 
+    # Run a job (on the target node) to create the host directory.
+    kubectl create --namespace kube-system  --filename - <<EOF
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: "navigator-e2e-create-pv-${name}"
+  labels:
+    purpose: test
+spec:
+  template:
+    spec:
+      restartPolicy: "OnFailure"
+      nodeSelector:
+        kubernetes.io/hostname: "${node_name}"
+      containers:
+      - name: "mkdir"
+        image: "busybox:latest"
+        resources:
+          limits:
+            cpu: "10m"
+            memory: "8Mi"
+          requests:
+            cpu: "10m"
+            memory: "8Mi"
+        securityContext:
+          privileged: true
+        command:
+        - "/bin/mkdir"
+        - "-p"
+        - "/HOST_TMP/${path}"
+        volumeMounts:
+        - mountPath: /HOST_TMP
+          name: host-tmp
+      volumes:
+      - name: host-tmp
+        hostPath:
+          path: /tmp
+EOF
 }
