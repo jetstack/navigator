@@ -266,7 +266,7 @@ function test_cassandracluster() {
          stdout_equals "${CASS_VERSION}" \
          kubectl --namespace "${namespace}" \
          get pilots \
-         --selector "navigator.jetstack.io/cassandra-cluster-name=${CASS_NAME}" \
+         --selector "navigator.jetstack.io/cluster-type=CassandraCluster,navigator.jetstack.io/cluster-name=${CASS_NAME}" \
          --output 'jsonpath={.items[*].status.cassandra.version}'
     then
         kubectl --namespace "${namespace}" get pilots -o yaml
@@ -334,7 +334,7 @@ function test_cassandracluster() {
          stdout_equals "${CASS_VERSION}" \
          kubectl --namespace "${namespace}" \
          get pilots \
-         --selector "navigator.jetstack.io/cassandra-cluster-name=${CASS_NAME}" \
+         --selector "navigator.jetstack.io/cluster-type=CassandraCluster,navigator.jetstack.io/cluster-name=${CASS_NAME}" \
          --output 'jsonpath={.items[*].status.cassandra.version}'
     then
         kubectl --namespace "${namespace}" get pilots -o yaml
@@ -392,7 +392,7 @@ function test_cassandracluster() {
     # Get names of nodepool pods before the scale out (line separated)
     local original_pods_file="${ARTIFACTS_DIR}/test_cassandra.scale_out_original_pods"
     kubectl --namespace "${namespace}" get pods \
-            --selector="navigator.jetstack.io/cassandra-cluster-name=${CASS_NAME}" \
+            --selector "navigator.jetstack.io/cluster-type=CassandraCluster,navigator.jetstack.io/cluster-name=${CASS_NAME}" \
             --output='jsonpath={range .items[*]}{.metadata.name}{"\n"}{end}' \
             > "${original_pods_file}"
 
