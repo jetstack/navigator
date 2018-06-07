@@ -4,17 +4,28 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path"
 
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/golang/glog"
+	"github.com/pkg/errors"
 
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/cassandra/nodetool"
 	clientset "github.com/jetstack/navigator/pkg/client/clientset/versioned"
 	listersv1alpha1 "github.com/jetstack/navigator/pkg/client/listers/navigator/v1alpha1"
+	"github.com/jetstack/navigator/pkg/config"
 	"github.com/jetstack/navigator/pkg/pilot/genericpilot"
 	"github.com/jetstack/navigator/pkg/pilot/genericpilot/hook"
+)
+
+const (
+	CassSnitch       = "GossipingPropertyFileSnitch"
+	CassSeedProvider = "io.jetstack.cassandra.KubernetesSeedProvider"
+
+	CassandraYaml             = "cassandra.yaml"
+	CassandraRackDcProperties = "cassandra-rackdc.properties"
 )
 
 type Pilot struct {
@@ -40,24 +51,6 @@ func NewPilot(opts *PilotOptions) (*Pilot, error) {
 		pilotInformerSynced: pilotInformer.Informer().HasSynced,
 		nodeTool:            opts.nodeTool,
 	}
-
-	// hack to test the seedprovider, this should use whatever pattern is decided upon here:
-	//   https://github.com/jetstack/navigator/issues/251
-	// cfgPath := p.Options.CassandraConfigPath + "/cassandra.yaml"
-	// read, err := ioutil.ReadFile(cfgPath)
-	// if err != nil {
-	//	return nil, err
-	// }
-
-	// newContents := strings.Replace(string(read),
-	//	"org.apache.cassandra.locator.SimpleSeedProvider",
-	//	"io.jetstack.cassandra.KubernetesSeedProvider", -1)
-
-	// err = ioutil.WriteFile(cfgPath, []byte(newContents), 0)
-	// if err != nil {
-	//	return nil, err
-	// }
-
 	return p, nil
 }
 
@@ -69,11 +62,15 @@ func (p *Pilot) WaitForCacheSync(stopCh <-chan struct{}) error {
 }
 
 func (p *Pilot) Hooks() *hook.Hooks {
-	return &hook.Hooks{}
+	return &hook.Hooks{
+		PreStart: []hook.Interface{
+			hook.New("WriteConfig", p.WriteConfig),
+		},
+	}
 }
 
 func (p *Pilot) CmdFunc(pilot *v1alpha1.Pilot) (*exec.Cmd, error) {
-	cmd := exec.Command(p.Options.CassandraPath)
+	cmd := exec.Command(p.Options.CassandraPath, "-f")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd, nil
@@ -126,4 +123,69 @@ func (p *Pilot) ReadinessCheck() error {
 func (p *Pilot) LivenessCheck() error {
 	_, err := p.nodeTool.Status()
 	return err
+}
+
+func (p *Pilot) writeCassandraYaml(pilot *v1alpha1.Pilot) error {
+	cfg, err := config.NewFromYaml(
+		path.Join(p.Options.CassandraConfigPath, "cassandra.yaml"),
+	)
+	if err != nil {
+		return err
+	}
+	cfg.Set("cluster_name", p.Options.CassandraClusterName)
+	// We unset any pre-configured IP / host addresses so that cassandra is
+	// forced to lookup of its FQDN and corresponding IP address.
+	// This allows cassandra to handle changes of IP address if Pods are restarted.
+	cfg.Unset("listen_address")
+	cfg.Unset("listen_interface")
+	cfg.Unset("broadcast_address")
+	cfg.Unset("rpc_address")
+	// Force the use of GossipingPropertyFileSnitch so that cassandra will query the
+	// rackdc properties file for rack and DC values.
+	cfg.Set("endpoint_snitch", CassSnitch)
+	// Force the use of Kubernetes seed provider
+	// And remove preconfigured seeds so that cassandra can only get seed
+	// information from the Kubernetes service.
+	cfg.Set(
+		"seed_provider",
+		[]map[string]interface{}{{
+			"class_name": CassSeedProvider,
+			"parameters": []interface{}{
+				map[string]interface{}{
+					"seeds": "",
+				},
+			},
+		}},
+	)
+	return cfg.WriteConfig()
+}
+
+func (p *Pilot) writeCassandraRackDcProperties(pilot *v1alpha1.Pilot) error {
+	cfg, err := config.NewFromProperties(
+		path.Join(p.Options.CassandraConfigPath, "cassandra-rackdc.properties"),
+	)
+	if err != nil {
+		return err
+	}
+	cfg.Set("rack", p.Options.CassandraRack)
+	cfg.Set("dc", p.Options.CassandraDC)
+	return cfg.WriteConfig()
+}
+
+// WriteConfig creates Navigator compatible Cassandra configuration files.
+// It reads default cassandra.yaml and cassandra-rackdc.properties files
+// and overrides configuration values that are vital for Navigator to manage
+// the cassandra cluster.
+func (p *Pilot) WriteConfig(pilot *v1alpha1.Pilot) (err error) {
+	err = p.writeCassandraYaml(pilot)
+	if err != nil {
+		return errors.Wrap(err, "unable to write cassandra.yaml")
+	}
+
+	err = p.writeCassandraRackDcProperties(pilot)
+	if err != nil {
+		return errors.Wrap(err, "unable to write cassandra-rackdc.properties")
+	}
+
+	return nil
 }
