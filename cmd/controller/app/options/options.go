@@ -1,9 +1,12 @@
 package options
 
 import (
+	"strings"
 	"time"
 
 	"github.com/spf13/pflag"
+
+	"github.com/jetstack/navigator/pkg/util/features"
 )
 
 type ControllerOptions struct {
@@ -15,6 +18,9 @@ type ControllerOptions struct {
 	LeaderElectionLeaseDuration time.Duration
 	LeaderElectionRenewDeadline time.Duration
 	LeaderElectionRetryPeriod   time.Duration
+
+	FeatureGatesString string
+	Features           map[string]bool
 }
 
 const (
@@ -26,6 +32,8 @@ const (
 	defaultLeaderElectionLeaseDuration = 15 * time.Second
 	defaultLeaderElectionRenewDeadline = 10 * time.Second
 	defaultLeaderElectionRetryPeriod   = 2 * time.Second
+
+	defaultFeatureGatesString = ""
 )
 
 func NewControllerOptions() *ControllerOptions {
@@ -37,6 +45,8 @@ func NewControllerOptions() *ControllerOptions {
 		LeaderElectionLeaseDuration: defaultLeaderElectionLeaseDuration,
 		LeaderElectionRenewDeadline: defaultLeaderElectionRenewDeadline,
 		LeaderElectionRetryPeriod:   defaultLeaderElectionRetryPeriod,
+		FeatureGatesString:          defaultFeatureGatesString,
+		Features:                    map[string]bool{},
 	}
 }
 
@@ -66,6 +76,8 @@ func (s *ControllerOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.DurationVar(&s.LeaderElectionRetryPeriod, "leader-election-retry-period", defaultLeaderElectionRetryPeriod, ""+
 		"The duration the clients should wait between attempting acquisition and renewal "+
 		"of a leadership. This is only applicable if leader election is enabled.")
+	fs.StringVar(&s.FeatureGatesString, "feature-gates", defaultFeatureGatesString, "A set of key=value pairs that describe feature gates for various features. "+
+		"Options are:\n"+strings.Join(features.KnownFeatures(&features.InitFeatureGates), "\n"))
 }
 
 func (o *ControllerOptions) Validate() error {

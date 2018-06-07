@@ -6,6 +6,9 @@ createAPIService: true
 rbac:
   enabled: true
 
+# A set of key=value pairs that describe feature gates for various features. Use --help to see available flags.
+featureGates: ""
+
 apiserver:
   ## Set to true to skip deploying the apiserver components RBAC policies,
   ## which require cluster admin access to deploy.

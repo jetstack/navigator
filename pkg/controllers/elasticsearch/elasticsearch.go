@@ -68,6 +68,8 @@ type ElasticsearchController struct {
 	queue                       workqueue.RateLimitingInterface
 	elasticsearchClusterControl ControlInterface
 	recorder                    record.EventRecorder
+
+	features map[string]bool
 }
 
 // NewElasticsearch returns a new ElasticsearchController that can be used
@@ -89,6 +91,7 @@ func NewElasticsearch(
 	cl kubernetes.Interface,
 	navigatorCl clientset.Interface,
 	recorder record.EventRecorder,
+	features map[string]bool,
 ) *ElasticsearchController {
 	queue := workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "elasticsearchCluster")
 	// create a new ElasticsearchController to manage ElasticsearchCluster resources
@@ -97,6 +100,7 @@ func NewElasticsearch(
 		navigatorClient: navigatorCl,
 		queue:           queue,
 		recorder:        recorder,
+		features:        features,
 	}
 
 	// add an event handler to the ElasticsearchCluster informer
@@ -352,6 +356,7 @@ func init() {
 			ctx.Client,
 			ctx.NavigatorClient,
 			ctx.Recorder,
+			ctx.Features,
 		)
 
 		return e.Run

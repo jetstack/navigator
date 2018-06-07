@@ -12,6 +12,7 @@ import (
 	"github.com/jetstack/navigator/cmd/controller/app/options"
 	_ "github.com/jetstack/navigator/pkg/controllers/cassandra"
 	_ "github.com/jetstack/navigator/pkg/controllers/elasticsearch"
+	"github.com/jetstack/navigator/pkg/util/features"
 )
 
 type NavigatorControllerOptions struct {
@@ -64,6 +65,11 @@ Documentation is available at https://navigator-dbaas.readthedocs.io.
 func (o NavigatorControllerOptions) Validate(args []string) error {
 	errors := []error{}
 	errors = append(errors, o.ControllerOptions.Validate())
+
+	f, err := features.NewFeatureGate(&features.InitFeatureGates, o.ControllerOptions.FeatureGatesString)
+	errors = append(errors, err)
+	o.ControllerOptions.Features = f
+
 	return utilerrors.NewAggregate(errors)
 }
 
