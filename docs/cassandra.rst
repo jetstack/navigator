@@ -25,6 +25,8 @@ All the C* nodes (pods) in a ``nodepool`` have the same configuration and the fo
 
 .. include:: configure-scheduler.rst
 
+.. _availability-zones-cassandra:
+
 Cassandra Across Multiple Availability Zones
 --------------------------------------------
 
@@ -239,6 +241,37 @@ Navigator will add C* nodes, one at a time, until the desired number of nodes is
    and `Best way to add multiple nodes to existing cassandra cluster <https://stackoverflow.com/questions/37283424/best-way-to-add-multiple-nodes-to-existing-cassandra-cluster>`_.
 
 You can look at ``CassandraCluster.Status.NodePools[<nodepoolname>].ReadyReplicas`` to see the current number of healthy C* nodes in each ``nodepool``.
+
+Pilots and Cassandra Docker Images
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+By default, Navigator will use the `Cassandra Docker images from DockerHub <https://hub.docker.com/_/cassandra/>`_.
+It will use an image with a tag matching the supplied ``CassandraCluster.Spec.Version`` field.
+If you prefer to use your own container image you should configure the ``CassandraCluster.Spec.Image`` fields.
+
+Navigator installs a ``navigator-pilot-cassandra`` executable into each Pod at the path ``/pilot``.
+This ``pilot`` process connects to the API server to:
+get extra configuration settings,
+report the status of this C* node, and to
+perform leader election of a single pilot in the cluster.
+
+The ``pilot`` overrides the following keys in the default ``/etc/cassandra/cassandra.yaml`` file:
+
+* ``cluster_name``: This will be set to match the name of the corresponding ``CassandraCluster`` resource in the API server.
+* ``listen_address`` / ``listen_interface`` / ``broadcast_address`` / ``rpc_address`` / ``broadcast_rpc_address``:  These keys will be set to ``null``.
+  This ensures that Cassandra process listens and communicates using the IP address currently associated with the fully qualified domain name of the Pod.
+  This is important if the Pod is moved to another node and is assigned a different IP address.
+  Removing these settings from the Configuration file ensures that Cassandra uses the most recent IP address that Kubernetes has assigned to the Pod and that other C* nodes in the cluster are notified of the change of IP address.
+* ``seed_provider``: This is set to ``io.jetstack.cassandra.KubernetesSeedProvider`` which allows Cassandra to look up the seed IP addresses from a Kubernetes service.
+  The ``seed_provider.*.seeds`` sub key will be emptied.
+  This is to avoid the risk of nodes mistakenly joining the cluster as seeds if the seed provider service is temporarily unavailable.
+
+The ``pilot`` also overwrites ``cassandra-rackdc.properties`` with values derived from the ``CassandraCluster.Spec.Nodepools`` (see :ref:`availability-zones-cassandra`).
+
+Finally the ``pilot`` executes ``/usr/sbin/cassandra`` directly.
+
+.. note::
+   The default entry point (e.g. `/docker-entrypoint.sh <https://github.com/docker-library/cassandra/blob/master/3.11/docker-entrypoint.sh>`_ is ignored.
 
 Supported Versions
 ------------------
