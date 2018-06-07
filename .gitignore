@@ -6,3 +6,4 @@
 .generate_exes
 .get_deps
 bin/
+**/.test/

@@ -111,10 +111,12 @@ func (g *GenericPilot) runController(stopCh <-chan struct{}) <-chan error {
 
 func (g *GenericPilot) runElector(stopCh <-chan struct{}) <-chan error {
 	out := make(chan error, 1)
-	go func() {
-		defer close(out)
-		out <- g.elector.Run()
-	}()
+	if g.Options.LeaderElect {
+		go func() {
+			defer close(out)
+			out <- g.elector.Run()
+		}()
+	}
 	return out
 }
 

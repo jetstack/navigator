@@ -44,6 +44,7 @@ type Options struct {
 	PilotName string
 	// PilotNamespace is the namespace the corresponding Pilot exists within
 	PilotNamespace          string
+	LeaderElect             bool
 	LeaderElectionConfigMap string
 
 	// CmdFunc returns an *exec.Cmd for a given Pilot resource for the pilot
@@ -179,5 +180,7 @@ func (o *Options) Pilot() (*GenericPilot, error) {
 func (o *Options) AddFlags(flags *pflag.FlagSet) {
 	flags.StringVar(&o.PilotName, "pilot-name", "", "The name of this Pilot. If not specified, an auto-detected name will be used.")
 	flags.StringVar(&o.PilotNamespace, "pilot-namespace", "", "The namespace the corresponding Pilot resource for this Pilot exists within.")
+	flags.BoolVar(&o.LeaderElect, "leader-elect", true, ""+
+		"If true, navigator will perform leader election between pilots.")
 	flags.StringVar(&o.LeaderElectionConfigMap, "leader-election-config-map", "", "The  name of the ConfigMap to use for leader election")
 }

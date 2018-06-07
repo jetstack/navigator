@@ -1,0 +1,11 @@
+apiVersion: navigator.jetstack.io/v1alpha1
+kind: Pilot
+metadata:
+  name: pilot1
+  namespace: ns1
+  ownerReferences:
+  - apiVersion: navigator.jetstack.io/v1alpha1
+    kind: CassandraCluster
+    name: cluster1
+    uid: 23c88696-cf7b-11e7-9ec9-0a580a200927
+    controller: true

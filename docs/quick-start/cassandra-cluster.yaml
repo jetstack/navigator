@@ -31,3 +31,5 @@ spec:
   pilotImage:
     repository: "quay.io/jetstack/navigator-pilot-cassandra"
     tag: "v0.1.0"
+  securityContext:
+    runAsUser: 999
