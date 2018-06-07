@@ -50,20 +50,29 @@ func PilotRBACRoleName(c *v1alpha1.CassandraCluster) string {
 func ClusterLabels(c metav1.Object) map[string]string {
 	return map[string]string{
 		"app": "cassandracluster",
-		v1alpha1.CassandraClusterNameLabel: c.GetName(),
+		v1alpha1.ClusterTypeLabel: kindName,
+		v1alpha1.ClusterNameLabel: c.GetName(),
 	}
 }
 
 func SelectorForCluster(c *v1alpha1.CassandraCluster) (labels.Selector, error) {
+	clusterTypeReq, err := labels.NewRequirement(
+		v1alpha1.ClusterTypeLabel,
+		selection.Equals,
+		[]string{kindName},
+	)
+	if err != nil {
+		return nil, err
+	}
 	clusterNameReq, err := labels.NewRequirement(
-		v1alpha1.CassandraClusterNameLabel,
+		v1alpha1.ClusterNameLabel,
 		selection.Equals,
 		[]string{c.Name},
 	)
 	if err != nil {
 		return nil, err
 	}
-	return labels.NewSelector().Add(*clusterNameReq), nil
+	return labels.NewSelector().Add(*clusterTypeReq, *clusterNameReq), nil
 }
 
 func NodePoolLabels(
@@ -71,7 +80,7 @@ func NodePoolLabels(
 	poolName string,
 ) map[string]string {
 	labels := ClusterLabels(c)
-	labels[v1alpha1.CassandraNodePoolNameLabel] = poolName
+	labels[v1alpha1.NodePoolNameLabel] = poolName
 	return labels
 }
 

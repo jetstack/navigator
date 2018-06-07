@@ -56,7 +56,7 @@ func (c *pilotControl) updateDiscoveredVersions(cluster *v1alpha1.CassandraClust
 		glog.V(4).Infof("No pilots found matching selector: %s", selector)
 	}
 	for _, pilot := range pilots {
-		nodePoolNameForPilot, nodePoolNameFound := pilot.Labels[v1alpha1.CassandraNodePoolNameLabel]
+		nodePoolNameForPilot, nodePoolNameFound := pilot.Labels[v1alpha1.NodePoolNameLabel]
 		if !nodePoolNameFound {
 			glog.Warningf("Skipping pilot without NodePoolNameLabelKey: %s", pilot.Name)
 			continue
@@ -129,7 +129,7 @@ func (pb *PilotBuilder) ForNodePool(np *v1alpha1.CassandraClusterNodePool) *Pilo
 	UpdateLabels(
 		pb.pilot,
 		map[string]string{
-			v1alpha1.CassandraNodePoolNameLabel: np.Name,
+			v1alpha1.NodePoolNameLabel: np.Name,
 		},
 	)
 	return pb

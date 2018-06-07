@@ -230,6 +230,11 @@ func PilotForPod(pod *v1.Pod) *v1alpha1.Pilot {
 					},
 				),
 			},
+			Labels: map[string]string{
+				v1alpha1.ClusterTypeLabel:  pod.Labels[v1alpha1.ClusterTypeLabel],
+				v1alpha1.ClusterNameLabel:  pod.Labels[v1alpha1.ClusterNameLabel],
+				v1alpha1.NodePoolNameLabel: pod.Labels[v1alpha1.NodePoolNameLabel],
+			},
 		},
 	}
 }
