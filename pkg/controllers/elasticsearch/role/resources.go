@@ -29,6 +29,16 @@ func roleForCluster(c *v1alpha1.ElasticsearchCluster) *rbacv1beta1.Role {
 				Resources: []string{"configmaps"},
 			},
 			{
+				APIGroups: []string{""},
+				Verbs:     []string{"get", "list", "watch"},
+				Resources: []string{"pods"},
+			},
+			{
+				APIGroups: []string{"apps"},
+				Verbs:     []string{"get", "list", "watch"},
+				Resources: []string{"statefulsets"},
+			},
+			{
 				APIGroups: []string{navigator.GroupName},
 				Verbs:     []string{"get", "list", "watch"},
 				Resources: []string{

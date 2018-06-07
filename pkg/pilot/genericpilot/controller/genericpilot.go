@@ -48,6 +48,7 @@ type Controller struct {
 	// containing the Pilot resource being deleted, or any other circumstance
 	// leading to the Pilot lister to not contain a reference to 'this' pilot.
 	cachedThisPilot *v1alpha1.Pilot
+	state           *controllers.State
 }
 
 const (
@@ -60,6 +61,7 @@ type Options struct {
 	KubeClientset             kubernetes.Interface
 	Clientset                 clientset.Interface
 	PilotInformer             informersv1alpha1.PilotInformer
+	State                     *controllers.State
 }
 
 func NewController(opts Options) *Controller {
@@ -73,11 +75,11 @@ func NewController(opts Options) *Controller {
 		pilotLister:         opts.PilotInformer.Lister(),
 		pilotInformerSynced: opts.PilotInformer.Informer().HasSynced,
 		queue:               queue,
+		state:               opts.State,
 	}
 	ctrl.scheduledWorkQueue = scheduler.NewScheduledWorkQueue(ctrl.enqueuePilot)
 
-	opts.PilotInformer.Informer().AddEventHandler(&controllers.QueuingEventHandler{queue})
-
+	opts.PilotInformer.Informer().AddEventHandler(&controllers.QueuingEventHandler{Queue: queue})
 	return ctrl
 }
 

@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/pflag"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -50,11 +51,12 @@ type PilotOptions struct {
 	StdOut io.Writer
 	StdErr io.Writer
 
-	pilot                 *Pilot
-	kubeClientset         kubernetes.Interface
-	navigatorClientset    clientset.Interface
-	sharedInformerFactory informers.SharedInformerFactory
-	nodeTool              nodetool.Interface
+	pilot                     *Pilot
+	kubeClientset             kubernetes.Interface
+	navigatorClientset        clientset.Interface
+	kubeSharedInformerFactory kubeinformers.SharedInformerFactory
+	sharedInformerFactory     informers.SharedInformerFactory
+	nodeTool                  nodetool.Interface
 }
 
 func NewOptions(out, errOut io.Writer) *PilotOptions {
@@ -91,6 +93,8 @@ func (o *PilotOptions) Complete() error {
 	if err != nil {
 		return err
 	}
+	o.kubeSharedInformerFactory = kubeinformers.NewFilteredSharedInformerFactory(o.kubeClientset, o.ResyncPeriod, o.GenericPilotOptions.PilotNamespace, nil)
+
 	o.sharedInformerFactory = informers.NewFilteredSharedInformerFactory(o.navigatorClientset, o.ResyncPeriod, o.GenericPilotOptions.PilotNamespace, nil)
 
 	u, err := url.Parse(o.JolokiaURL)
@@ -105,6 +109,7 @@ func (o *PilotOptions) Complete() error {
 
 	o.GenericPilotOptions.KubernetesClient = o.kubeClientset
 	o.GenericPilotOptions.NavigatorClient = o.navigatorClientset
+	o.GenericPilotOptions.KubeSharedInformerFactory = o.kubeSharedInformerFactory
 	o.GenericPilotOptions.SharedInformerFactory = o.sharedInformerFactory
 	o.GenericPilotOptions.CmdFunc = o.pilot.CmdFunc
 	o.GenericPilotOptions.SyncFunc = o.pilot.syncFunc
@@ -141,6 +146,7 @@ func (o *PilotOptions) Run(stopCh <-chan struct{}) error {
 	stopInformers := make(chan struct{})
 	defer close(stopInformers)
 	// start the shared informer factory
+	go o.kubeSharedInformerFactory.Start(stopInformers)
 	go o.sharedInformerFactory.Start(stopInformers)
 
 	if err := o.pilot.WaitForCacheSync(stopCh); err != nil {

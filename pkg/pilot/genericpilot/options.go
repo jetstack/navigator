@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	kubescheme "k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -19,6 +20,7 @@ import (
 	clientset "github.com/jetstack/navigator/pkg/client/clientset/versioned"
 	"github.com/jetstack/navigator/pkg/client/clientset/versioned/scheme"
 	informers "github.com/jetstack/navigator/pkg/client/informers/externalversions"
+	"github.com/jetstack/navigator/pkg/controllers"
 	"github.com/jetstack/navigator/pkg/pilot/genericpilot/controller"
 	"github.com/jetstack/navigator/pkg/pilot/genericpilot/hook"
 	"github.com/jetstack/navigator/pkg/pilot/genericpilot/leaderelection"
@@ -39,6 +41,9 @@ type Options struct {
 	NavigatorClient clientset.Interface
 	// SharedInformerFactory provides a shared cache of informers
 	SharedInformerFactory informers.SharedInformerFactory
+
+	// KubeSharedInformerFactory provides a shared cache of informers
+	KubeSharedInformerFactory kubeinformers.SharedInformerFactory
 
 	// PilotName is the name of this Pilot
 	PilotName string
@@ -113,6 +118,9 @@ func (o *Options) Validate() []error {
 	if o.SharedInformerFactory == nil {
 		errs = append(errs, fmt.Errorf("shared informer factory must be specified"))
 	}
+	if o.KubeSharedInformerFactory == nil {
+		errs = append(errs, fmt.Errorf("kube shared informer factory must be specified"))
+	}
 	if o.CmdFunc == nil {
 		errs = append(errs, fmt.Errorf("cmd func must be specified"))
 	}
@@ -171,6 +179,11 @@ func (o *Options) Pilot() (*GenericPilot, error) {
 		KubeClientset:  o.KubernetesClient,
 		Clientset:      o.NavigatorClient,
 		PilotInformer:  pilotInformer,
+		State: &controllers.State{
+			PilotLister:       o.SharedInformerFactory.Navigator().V1alpha1().Pilots().Lister(),
+			PodLister:         o.KubeSharedInformerFactory.Core().V1().Pods().Lister(),
+			StatefulSetLister: o.KubeSharedInformerFactory.Apps().V1beta1().StatefulSets().Lister(),
+		},
 	})
 
 	return genericPilot, nil

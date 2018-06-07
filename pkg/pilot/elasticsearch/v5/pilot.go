@@ -11,6 +11,7 @@ import (
 
 	clientset "github.com/jetstack/navigator/pkg/client/clientset/versioned"
 	listersv1alpha1 "github.com/jetstack/navigator/pkg/client/listers/navigator/v1alpha1"
+	"github.com/jetstack/navigator/pkg/controllers"
 	"github.com/jetstack/navigator/pkg/pilot/genericpilot"
 	"github.com/jetstack/navigator/pkg/pilot/genericpilot/hook"
 )
@@ -37,6 +38,7 @@ type Pilot struct {
 	genericPilot *genericpilot.GenericPilot
 
 	lastNodeStatsUpdate time.Time
+	state               *controllers.State
 }
 
 func NewPilot(opts *PilotOptions) (*Pilot, error) {
@@ -50,6 +52,10 @@ func NewPilot(opts *PilotOptions) (*Pilot, error) {
 		pilotInformerSynced:     pilotInformer.Informer().HasSynced,
 		esClusterLister:         esClusterInformer.Lister(),
 		esClusterInformerSynced: esClusterInformer.Informer().HasSynced,
+		state: &controllers.State{
+			PodLister:         opts.kubeSharedInformerFactory.Core().V1().Pods().Lister(),
+			StatefulSetLister: opts.kubeSharedInformerFactory.Apps().V1beta1().StatefulSets().Lister(),
+		},
 	}
 
 	// Setup a gofunc to keep attempting to create an API client

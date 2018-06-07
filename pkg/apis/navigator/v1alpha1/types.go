@@ -17,6 +17,7 @@ const (
 
 	CassandraClusterNameLabel  = "navigator.jetstack.io/cassandra-cluster-name"
 	CassandraNodePoolNameLabel = "navigator.jetstack.io/cassandra-node-pool-name"
+	PilotLabel                 = "navigator.jetstack.io/has-pilot"
 )
 
 // +genclient

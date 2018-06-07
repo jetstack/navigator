@@ -4,10 +4,11 @@ import (
 	"fmt"
 
 	"github.com/golang/glog"
+	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
+	"github.com/jetstack/navigator/pkg/controllers"
 )
 
 // IsThisPilot will return true if 'pilot' corresponds to the Pilot resource
@@ -27,12 +28,22 @@ func (g *Controller) IsPeer(pilot *v1alpha1.Pilot) (bool, error) {
 		return false, err
 	}
 
-	clusterOwnerRef := metav1.GetControllerOf(thisPilot)
+	clusterOwnerRef, err := controllers.RootControllerRef(g.state, thisPilot)
+	if err != nil {
+		return false, errors.Wrapf(
+			err, "unable to get root controller ref for this pilot %s/%s", pilot.Namespace, pilot.Name,
+		)
+	}
 	if clusterOwnerRef == nil {
 		return false, fmt.Errorf("cannot determine owner of this Pilot resource (%q) as it is nil. this is an invalid state", g.pilotName)
 	}
 
-	pilotOwnerRef := metav1.GetControllerOf(pilot)
+	pilotOwnerRef, err := controllers.RootControllerRef(g.state, pilot)
+	if err != nil {
+		return false, errors.Wrapf(
+			err, "unable to get root controller ref for other pilot %s/%s", pilot.Namespace, pilot.Name,
+		)
+	}
 	if pilotOwnerRef == nil {
 		glog.V(4).Infof("cannot determine owner of the provided Pilot resource (%q) as it is nil. skipping processing Pilot", pilot.Name)
 		return false, nil
