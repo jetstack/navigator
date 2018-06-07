@@ -18,6 +18,9 @@ CMDS := controller apiserver pilot-elasticsearch pilot-cassandra
 GOPATH ?= /tmp/go
 GOFLAGS ?= "-a"
 
+# Path of the Navigator Cassandra Pilot for integration tests
+TEST_ASSET_NAVIGATOR_PILOT_CASSANDRA ?= "${CURDIR}/navigator-pilot-cassandra_linux_amd64"
+
 help:
 	# all       - runs verify, build and docker_build targets
 	# test      - runs go_test target
@@ -32,7 +35,7 @@ help:
 
 all: verify build docker_build
 
-test: go_test
+test: go_test test_integration
 
 .run_e2e:
 	${HACK_DIR}/prepare-e2e.sh
@@ -44,7 +47,7 @@ build: $(CMDS)
 
 generate: .generate_files
 
-verify: .hack_verify dep_verify go_verify helm_verify
+verify: .hack_verify dep_verify go_verify helm_verify test_integration
 
 .hack_verify:
 	@echo Running repo-infra verify scripts
@@ -90,7 +93,7 @@ $(CMDS):
 go_build: $(CMDS)
 
 go_test:
-	go test -v $$(go list ./... | grep -v '/vendor/')
+	go test -v $$(go list ./... | grep -v -e '/vendor/'  -e 'github.com/jetstack/navigator/test/')
 
 go_fmt:
 	./hack/verify-lint.sh
@@ -105,3 +108,11 @@ go_fmt:
 # Helm targets
 helm_verify:
 	helm lint contrib/charts/*
+
+.download_integration_test_binaries:
+	$(HACK_DIR)/download-integration-test-binaries.sh
+	touch	.download_integration_test_binaries
+
+test_integration: .download_integration_test_binaries apiserver pilot-cassandra
+	TEST_ASSET_NAVIGATOR_PILOT_CASSANDRA=$(TEST_ASSET_NAVIGATOR_PILOT_CASSANDRA) \
+	go test $(GO_TEST_ARGS) -v ./test/integration/...
