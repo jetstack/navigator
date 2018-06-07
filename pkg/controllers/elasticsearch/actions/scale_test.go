@@ -411,8 +411,9 @@ func pilotWithNameOwner(name, clusterName, nodePoolName string) *v1alpha1.Pilot 
 	if p.Labels == nil {
 		p.Labels = map[string]string{}
 	}
-	p.Labels[v1alpha1.ElasticsearchClusterNameLabel] = clusterName
-	p.Labels[v1alpha1.ElasticsearchNodePoolNameLabel] = nodePoolName
+	p.Labels[v1alpha1.ClusterTypeLabel] = "ElasticsearchCluster"
+	p.Labels[v1alpha1.ClusterNameLabel] = clusterName
+	p.Labels[v1alpha1.NodePoolNameLabel] = nodePoolName
 	return p
 }
 

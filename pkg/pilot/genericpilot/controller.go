@@ -2,6 +2,7 @@ package genericpilot
 
 import (
 	"github.com/golang/glog"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 
@@ -124,7 +125,7 @@ func (g *GenericPilot) updatePilotStatus(pilot *v1alpha1.Pilot) error {
 
 	// perform update in API
 	_, err := g.client.NavigatorV1alpha1().Pilots(pilot.Namespace).UpdateStatus(pilot)
-	return err
+	return errors.Wrap(err, "unable to update pilot status")
 }
 
 func (g *GenericPilot) constructProcess(pilot *v1alpha1.Pilot) error {

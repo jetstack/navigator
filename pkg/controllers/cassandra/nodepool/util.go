@@ -7,7 +7,7 @@ import (
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
 )
 
-func cassImageToUse(spec *v1alpha1.CassandraClusterSpec) *v1alpha1.ImageSpec {
+func CassImageToUse(spec *v1alpha1.CassandraClusterSpec) *v1alpha1.ImageSpec {
 	if spec.Image == nil {
 		return defaultCassandraImageForVersion(spec.Version)
 	}

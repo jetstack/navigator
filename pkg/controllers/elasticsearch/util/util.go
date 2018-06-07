@@ -28,9 +28,13 @@ func ResourceBaseName(c *v1alpha1.ElasticsearchCluster) string {
 }
 
 func SelectorForCluster(clusterName string) (labels.Selector, error) {
-	clusterNameReq, err := labels.NewRequirement(v1alpha1.ElasticsearchClusterNameLabel, selection.Equals, []string{clusterName})
+	clusterTypeReq, err := labels.NewRequirement(v1alpha1.ClusterTypeLabel, selection.Equals, []string{kindName})
 	if err != nil {
 		return nil, err
 	}
-	return labels.NewSelector().Add(*clusterNameReq), nil
+	clusterNameReq, err := labels.NewRequirement(v1alpha1.ClusterNameLabel, selection.Equals, []string{clusterName})
+	if err != nil {
+		return nil, err
+	}
+	return labels.NewSelector().Add(*clusterTypeReq, *clusterNameReq), nil
 }

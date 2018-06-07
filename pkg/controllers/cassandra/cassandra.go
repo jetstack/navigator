@@ -26,6 +26,7 @@ import (
 	listersv1alpha1 "github.com/jetstack/navigator/pkg/client/listers/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/nodepool"
+	"github.com/jetstack/navigator/pkg/controllers/cassandra/pilot"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/role"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/rolebinding"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/seedlabeller"
@@ -59,6 +60,7 @@ func NewCassandra(
 	naviClient navigatorclientset.Interface,
 	kubeClient kubernetes.Interface,
 	cassClusters navigatorinformers.CassandraClusterInformer,
+	pilots navigatorinformers.PilotInformer,
 	services coreinformers.ServiceInformer,
 	statefulSets appsinformers.StatefulSetInformer,
 	pods coreinformers.PodInformer,
@@ -86,6 +88,12 @@ func NewCassandra(
 	)
 	// Sync when statefulsets change
 	statefulSets.Informer().AddEventHandler(
+		&controllers.BlockingEventHandler{
+			WorkFunc: cc.handleObject,
+		},
+	)
+	// An event handler to trigger status updates when pilots change
+	pilots.Informer().AddEventHandler(
 		&controllers.BlockingEventHandler{
 			WorkFunc: cc.handleObject,
 		},
@@ -136,6 +144,11 @@ func NewCassandra(
 			kubeClient,
 			statefulSets.Lister(),
 			pods.Lister(),
+			recorder,
+		),
+		pilot.NewControl(
+			naviClient,
+			pilots.Lister(),
 			recorder,
 		),
 		recorder,
@@ -312,6 +325,7 @@ func CassandraControllerFromContext(ctx *controllers.Context) *CassandraControll
 		ctx.NavigatorClient,
 		ctx.Client,
 		ctx.SharedInformerFactory.Navigator().V1alpha1().CassandraClusters(),
+		ctx.SharedInformerFactory.Navigator().V1alpha1().Pilots(),
 		ctx.KubeSharedInformerFactory.Core().V1().Services(),
 		ctx.KubeSharedInformerFactory.Apps().V1beta1().StatefulSets(),
 		ctx.KubeSharedInformerFactory.Core().V1().Pods(),

@@ -130,7 +130,7 @@ func TestPilotControllerIntegration(t *testing.T) {
 			Kind: "StatefulSet",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "ss1",
+			Name:      "np1",
 			Namespace: "ns1",
 			OwnerReferences: []metav1.OwnerReference{
 				*metav1.NewControllerRef(cc1, cc1.GroupVersionKind()),
@@ -140,10 +140,13 @@ func TestPilotControllerIntegration(t *testing.T) {
 
 	pod1 := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "p1",
+			Name:      "np1-0",
 			Namespace: "ns1",
 			Labels: map[string]string{
-				v1alpha1.PilotLabel: "",
+				v1alpha1.ClusterTypeLabel:  "CassandraCluster",
+				v1alpha1.ClusterNameLabel:  "cc1",
+				v1alpha1.NodePoolNameLabel: "np1",
+				v1alpha1.PilotLabel:        "",
 			},
 			OwnerReferences: []metav1.OwnerReference{
 				*metav1.NewControllerRef(ss1, ss1.GroupVersionKind()),
