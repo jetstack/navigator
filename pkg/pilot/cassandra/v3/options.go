@@ -18,9 +18,11 @@ import (
 )
 
 const (
-	defaultResyncPeriod = time.Second * 30
-	defaultConfigDir    = "/etc/pilot"
-	defaultJolokiaURL   = "http://127.0.0.1:8778/jolokia/"
+	defaultResyncPeriod        = time.Second * 30
+	defaultConfigDir           = "/etc/pilot"
+	defaultJolokiaURL          = "http://127.0.0.1:8778/jolokia/"
+	defaultCassandraPath       = "/usr/sbin/cassandra"
+	defaultCassandraConfigPath = "/etc/cassandra"
 )
 
 // PilotOptions are the options required to run this Pilot. This can be used to
@@ -43,6 +45,21 @@ type PilotOptions struct {
 
 	// JolokiaURL is the base URL of the Jolokia REST API server.
 	JolokiaURL string
+
+	// CassandraClusterName is the cluster_name that will be written to cassandra.yaml
+	CassandraClusterName string
+
+	// CassandraPath is the path to the cassandra executable
+	CassandraPath string
+
+	// CassandraConfigPath is the path to the Cassandra configuration directory
+	CassandraConfigPath string
+
+	// CassandraRack is the Cassandra rack name
+	CassandraRack string
+
+	// CassandraConfigPath is the Cassandra DC name
+	CassandraDC string
 
 	// GenericPilotOptions contains options for the genericpilot
 	GenericPilotOptions *genericpilot.Options
@@ -74,6 +91,11 @@ func (o *PilotOptions) AddFlags(flags *pflag.FlagSet) {
 	flags.DurationVar(&o.ResyncPeriod, "resync-period", defaultResyncPeriod, "Re-sync period for control loops operated by the pilot")
 	flags.StringVar(&o.ConfigDir, "config-dir", defaultConfigDir, "Base directory for additional Pilot configuration")
 	flags.StringVar(&o.JolokiaURL, "jolokia-url", defaultJolokiaURL, "The base URL of the Jolokia REST API server")
+	flags.StringVar(&o.CassandraClusterName, "cassandra-cluster-name", "", "The cluster_name value that will be written to cassandra.yaml")
+	flags.StringVar(&o.CassandraPath, "cassandra-path", defaultCassandraPath, "The path to the cassandra executable")
+	flags.StringVar(&o.CassandraConfigPath, "cassandra-config-path", defaultCassandraConfigPath, "The path to cassandra.yaml")
+	flags.StringVar(&o.CassandraRack, "cassandra-rack", "", "The Cassandra rack name.")
+	flags.StringVar(&o.CassandraDC, "cassandra-dc", "", "The Cassandra DC name.")
 }
 
 func (o *PilotOptions) Complete() error {

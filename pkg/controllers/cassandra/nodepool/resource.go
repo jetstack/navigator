@@ -23,8 +23,6 @@ const (
 	cassDataVolumeName      = "cassandra-data"
 	cassDataVolumeMountPath = "/var/lib/cassandra"
 
-	cassSnitch = "GossipingPropertyFileSnitch"
-
 	// See https://jolokia.org/reference/html/agents.html#jvm-agent
 	jolokiaHost    = "127.0.0.1"
 	jolokiaPort    = 8778
@@ -106,6 +104,9 @@ func StatefulSetForCluster(
 									jolokiaPort,
 									jolokiaContext,
 								),
+								"--cassandra-cluster-name", cluster.Name,
+								"--cassandra-rack", ptr.DerefString(np.Rack),
+								"--cassandra-dc", ptr.DerefString(np.Datacenter),
 							},
 							Image: fmt.Sprintf(
 								"%s:%s",
@@ -196,38 +197,6 @@ func StatefulSetForCluster(
 									Name:  "HEAP_NEWSIZE",
 									Value: "100M",
 								},
-								// Deliberately set to a single space to force Cassandra to do a host name lookup.
-								// See https://github.com/apache/cassandra/blob/cassandra-3.11.2/conf/cassandra.yaml#L592
-								{
-									Name:  "CASSANDRA_LISTEN_ADDRESS",
-									Value: " ",
-								},
-								{
-									Name:  "CASSANDRA_BROADCAST_ADDRESS",
-									Value: " ",
-								},
-								{
-									Name:  "CASSANDRA_RPC_ADDRESS",
-									Value: " ",
-								},
-								// Set a non-existent default seed.
-								// The Kubernetes Seed Provider will fall back to a default seed host if it can't look up seeds via the CASSANDRA_SERVICE.
-								// And if the CASSANDRA_SEEDS environment variable is not set, it defaults to localhost.
-								// Which could cause confusion if a non-seed node is temporarily unable to lookup the seed nodes from the service.
-								// We want the list of seeds to be strictly controlled by the service.
-								// See:
-								// https://github.com/docker-library/cassandra/blame/master/3.11/docker-entrypoint.sh#L31 and
-								// https://github.com/apache/cassandra/blob/cassandra-3.11.2/conf/cassandra.yaml#L416 and
-								// https://github.com/kubernetes/examples/blob/cabf8b8e4739e576837111e156763d19a64a3591/cassandra/java/src/main/java/io/k8s/cassandra/KubernetesSeedProvider.java#L69 and
-								// https://github.com/kubernetes/examples/blob/cabf8b8e4739e576837111e156763d19a64a3591/cassandra/go/main.go#L51
-								{
-									Name:  "CASSANDRA_SEEDS",
-									Value: "black-hole-dns-name",
-								},
-								{
-									Name:  "CASSANDRA_ENDPOINT_SNITCH",
-									Value: cassSnitch,
-								},
 								{
 									Name:  "CASSANDRA_SERVICE",
 									Value: util.SeedsServiceName(cluster),
@@ -235,14 +204,6 @@ func StatefulSetForCluster(
 								{
 									Name:  "CASSANDRA_CLUSTER_NAME",
 									Value: cluster.Name,
-								},
-								{
-									Name:  "CASSANDRA_DC",
-									Value: ptr.DerefString(np.Datacenter),
-								},
-								{
-									Name:  "CASSANDRA_RACK",
-									Value: ptr.DerefString(np.Rack),
 								},
 								{
 									Name: "JVM_OPTS",

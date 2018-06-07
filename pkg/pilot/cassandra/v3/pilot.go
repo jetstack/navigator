@@ -2,10 +2,8 @@ package v3
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
-	"strings"
 
 	"k8s.io/client-go/tools/cache"
 
@@ -45,20 +43,20 @@ func NewPilot(opts *PilotOptions) (*Pilot, error) {
 
 	// hack to test the seedprovider, this should use whatever pattern is decided upon here:
 	//   https://github.com/jetstack/navigator/issues/251
-	cfgPath := "/etc/cassandra/cassandra.yaml"
-	read, err := ioutil.ReadFile(cfgPath)
-	if err != nil {
-		return nil, err
-	}
+	// cfgPath := p.Options.CassandraConfigPath + "/cassandra.yaml"
+	// read, err := ioutil.ReadFile(cfgPath)
+	// if err != nil {
+	//	return nil, err
+	// }
 
-	newContents := strings.Replace(string(read),
-		"org.apache.cassandra.locator.SimpleSeedProvider",
-		"io.jetstack.cassandra.KubernetesSeedProvider", -1)
+	// newContents := strings.Replace(string(read),
+	//	"org.apache.cassandra.locator.SimpleSeedProvider",
+	//	"io.jetstack.cassandra.KubernetesSeedProvider", -1)
 
-	err = ioutil.WriteFile(cfgPath, []byte(newContents), 0)
-	if err != nil {
-		return nil, err
-	}
+	// err = ioutil.WriteFile(cfgPath, []byte(newContents), 0)
+	// if err != nil {
+	//	return nil, err
+	// }
 
 	return p, nil
 }
@@ -75,7 +73,7 @@ func (p *Pilot) Hooks() *hook.Hooks {
 }
 
 func (p *Pilot) CmdFunc(pilot *v1alpha1.Pilot) (*exec.Cmd, error) {
-	cmd := exec.Command("/docker-entrypoint.sh")
+	cmd := exec.Command(p.Options.CassandraPath)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd, nil
