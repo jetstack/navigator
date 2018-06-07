@@ -18,6 +18,9 @@ CMDS := controller apiserver pilot-elasticsearch pilot-cassandra
 GOPATH ?= /tmp/go
 GOFLAGS ?= "-a"
 
+# Path of the Navigator API server for use in integration tests
+TEST_ASSET_NAVIGATOR_APISERVER ?= "${CURDIR}/navigator-apiserver_linux_amd64"
+
 help:
 	# all       - runs verify, build and docker_build targets
 	# test      - runs go_test target
@@ -44,7 +47,7 @@ build: $(CMDS)
 
 generate: .generate_files
 
-verify: .hack_verify dep_verify go_verify helm_verify
+verify: .hack_verify dep_verify go_verify helm_verify test_integration
 
 .hack_verify:
 	@echo Running repo-infra verify scripts
@@ -90,7 +93,7 @@ $(CMDS):
 go_build: $(CMDS)
 
 go_test:
-	go test -v $$(go list ./... | grep -v '/vendor/')
+	go test -v $$(go list ./... | grep -v -e '/vendor/'  -e 'github.com/jetstack/navigator/test/')
 
 go_fmt:
 	./hack/verify-lint.sh
@@ -105,3 +108,12 @@ go_fmt:
 # Helm targets
 helm_verify:
 	helm lint contrib/charts/*
+
+.download_integration_test_binaries:
+	mkdir -p vendor/sigs.k8s.io/testing_frameworks/integration/assets/bin
+	DEBUG=1 vendor/sigs.k8s.io/testing_frameworks/integration/scripts/download-binaries.sh
+	touch	.download_integration_test_binaries
+
+test_integration: .download_integration_test_binaries apiserver
+	TEST_ASSET_NAVIGATOR_APISERVER=$(TEST_ASSET_NAVIGATOR_APISERVER) \
+	go test -v ./test/integration/...

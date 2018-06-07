@@ -254,6 +254,12 @@
   revision = "cca7078d478f8520f85629ad7c68962d31ed7682"
 
 [[projects]]
+  name = "github.com/onsi/gomega"
+  packages = [".","format","gbytes","gexec","internal/assertion","internal/asyncassertion","internal/oraclematcher","internal/testingtsupport","matchers","matchers/support/goraph/bipartitegraph","matchers/support/goraph/edge","matchers/support/goraph/node","matchers/support/goraph/util","types"]
+  revision = "62bff4df71bdbc266561a0caee19f0594b17c240"
+  version = "v1.4.0"
+
+[[projects]]
   name = "github.com/pborman/uuid"
   packages = ["."]
   revision = "e790cca94e6cc75c7064b1332e63811d4aae1a53"
@@ -276,6 +282,12 @@
   packages = ["."]
   revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
   version = "v0.8.0"
+
+[[projects]]
+  name = "github.com/pmezard/go-difflib"
+  packages = ["difflib"]
+  revision = "792786c7400a136282c1664665ae0a8db921c6c2"
+  version = "v1.0.0"
 
 [[projects]]
   name = "github.com/prometheus/client_golang"
@@ -314,6 +326,12 @@
   version = "v1.0.0"
 
 [[projects]]
+  name = "github.com/stretchr/testify"
+  packages = ["assert","require"]
+  revision = "12b6f73e6084dad08a7c6e575284b177ecafbc71"
+  version = "v1.2.1"
+
+[[projects]]
   branch = "master"
   name = "github.com/ugorji/go"
   packages = ["codec"]
@@ -328,7 +346,7 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/net"
-  packages = ["context","context/ctxhttp","html","html/atom","http2","http2/hpack","idna","internal/timeseries","lex/httplex","trace","websocket"]
+  packages = ["context","context/ctxhttp","html","html/atom","html/charset","http2","http2/hpack","idna","internal/timeseries","lex/httplex","trace","websocket"]
   revision = "66aacef3dd8a676686c7ae3716979581e8b03c47"
 
 [[projects]]
@@ -346,7 +364,7 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/text"
-  packages = ["internal/gen","internal/triegen","internal/ucd","secure/bidirule","transform","unicode/bidi","unicode/cldr","unicode/norm","unicode/rangetable","width"]
+  packages = ["encoding","encoding/charmap","encoding/htmlindex","encoding/internal","encoding/internal/identifier","encoding/japanese","encoding/korean","encoding/simplifiedchinese","encoding/traditionalchinese","encoding/unicode","internal/gen","internal/tag","internal/triegen","internal/ucd","internal/utf8internal","language","runes","secure/bidirule","transform","unicode/bidi","unicode/cldr","unicode/norm","unicode/rangetable","width"]
   revision = "bd91bbf73e9a4a801adbfb97133c992678533126"
 
 [[projects]]
@@ -426,9 +444,15 @@
   packages = ["pkg/builder","pkg/common","pkg/handler","pkg/util","pkg/util/proto"]
   revision = "76a6671bcfb1d229fc7fd543aee23ddff6b5fc7e"
 
+[[projects]]
+  branch = "master"
+  name = "sigs.k8s.io/testing_frameworks"
+  packages = ["integration","integration/internal"]
+  revision = "f53464b8b84b4507805a0b033a8377b225163fea"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "a0e23f0f70d531bf4dd93e9d79df69c5913b70a7c3d016915511e24d78dd5754"
+  inputs-digest = "9532dcf490ea0bc256827af1b8aede13d57793b1611779db90b33b7d803e28c2"
   solver-name = "gps-cdcl"
   solver-version = 1
