@@ -24,3 +24,5 @@ spec:
     repository: "${NAVIGATOR_IMAGE_REPOSITORY}/navigator-pilot-cassandra"
     tag: "${NAVIGATOR_IMAGE_TAG}"
     pullPolicy: "${NAVIGATOR_IMAGE_PULLPOLICY}"
+  securityContext:
+    runAsUser: 999

@@ -131,11 +131,12 @@ function signal_cassandra_process() {
     local pod="${2}"
     local signal="${3}"
 
-    # Send STOP signal to all the cassandra user's processes
+    # Send a signal to the Cassandra Daemon process.
     kubectl \
         --namespace="${namespace}" \
         exec "${pod}" -- \
-        bash -c "kill -${signal}"' -- $(ps -u cassandra -o pid=) && ps faux'
+        bash -c \
+        "kill -${signal}"' -- $(ps -o pid,cmd= | awk "/org.apache.cassandra.service.CassandraDaemon$/{print \$1}")'
 }
 
 function simulate_unresponsive_cassandra_process() {
