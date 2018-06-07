@@ -22,8 +22,9 @@ func Pilot(c PilotConfig) *v1alpha1.Pilot {
 		c.Namespace = "default"
 	}
 	labels := map[string]string{}
-	labels[v1alpha1.ElasticsearchClusterNameLabel] = c.Cluster
-	labels[v1alpha1.ElasticsearchNodePoolNameLabel] = c.NodePool
+	labels[v1alpha1.ClusterTypeLabel] = "ElasticsearchCluster"
+	labels[v1alpha1.ClusterNameLabel] = c.Cluster
+	labels[v1alpha1.NodePoolNameLabel] = c.NodePool
 	var version *semver.Version
 	if c.Version != "" {
 		version = semver.New(c.Version)

@@ -10,8 +10,6 @@ import (
 )
 
 const (
-	ElasticsearchClusterNameLabel          = "navigator.jetstack.io/elasticsearch-cluster-name"
-	ElasticsearchNodePoolNameLabel         = "navigator.jetstack.io/elasticsearch-node-pool-name"
 	ElasticsearchNodePoolVersionAnnotation = "navigator.jetstack.io/elasticsearch-version"
 	ElasticsearchRoleLabelPrefix           = "navigator.jetstack.io/elasticsearch-role-"
 
