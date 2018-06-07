@@ -12,6 +12,7 @@ import (
 	"github.com/jetstack/navigator/cmd/controller/app/options"
 	_ "github.com/jetstack/navigator/pkg/controllers/cassandra"
 	_ "github.com/jetstack/navigator/pkg/controllers/elasticsearch"
+	_ "github.com/jetstack/navigator/pkg/controllers/pilotcontroller"
 )
 
 type NavigatorControllerOptions struct {

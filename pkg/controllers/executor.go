@@ -20,14 +20,34 @@ type State struct {
 	NavigatorClientset clientset.Interface
 	Recorder           record.EventRecorder
 
-	StatefulSetLister    appslisters.StatefulSetLister
-	ConfigMapLister      corelisters.ConfigMapLister
-	PilotLister          listers.PilotLister
-	PodLister            corelisters.PodLister
-	ServiceLister        corelisters.ServiceLister
-	ServiceAccountLister corelisters.ServiceAccountLister
-	RoleBindingLister    rbaclisters.RoleBindingLister
-	RoleLister           rbaclisters.RoleLister
+	StatefulSetLister          appslisters.StatefulSetLister
+	ConfigMapLister            corelisters.ConfigMapLister
+	PodLister                  corelisters.PodLister
+	ServiceLister              corelisters.ServiceLister
+	ServiceAccountLister       corelisters.ServiceAccountLister
+	RoleBindingLister          rbaclisters.RoleBindingLister
+	RoleLister                 rbaclisters.RoleLister
+	PilotLister                listers.PilotLister
+	CassandraClusterLister     listers.CassandraClusterLister
+	ElasticsearchClusterLister listers.ElasticsearchClusterLister
+}
+
+func StateFromContext(ctx *Context) *State {
+	return &State{
+		Clientset:                  ctx.Client,
+		NavigatorClientset:         ctx.NavigatorClient,
+		Recorder:                   ctx.Recorder,
+		StatefulSetLister:          ctx.KubeSharedInformerFactory.Apps().V1beta1().StatefulSets().Lister(),
+		ConfigMapLister:            ctx.KubeSharedInformerFactory.Core().V1().ConfigMaps().Lister(),
+		PodLister:                  ctx.KubeSharedInformerFactory.Core().V1().Pods().Lister(),
+		ServiceLister:              ctx.KubeSharedInformerFactory.Core().V1().Services().Lister(),
+		ServiceAccountLister:       ctx.KubeSharedInformerFactory.Core().V1().ServiceAccounts().Lister(),
+		RoleBindingLister:          ctx.KubeSharedInformerFactory.Rbac().V1beta1().RoleBindings().Lister(),
+		RoleLister:                 ctx.KubeSharedInformerFactory.Rbac().V1beta1().Roles().Lister(),
+		PilotLister:                ctx.SharedInformerFactory.Navigator().V1alpha1().Pilots().Lister(),
+		CassandraClusterLister:     ctx.SharedInformerFactory.Navigator().V1alpha1().CassandraClusters().Lister(),
+		ElasticsearchClusterLister: ctx.SharedInformerFactory.Navigator().V1alpha1().ElasticsearchClusters().Lister(),
+	}
 }
 
 type Action interface {

@@ -237,15 +237,6 @@ func (e *defaultElasticsearchClusterControl) nextActionForNodePool(c *v1alpha1.E
 		return nil, err
 	}
 
-	// check if pilots for this statefulset are up to date
-	needsUpdate, err := e.pilotsNeedUpdateForNodePool(c, np)
-	if err != nil {
-		return nil, err
-	}
-	if needsUpdate {
-		return &actions.CreatePilot{c, np}, nil
-	}
-
 	currentVersionStr, ok := statefulSet.Annotations[v1alpha1.ElasticsearchNodePoolVersionAnnotation]
 	if !ok {
 		return nil, fmt.Errorf("cannot determine existing Elasticsearch version of statefulset %q", statefulSet.Name)
@@ -286,39 +277,6 @@ func (e *defaultElasticsearchClusterControl) updateClusterStatus(c *v1alpha1.Ela
 		c.Status.NodePools[pool.Name] = poolStatus
 	}
 	return nil
-}
-
-func (e *defaultElasticsearchClusterControl) pilotsNeedUpdateForNodePool(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.ElasticsearchClusterNodePool) (bool, error) {
-	selector, err := util.SelectorForNodePool(c.Name, np.Name)
-	if err != nil {
-		return false, err
-	}
-
-	allPods, err := e.podLister.Pods(c.Namespace).List(selector)
-	if err != nil {
-		return false, err
-	}
-
-	for _, pod := range allPods {
-		isMember, err := controllers.PodControlledByCluster(c, pod, e.statefulSetLister)
-		if err != nil {
-			return false, fmt.Errorf("error checking if pod is controller by elasticsearch cluster: %s", err.Error())
-		}
-
-		// skip this pod if it's not a member of the cluster
-		if !isMember {
-			continue
-		}
-
-		_, err = e.pilotLister.Pilots(pod.Namespace).Get(pod.Name)
-		if k8sErrors.IsNotFound(err) {
-			return true, nil
-		}
-		if err != nil {
-			return false, err
-		}
-	}
-	return false, nil
 }
 
 // reconcileNodePools will look up all node pools that are owned by this

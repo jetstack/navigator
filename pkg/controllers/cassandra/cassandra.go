@@ -26,7 +26,6 @@ import (
 	listersv1alpha1 "github.com/jetstack/navigator/pkg/client/listers/navigator/v1alpha1"
 	"github.com/jetstack/navigator/pkg/controllers"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/nodepool"
-	"github.com/jetstack/navigator/pkg/controllers/cassandra/pilot"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/role"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/rolebinding"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/seedlabeller"
@@ -48,7 +47,6 @@ type CassandraController struct {
 	cassListerSynced            cache.InformerSynced
 	serviceListerSynced         cache.InformerSynced
 	statefulSetListerSynced     cache.InformerSynced
-	pilotsListerSynced          cache.InformerSynced
 	podsListerSynced            cache.InformerSynced
 	serviceAccountsListerSynced cache.InformerSynced
 	rolesListerSynced           cache.InformerSynced
@@ -63,7 +61,6 @@ func NewCassandra(
 	cassClusters navigatorinformers.CassandraClusterInformer,
 	services coreinformers.ServiceInformer,
 	statefulSets appsinformers.StatefulSetInformer,
-	pilots navigatorinformers.PilotInformer,
 	pods coreinformers.PodInformer,
 	serviceAccounts coreinformers.ServiceAccountInformer,
 	roles rbacinformers.RoleInformer,
@@ -80,9 +77,7 @@ func NewCassandra(
 		queue:           queue,
 		recorder:        recorder,
 	}
-	cassClusters.Informer().AddEventHandler(
-		&controllers.QueuingEventHandler{Queue: queue},
-	)
+	cassClusters.Informer().AddEventHandler(&controllers.QueuingEventHandler{Queue: queue})
 	// add an event handler to the Pod informer
 	pods.Informer().AddEventHandler(
 		&controllers.BlockingEventHandler{
@@ -100,7 +95,6 @@ func NewCassandra(
 	cc.cassListerSynced = cassClusters.Informer().HasSynced
 	cc.serviceListerSynced = services.Informer().HasSynced
 	cc.statefulSetListerSynced = statefulSets.Informer().HasSynced
-	cc.pilotsListerSynced = pilots.Informer().HasSynced
 	cc.podsListerSynced = pods.Informer().HasSynced
 	cc.serviceAccountsListerSynced = serviceAccounts.Informer().HasSynced
 	cc.rolesListerSynced = roles.Informer().HasSynced
@@ -120,13 +114,6 @@ func NewCassandra(
 		),
 		nodepool.NewControl(
 			kubeClient,
-			statefulSets.Lister(),
-			recorder,
-		),
-		pilot.NewControl(
-			naviClient,
-			pilots.Lister(),
-			pods.Lister(),
 			statefulSets.Lister(),
 			recorder,
 		),
@@ -172,7 +159,6 @@ func (e *CassandraController) Run(workers int, stopCh <-chan struct{}) error {
 		e.cassListerSynced,
 		e.serviceListerSynced,
 		e.statefulSetListerSynced,
-		e.pilotsListerSynced,
 		e.podsListerSynced,
 	) {
 		return fmt.Errorf("timed out waiting for caches to sync")
@@ -328,7 +314,6 @@ func CassandraControllerFromContext(ctx *controllers.Context) *CassandraControll
 		ctx.SharedInformerFactory.Navigator().V1alpha1().CassandraClusters(),
 		ctx.KubeSharedInformerFactory.Core().V1().Services(),
 		ctx.KubeSharedInformerFactory.Apps().V1beta1().StatefulSets(),
-		ctx.SharedInformerFactory.Navigator().V1alpha1().Pilots(),
 		ctx.KubeSharedInformerFactory.Core().V1().Pods(),
 		ctx.KubeSharedInformerFactory.Core().V1().ServiceAccounts(),
 		ctx.KubeSharedInformerFactory.Rbac().V1beta1().Roles(),

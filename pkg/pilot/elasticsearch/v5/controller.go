@@ -8,9 +8,10 @@ import (
 
 	"github.com/coreos/go-semver/semver"
 	"github.com/golang/glog"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/pkg/errors"
 
 	"github.com/jetstack/navigator/pkg/apis/navigator/v1alpha1"
+	"github.com/jetstack/navigator/pkg/controllers"
 )
 
 const (
@@ -121,7 +122,10 @@ func (p *Pilot) leaderElectedSyncFunc(pilot *v1alpha1.Pilot) error {
 }
 
 func (p *Pilot) getOwningCluster(pilot *v1alpha1.Pilot) (*v1alpha1.ElasticsearchCluster, error) {
-	ownerRef := metav1.GetControllerOf(pilot)
+	ownerRef, err := controllers.RootControllerRef(p.state, pilot)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to get root controller reference")
+	}
 	if ownerRef == nil || ownerRef.Kind != "ElasticsearchCluster" {
 		return nil, fmt.Errorf("could not determine controller of Pilot %q", pilot.Name)
 	}

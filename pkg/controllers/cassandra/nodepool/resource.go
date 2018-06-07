@@ -37,7 +37,8 @@ func StatefulSetForCluster(
 ) *apps.StatefulSet {
 	statefulSetName := util.NodePoolResourceName(cluster, np)
 	nodePoolLabels := util.NodePoolLabels(cluster, np.Name)
-
+	podLabels := util.NodePoolLabels(cluster, np.Name)
+	podLabels[v1alpha1.PilotLabel] = ""
 	image := cassImageToUse(&cluster.Spec)
 
 	set := &apps.StatefulSet{
@@ -60,7 +61,7 @@ func StatefulSetForCluster(
 			ServiceName:         statefulSetName,
 			Template: apiv1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: nodePoolLabels,
+					Labels: podLabels,
 					Annotations: map[string]string{
 						"prometheus.io/port":   "8080",
 						"prometheus.io/path":   "/",

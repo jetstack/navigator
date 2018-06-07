@@ -151,8 +151,8 @@ func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.Elasticsear
 	}
 	roles := strings.Join(roleStrings, ",")
 	plugins := strings.Join(c.Spec.Plugins, ",")
-	nodePoolLabels := util.NodePoolLabels(c, np.Name, np.Roles...)
-
+	podLabels := util.NodePoolLabels(c, np.Name, np.Roles...)
+	podLabels[v1alpha1.PilotLabel] = ""
 	esImage, err := esImageToUse(&c.Spec)
 	if err != nil {
 		return nil, err
@@ -160,7 +160,7 @@ func elasticsearchPodTemplateSpec(controllerName string, c *v1alpha1.Elasticsear
 
 	return &apiv1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
-			Labels:      nodePoolLabels,
+			Labels:      podLabels,
 			Annotations: map[string]string{},
 		},
 		Spec: apiv1.PodSpec{
