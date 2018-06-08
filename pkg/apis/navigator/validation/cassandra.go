@@ -76,11 +76,15 @@ func ValidateCassandraClusterUpdate(old, new *navigator.CassandraCluster) field.
 				restorePersistence := newNp.Persistence
 				newNp.Persistence = oldNp.Persistence
 
+				restoreResources := newNp.Resources
+				newNp.Resources = oldNp.Resources
+
 				if !reflect.DeepEqual(newNp, oldNp) {
 					allErrs = append(allErrs, field.Forbidden(field.NewPath("spec"), "updates to nodepool for fields other than 'replicas' and 'persistence' are forbidden."))
 				}
 				newNp.Replicas = restoreReplicas
 				newNp.Persistence = restorePersistence
+				newNp.Resources = restoreResources
 
 				break
 			}

@@ -201,6 +201,7 @@ func Convert_navigator_CassandraClusterNodePool_To_v1alpha1_CassandraClusterNode
 
 func autoConvert_v1alpha1_CassandraClusterNodePoolStatus_To_navigator_CassandraClusterNodePoolStatus(in *CassandraClusterNodePoolStatus, out *navigator.CassandraClusterNodePoolStatus, s conversion.Scope) error {
 	out.ReadyReplicas = in.ReadyReplicas
+	out.Resources = in.Resources
 	return nil
 }
 
@@ -211,6 +212,7 @@ func Convert_v1alpha1_CassandraClusterNodePoolStatus_To_navigator_CassandraClust
 
 func autoConvert_navigator_CassandraClusterNodePoolStatus_To_v1alpha1_CassandraClusterNodePoolStatus(in *navigator.CassandraClusterNodePoolStatus, out *CassandraClusterNodePoolStatus, s conversion.Scope) error {
 	out.ReadyReplicas = in.ReadyReplicas
+	out.Resources = in.Resources
 	return nil
 }
 

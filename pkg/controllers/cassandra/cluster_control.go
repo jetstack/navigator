@@ -14,6 +14,7 @@ import (
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/seedlabeller"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/service"
 	"github.com/jetstack/navigator/pkg/controllers/cassandra/serviceaccount"
+	"github.com/jetstack/navigator/pkg/util/resources"
 )
 
 const (
@@ -226,6 +227,16 @@ func NextAction(c *v1alpha1.CassandraCluster) controllers.Action {
 				NodePool: &np,
 			}
 		}
+
+		if !resources.RequirementsEqual(np.Resources, nps.Resources) {
+			return &actions.SetResources{
+				Cluster:  c,
+				NodePool: &np,
+			}
+		} else {
+			glog.Warningf("requirementsEqual")
+		}
+
 	}
 	return nil
 }
