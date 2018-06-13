@@ -1,0 +1,51 @@
+title Upgrade: Pilot V2 Joins Cluster
+
+participant Controller as ctrl
+participant PilotResource as pir
+participant PodResource as por
+participant Pod as pod
+participant Kubelet as kub
+
+ctrl->*pir: Create resource
+note over pir
+    desired: slave
+    actual: unknown
+end note
+
+ctrl->*por: Create resource
+note over por
+    phase: pending
+end note
+
+por-->kub: Informer
+
+kub->*pod: Start pod
+note over pod
+    Pilot entrypoint running
+end note
+
+kub->por: Update state
+note over por
+    phase: Running
+end note
+
+pod->pir: update state
+note over pir
+    desired: slave
+    actual: starting
+end note
+
+note over pod
+    Database process running
+end note
+
+pod->pir: update state
+note over pir
+    desired: slave
+    actual: slave
+end note
+
+pir-->ctrl: Informer
+note over ctrl
+    Controller can now remove a v1 Pilot
+end note
