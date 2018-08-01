@@ -1,0 +1,122 @@
+apiVersion: navigator.jetstack.io/v1alpha1
+kind: ElasticsearchCluster
+metadata:
+  name: demo
+spec:
+  ## Omitting the minimumMasters fields will cause navigator to automatically
+  ## determine a quorum of masters to use.
+  # minimumMasters: 1
+
+  version: 6.1.3
+
+  securityContext:
+    runAsUser: 1000
+
+  pilotImage:
+    repository: quay.io/jetstack/navigator-pilot-elasticsearch
+    tag: v0.1.0
+    pullPolicy: Always
+
+  nodePools:
+  - name: nodes-b
+    replicas: 1
+
+    roles:
+    - data
+    - ingest
+    - master
+
+    resources:
+      requests:
+        cpu: '500m'
+        memory: 2Gi
+      limits:
+        cpu: '1'
+        memory: 3Gi
+
+    persistence:
+      enabled: true
+      # size of the volume
+      size: 10Gi
+      # storageClass of the volume
+      storageClass: standard-b
+
+    nodeSelector:
+      failure-domain.beta.kubernetes.io/zone: europe-west1-b
+
+  - name: nodes-c
+    replicas: 1
+
+    roles:
+    - data
+    - ingest
+    - master
+
+    resources:
+      requests:
+        cpu: '500m'
+        memory: 2Gi
+      limits:
+        cpu: '1'
+        memory: 3Gi
+
+    persistence:
+      enabled: true
+      # size of the volume
+      size: 10Gi
+      # storageClass of the volume
+      storageClass: standard-c
+
+    nodeSelector:
+      failure-domain.beta.kubernetes.io/zone: europe-west1-c
+
+  - name: nodes-d
+    replicas: 1
+
+    roles:
+    - data
+    - ingest
+    - master
+
+    resources:
+      requests:
+        cpu: '500m'
+        memory: 2Gi
+      limits:
+        cpu: '1'
+        memory: 3Gi
+
+    persistence:
+      enabled: true
+      # size of the volume
+      size: 10Gi
+      # storageClass of the volume
+      storageClass: standard-d
+
+    nodeSelector:
+      failure-domain.beta.kubernetes.io/zone: europe-west1-d
+
+  - name: data-nodes-b
+    replicas: 2
+
+    roles:
+    - data
+    - ingest
+
+    resources:
+      requests:
+        cpu: '500m'
+        memory: 2Gi
+      limits:
+        cpu: '1'
+        memory: 3Gi
+
+    persistence:
+      enabled: true
+      # size of the volume
+      size: 10Gi
+      # storageClass of the volume
+      storageClass: standard-b
+
+    nodeSelector:
+      failure-domain.beta.kubernetes.io/zone: europe-west1-b

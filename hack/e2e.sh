@@ -376,7 +376,7 @@ function test_cassandracluster() {
     # In practice I'm finding that `kubectl run cqlsh` sometimes succeeds,
     # but does not relay the pod output.
     # Maybe due to https://github.com/kubernetes/kubernetes/issues/27264
-    if ! retry TIMEOUT=300 \
+    if ! retry TIMEOUT=600 \
          stdout_matches "testvalue1" \
          cql_connect \
          "${namespace}" \

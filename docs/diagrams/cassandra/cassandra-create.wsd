@@ -11,8 +11,8 @@ participant Kubelet as kub
 user -> napi: Create resource
 note over napi
     CassandraCluster
-    - replicas_desired: 3
-    - replicas_current: 0
+    - spec.nodePools[np1].replicas: 1
+    - status.nodePools[np1]: 0
 end note
 
 napi --> ctrl: Informer
@@ -20,8 +20,8 @@ napi --> ctrl: Informer
 ctrl->kapi: Create resource
 note over kapi
     StatefulSet
-    - replicas: 3
-    - current: 0
+    - spec.replicas: 0
+    - status.readyReplicas: 0
 end note
 
 kapi--> k8s: Informer

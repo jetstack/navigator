@@ -22,9 +22,9 @@ apiserver:
   # serviceAccount: "apiserver-svc-acct"
   image:
     repository: quay.io/jetstack/navigator-apiserver
-    tag: v0.1.0
+    tag: canary
     pullPolicy: Always
-  logLevel: 2
+  logLevel: 4
 
   persistence:
     enabled: false
@@ -42,9 +42,9 @@ controller:
   # serviceAccount: "controller-svc-acct"
   image:
     repository: quay.io/jetstack/navigator-controller
-    tag: v0.1.0
+    tag: canary
     pullPolicy: Always
-  logLevel: 2
+  logLevel: 4
 
 resources:
   requests:
