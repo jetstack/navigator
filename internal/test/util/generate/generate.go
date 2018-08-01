@@ -22,8 +22,9 @@ func Pilot(c PilotConfig) *v1alpha1.Pilot {
 		c.Namespace = "default"
 	}
 	labels := map[string]string{}
-	labels[v1alpha1.ElasticsearchClusterNameLabel] = c.Cluster
-	labels[v1alpha1.ElasticsearchNodePoolNameLabel] = c.NodePool
+	labels[v1alpha1.ClusterTypeLabel] = "ElasticsearchCluster"
+	labels[v1alpha1.ClusterNameLabel] = c.Cluster
+	labels[v1alpha1.NodePoolNameLabel] = c.NodePool
 	var version *semver.Version
 	if c.Version != "" {
 		version = semver.New(c.Version)
@@ -122,18 +123,24 @@ func StatefulSet(c StatefulSetConfig) *apps.StatefulSet {
 
 type CassandraClusterConfig struct {
 	Name, Namespace string
+	Version         *version.Version
 }
 
 func CassandraCluster(c CassandraClusterConfig) *v1alpha1.CassandraCluster {
-	return &v1alpha1.CassandraCluster{
+	o := &v1alpha1.CassandraCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      c.Name,
 			Namespace: c.Namespace,
 		},
-		Spec: v1alpha1.CassandraClusterSpec{
-			Version: *version.New("3.11.2"),
-		},
+		Spec: v1alpha1.CassandraClusterSpec{},
 	}
+	if c.Version == nil {
+		o.Spec.Version = *version.New("3.11.2")
+	} else {
+		o.Spec.Version = *c.Version
+	}
+
+	return o
 }
 
 type CassandraClusterNodePoolConfig struct {

@@ -45,7 +45,7 @@ func (e *defaultCassandraClusterNodepoolControl) updateStatus(cluster *v1alpha1.
 	}
 	// Create a NodePoolStatus for each statefulset that is controlled by this cluster.
 	for _, ss := range sets {
-		npName := ss.Labels[v1alpha1.CassandraNodePoolNameLabel]
+		npName := ss.Labels[v1alpha1.NodePoolNameLabel]
 		nps := cluster.Status.NodePools[npName]
 		nps.ReadyReplicas = ss.Status.ReadyReplicas
 		cluster.Status.NodePools[npName] = nps

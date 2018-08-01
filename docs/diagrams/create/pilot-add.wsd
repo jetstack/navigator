@@ -1,0 +1,115 @@
+title Create PostgreSQL Cluster - Scale Up from 0 to 1
+
+participant User as user
+participant Navigator API as napi
+participant Navigator Controller as ctrl
+participant K8S API as kapi
+participant K8S Controller as k8s
+participant PilotPod as pod
+participant Kubelet as kub
+
+user -> napi: Create resource
+note over napi
+    PGSQLCluster
+    - leader: nil
+    - replicas_desired: 3
+    - replicas_current: 0
+end note
+
+napi --> ctrl: Informer
+
+ctrl->kapi: Create resource
+note over kapi
+    StatefulSet
+    - replicas: 3
+    - current: 0
+end note
+
+kapi--> k8s: Informer
+
+loop create 3 Pods and 3 Pilots:
+    k8s -> kapi: Create resource
+    note over kapi
+        Pod
+        - phase: pending
+    end note
+
+    kapi-->kub: Informer
+
+    kub->*pod: Start pod
+    note over pod
+        Pilot entrypoint starts
+    end note
+
+    kub->kapi: Update state
+    note over kapi
+        Pod
+        - phase: running
+    end note
+
+    note over pod
+        Pilot entrypoint blocked, awaiting Pilot resource
+    end note
+
+    kapi-->ctrl: Informer
+    ctrl->napi: Create resource
+    note over napi
+        Pilot
+        - phase: pending
+    end note
+
+    napi --> pod: Informer
+    note over pod
+        Pilot entrypoint unblocked
+    end note
+
+    alt Master:
+        note over napi
+            PGSQLCluster
+            - leader: nil
+            - replicas_desired: 3
+            - replicas_current: 0
+        end note
+
+        napi --> pod: Informer: Get leader configuration
+        note over pod
+            Configure PGSQL master
+        end note
+        pod -> napi: Update state
+        note over napi
+            PGSQLCluster
+            - leader: pgsql-1
+            - replicas_desired: 3
+            - replicas_current: 0
+        end note
+
+    else Slave:
+        note over napi
+            PGSQLCluster
+            - leader: pgsql-1
+            - replicas_desired: 3
+            - replicas_current: 0
+        end note
+        napi --> pod: Informer: Get leader configuration
+        note over pod
+            Configure PGSQL slave
+        end note
+    end
+    note over pod
+        PGSQL process running
+    end note
+
+    pod -> napi: Update state
+    note over napi
+        Pilot
+        - phase: running
+    end note
+
+    napi --> ctrl: Informer
+    ctrl -> napi: Update state
+    note over napi
+        PGSQLCluster
+        - replicas_desired: 3
+        - replicas_current: +1
+    end note
+end

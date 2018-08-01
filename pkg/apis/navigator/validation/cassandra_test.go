@@ -178,14 +178,22 @@ func TestValidateCassandraClusterUpdate(t *testing.T) {
 			new: validCassCluster,
 		},
 		"downgrade not allowed": {
-			old:           setVersion(validCassCluster, lowerVersion),
-			new:           validCassCluster,
+			old:           validCassCluster,
+			new:           setVersion(validCassCluster, lowerVersion),
 			errorExpected: true,
 		},
-		"upgrade not allowed": {
+		"major upgrade not allowed": {
 			old:           validCassCluster,
-			new:           setVersion(validCassCluster, higherVersion),
+			new:           setVersion(validCassCluster, validCassCluster.Spec.Version.BumpMajor()),
 			errorExpected: true,
+		},
+		"minor version upgrade": {
+			old: validCassCluster,
+			new: setVersion(validCassCluster, validCassCluster.Spec.Version.BumpMinor()),
+		},
+		"patch version upgrade": {
+			old: validCassCluster,
+			new: setVersion(validCassCluster, validCassCluster.Spec.Version.BumpPatch()),
 		},
 	}
 

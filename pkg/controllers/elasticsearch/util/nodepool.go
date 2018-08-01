@@ -11,14 +11,15 @@ import (
 
 func ClusterLabels(c *v1alpha1.ElasticsearchCluster) map[string]string {
 	return map[string]string{
-		v1alpha1.ElasticsearchClusterNameLabel: c.Name,
+		v1alpha1.ClusterTypeLabel: kindName,
+		v1alpha1.ClusterNameLabel: c.Name,
 	}
 }
 
 func NodePoolLabels(c *v1alpha1.ElasticsearchCluster, poolName string, roles ...v1alpha1.ElasticsearchClusterRole) map[string]string {
 	labels := ClusterLabels(c)
 	if poolName != "" {
-		labels[v1alpha1.ElasticsearchNodePoolNameLabel] = poolName
+		labels[v1alpha1.NodePoolNameLabel] = poolName
 	}
 	for _, role := range roles {
 		labels[RoleLabel(role)] = "true"
@@ -35,7 +36,7 @@ func NodePoolResourceName(c *v1alpha1.ElasticsearchCluster, np *v1alpha1.Elastic
 }
 
 func SelectorForNodePool(clusterName, poolName string) (labels.Selector, error) {
-	nodePoolNameReq, err := labels.NewRequirement(v1alpha1.ElasticsearchNodePoolNameLabel, selection.Equals, []string{poolName})
+	nodePoolNameReq, err := labels.NewRequirement(v1alpha1.NodePoolNameLabel, selection.Equals, []string{poolName})
 	if err != nil {
 		return nil, err
 	}

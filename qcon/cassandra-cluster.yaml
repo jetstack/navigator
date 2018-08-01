@@ -1,0 +1,48 @@
+apiVersion: navigator.jetstack.io/v1alpha1
+kind: CassandraCluster
+metadata:
+  name: demo
+spec:
+  version: "3.11.1"
+
+  pilotImage:
+    repository: quay.io/jetstack/navigator-pilot-cassandra
+    tag: canary
+    pullPolicy: Always
+
+  nodePools:
+  - name: europe-west2-a
+    replicas: 1
+    datacenter: europe-west2
+    rack: europe-west2-a
+
+    persistence:
+      enabled: true
+      size: 10Gi
+      storageClass: standard-a
+    nodeSelector:
+      failure-domain.beta.kubernetes.io/zone: europe-west2-a
+
+  - name: europe-west2-b
+    replicas: 1
+    datacenter: europe-west2
+    rack: europe-west2-b
+
+    persistence:
+      enabled: true
+      size: 10Gi
+      storageClass: standard-b
+    nodeSelector:
+      failure-domain.beta.kubernetes.io/zone: europe-west2-b
+
+  - name: europe-west2-c
+    replicas: 1
+    datacenter: europe-west2
+    rack: europe-west2-c
+
+    persistence:
+      enabled: true
+      size: 10Gi
+      storageClass: standard-c
+    nodeSelector:
+      failure-domain.beta.kubernetes.io/zone: europe-west2-c

@@ -10,14 +10,13 @@ import (
 )
 
 const (
-	ElasticsearchClusterNameLabel          = "navigator.jetstack.io/elasticsearch-cluster-name"
-	ElasticsearchNodePoolNameLabel         = "navigator.jetstack.io/elasticsearch-node-pool-name"
 	ElasticsearchNodePoolVersionAnnotation = "navigator.jetstack.io/elasticsearch-version"
 	ElasticsearchRoleLabelPrefix           = "navigator.jetstack.io/elasticsearch-role-"
 
-	CassandraClusterNameLabel  = "navigator.jetstack.io/cassandra-cluster-name"
-	CassandraNodePoolNameLabel = "navigator.jetstack.io/cassandra-node-pool-name"
-	PilotLabel                 = "navigator.jetstack.io/has-pilot"
+	ClusterTypeLabel  = "navigator.jetstack.io/cluster-type"
+	ClusterNameLabel  = "navigator.jetstack.io/cluster-name"
+	NodePoolNameLabel = "navigator.jetstack.io/node-pool-name"
+	PilotLabel        = "navigator.jetstack.io/has-pilot"
 )
 
 // +genclient
@@ -117,6 +116,12 @@ type CassandraClusterStatus struct {
 type CassandraClusterNodePoolStatus struct {
 	// The number of replicas in the node pool that are currently 'Ready'.
 	ReadyReplicas int32 `json:"readyReplicas"`
+	// The lowest version of Cassandra found to be running in this nodepool,
+	// as reported by the Cassandra process.
+	// nil or empty if the lowest version can not be determined,
+	// or if the lowest version has not yet been determined
+	// +optional
+	Version *version.Version `json:"version,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

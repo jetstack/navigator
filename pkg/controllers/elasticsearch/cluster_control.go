@@ -298,7 +298,7 @@ func (e *defaultElasticsearchClusterControl) reconcileNodePools(c *v1alpha1.Elas
 	// of a valid node pool for sets
 	for _, np := range c.Spec.NodePools {
 		for i, ss := range sets {
-			if ss.Labels != nil && ss.Labels[v1alpha1.ElasticsearchNodePoolNameLabel] == np.Name {
+			if ss.Labels != nil && ss.Labels[v1alpha1.NodePoolNameLabel] == np.Name {
 				sets = append(sets[:i], sets[i+1:]...)
 				break
 			}

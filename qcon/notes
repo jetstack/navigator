@@ -1,0 +1,49 @@
+- Brief overview of Kubernetes & declarative management
+- Explain it's been a controversial topic for a while. Lots of conflicting opinions
+- Many examples in the past. They tend to sort of work, but never a nice experience
+- Numerous 'helm charts' for various applications (show a list).
+    Always something with:
+        - lots of bash
+        - limited ability to effect runtime behaviour
+        - opaque experience, and difficult to integrate with kubernetes
+
+- Operators come along with CRDs - these are great, and provide a much smoother experience
+    - show examples, etcd-operator, cert-manager, prometheus-operator etc
+    - provides a far smoother integration
+    - include 'operational logic' in the 'operator' (or controller)
+    - follows a similar pattern to kube-controller-manager & the rest of kubernetes:
+        - declarative
+        - eventually consistent
+        - asynchronous
+    - deploy cassandra and run a basic stress/conformance test
+        - navigator implements the operator pattern
+        - in initial development, we ran into some problems:
+            - difficult to extract live application metrics from 'nodes' in a system with some apps
+            - performing synchronous actions on individual nodes
+            - without re-implementing major parts of Kubernetes (e.g. the statefulset controller),
+                it can be difficult to manage the process lifecycle (for example, to mark nodes as
+                being decomissioned for maintenance.)
+            - could often get 'stuck' as the programming model was awkward
+
+- Include a 'sidecar', or process wrapper for applications
+    - We have found that colocating 'pilots' alongside application processes allows far greater
+        introspection capabilities.
+    - These can report detailed information about each node in a cluster
+    - We provide a centralised API server (akin to kube-apiserver) that records state
+    - The controller can then take 'Actions' based on this state
+        - For example:
+            - Scale
+            - UpgradeVersion
+            - Backup
+    - Centralised apiserver allows us to provide a stable API
+    - Introduce api types with flexible configuration: (show examples of ESC, C* cluster and Pilot resource)
+    - This model is early in development, but is proving powerful and flexible
+    - Show Elasticsearch scale up and version upgrade happening at once
+        - We can sequence actions
+        - Ensure correct pre-actions are taken (i.e. marking a node unavailable for allocation) before performing actions
+        - ensure preconditions (e.g. a node is no longer serving requests) are met before performing actions
+
+- Exciting landscape ahead of us. Many good minds in the space (links to variety of different current operators)
+- Lots of work going on in the community to make this information easily consumable
+- We are keen to hear from Kubernetes and distributed systems experts alike - there are many difficult problems to solve,
+    and we believe we've made a good model for approaching them

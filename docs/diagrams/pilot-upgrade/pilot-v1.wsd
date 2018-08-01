@@ -1,0 +1,38 @@
+title Upgrade: Pilot V1 Leaves Cluster
+
+participant Controller as ctrl
+participant PilotResource as pir
+participant PodResource as por
+participant Pod as pod
+participant Kubelet as kub
+
+ctrl->pir: Update desired state
+note over pir
+    desired: alone
+    actual: slave
+end note
+
+note over pod
+    Pilot removes its database from cluster
+end note
+
+pod->pir: Update state
+note over pir
+    desired: alone
+    actual: alone
+end note
+
+pir-->ctrl: Informer
+
+ctrl->pir: Destroy
+destroy pir
+
+ctrl->por: Destroy
+destroy por
+
+por-->kub: Informer
+kub->pod: sigterm
+note over pod
+    Pilot kills database process and exits
+end note
+destroy pod
